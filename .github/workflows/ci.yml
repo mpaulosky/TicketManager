@@ -137,6 +137,15 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
       - name: Cache NuGet packages
         uses: actions/cache@v6
         with:
@@ -282,6 +291,17 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
+
+      - name: Setup Node.js
+        if: needs.changes.outputs.code == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install npm dependencies
+        if: needs.changes.outputs.code == 'true'
+        run: npm ci
 
       - name: Cache NuGet packages
         uses: actions/cache@v6

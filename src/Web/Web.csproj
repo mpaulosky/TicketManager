@@ -4,11 +4,25 @@
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Style\Theme.css">
+      <Link>wwwroot\Style\Theme.css</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <TailwindWorkingDirectory Condition="'$(SolutionDir)' != ''">$(SolutionDir)</TailwindWorkingDirectory>
+    <TailwindWorkingDirectory Condition="'$(TailwindWorkingDirectory)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../..'))</TailwindWorkingDirectory>
   </PropertyGroup>
+
+  <Target Name="BuildTailwind" BeforeTargets="Build">
+    <Exec Command="npm run tw:build" WorkingDirectory="$(TailwindWorkingDirectory)" />
+  </Target>
 
 </Project>
