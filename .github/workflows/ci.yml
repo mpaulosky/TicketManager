@@ -361,7 +361,7 @@ jobs:
         if: needs.changes.outputs.code == 'true' && matrix.requires_playwright
         with:
           name: playwright-artifacts-${{ matrix.test_id }}
-          path: tests/E2E.Tests/bin/Release/**/TestResults/playwright-artifacts/
+          path: tests/Web.Tests.E2E/bin/Release/**/TestResults/playwright-artifacts/
           if-no-files-found: ignore
 
   coverage:

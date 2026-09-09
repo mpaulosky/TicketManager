@@ -151,6 +151,18 @@ Please provide as much detail as possible, including steps to reproduce, expecte
 **Note:** Pull requests without unit tests will be delayed until tests are added. All new features and bug fixes must
 include appropriate tests.
 
+#### Running the E2E tests locally
+
+`tests/Web.Tests.E2E` uses Playwright to drive a real browser against `Web`, hosted on a real Kestrel port. Before
+running it locally (or after a fresh `dotnet build`), install the Playwright browser binaries once:
+
+```bash
+pwsh tests/Web.Tests.E2E/bin/Release/net10.0/playwright.ps1 install chromium
+```
+
+(On a machine without PowerShell, install it first, or run the equivalent `playwright install chromium` via the
+Playwright CLI.) CI installs browsers automatically as part of the pipeline.
+
 Any code that is written to support a component or new functionality are required to be accompanied with unit tests at the time the pull request is submitted. Pull requests without unit tests will be delayed and asked for unit tests to prove their functionality.
 
 ### Review Process
