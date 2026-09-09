@@ -12,6 +12,12 @@ public class AppHostTests
 	{
 		// Arrange
 		var cancellationToken = TestContext.Current.CancellationToken;
+
+		// Force Web's "http" launch profile for this test process only (not for
+		// real local/dev `dotnet run`) -- the ASP.NET Core dev cert used by the
+		// default "https" profile isn't trusted on CI runners.
+		Environment.SetEnvironmentVariable("WEB_LAUNCH_PROFILE", "http");
+
 		var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.AppHost>(cancellationToken);
 		appHost.Services.AddLogging(logging =>
 		{
