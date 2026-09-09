@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-09-09T16:47:24.277555Z",
+  "posts": [
+    {
+      "fileName": "2026-09-09-08-scoping-the-http-launch-profile-fix.md",
+      "title": "Scoping the HTTP Launch-Profile Fix to AppHost.Tests Only",
+      "summary": "The dev-cert fix that saved AppHost.Tests in CI turned out to be too broad, breaking HTTPS for real local dev sessions. Here's how an environment-variable toggle scoped the fix to test runs only.",
+      "date": "2026-09-09",
+      "slug": "scoping-the-http-launch-profile-fix",
+      "sequence": 8,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-09-08-scoping-the-http-launch-profile-fix.md"
+    },
+    {
+      "fileName": "2026-09-09-07-e2e-tests-and-ci-artifact-path-fix.md",
+      "title": "Scaffolding Real E2E Tests and Fixing a Hardcoded CI Artifact Path",
+      "summary": "Adding a real Playwright-driven E2E test project to TicketManager surfaced a stale, hardcoded artifact path in ci.yml left over from an earlier project layout - here's what the new smoke test verifies and how the CI path got fixed.",
+      "date": "2026-09-09",
+      "slug": "e2e-tests-and-ci-artifact-path-fix",
+      "sequence": 7,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-09-07-e2e-tests-and-ci-artifact-path-fix.md"
+    },
+    {
+      "fileName": "2026-09-09-06-fixing-untrusted-https-dev-cert-in-ci.md",
+      "title": "Fixing an Untrusted HTTPS Dev Cert Failure in AppHost.Tests",
+      "summary": "AppHost.Tests started failing in GitHub Actions with an UntrustedRoot TLS error. Here's why Aspire's default launch profile resolution triggered it, and the one-line fix that pinned the Web resource to HTTP.",
+      "date": "2026-09-09",
+      "slug": "fixing-untrusted-https-dev-cert-in-ci",
+      "sequence": 6,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-09-06-fixing-untrusted-https-dev-cert-in-ci.md"
+    },
+    {
+      "fileName": "2026-09-09-05-web-unit-bunit-integration-tests.md",
+      "title": "Three Kinds of Web Tests: Unit, bUnit, and Integration Baselines",
+      "summary": "PR #10 rounds out TicketManager's Web test coverage with three focused projects — Web.Tests.Unit, Web.Tests.Bunit, and Web.Tests.Integration — each carrying one real smoke test against the default template output.",
+      "date": "2026-09-09",
+      "slug": "web-unit-bunit-integration-tests",
+      "sequence": 5,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-09-05-web-unit-bunit-integration-tests.md"
+    },
+    {
+      "fileName": "2026-09-09-04-apphost-and-architecture-tests.md",
+      "title": "Testing the Whole Distributed App: AppHost.Tests and Architecture.Tests",
+      "summary": "PR #9 scaffolds two new test projects for TicketManager: AppHost.Tests, which boots the real distributed application with Aspire.Hosting.Testing, and Architecture.Tests, which uses NetArchTest.Rules to enforce a dependency constraint on the Web project.",
+      "date": "2026-09-09",
+      "slug": "apphost-and-architecture-tests",
+      "sequence": 4,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-09-04-apphost-and-architecture-tests.md"
+    },
+    {
+      "fileName": "2026-09-09-03-scaffolding-apphost-servicedefaults-web.md",
+      "title": "Scaffolding the Aspire Shape: AppHost, ServiceDefaults, and Web",
+      "summary": "A walkthrough of PR #8 (commit 641d3b1), which scaffolds the AppHost, ServiceDefaults, and Web projects and wires them into TicketManager.slnx, establishing the standard .NET Aspire application shape for TicketManager.",
+      "date": "2026-09-09",
+      "slug": "scaffolding-apphost-servicedefaults-web",
+      "sequence": 3,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-09-03-scaffolding-apphost-servicedefaults-web.md"
+    },
+    {
+      "fileName": "2026-09-09-02-project-readme-and-squad-agent-config.md",
+      "title": "PR #1: A README, Central Package Management, and the Squad Agent",
+      "summary": "Pull request #1 gave TicketManager its public-facing README, centralized NuGet version management via Directory.Packages.props, and the 1,127-line Squad agent configuration that orchestrates the rest of the AI team living in the repo.",
+      "date": "2026-09-09",
+      "slug": "project-readme-and-squad-agent-config",
+      "sequence": 2,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-09-02-project-readme-and-squad-agent-config.md"
+    },
+    {
+      "fileName": "2026-09-09-01-project-kickoff.md",
+      "title": "Bootstrapping TicketManager: Engineering Practices Before a Line of App Code",
+      "summary": "Before any application code existed, the TicketManager repository landed eleven commits that established session tracking, agent configuration, git hooks, documentation standards, CI/CD workflows, and architecture guidelines — the scaffolding every later feature would build on.",
+      "date": "2026-09-09",
+      "slug": "project-kickoff",
+      "sequence": 1,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-09-01-project-kickoff.md"
+    }
+  ]
+}
