@@ -1,2 +1,7 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AppHost/AppHost.csproj" />
+    <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
+    <Project Path="src/Web/Web.csproj" />
+  </Folder>
 </Solution>
