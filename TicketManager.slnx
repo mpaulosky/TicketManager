@@ -10,5 +10,6 @@
     <Project Path="tests/Web.Tests.Unit/Web.Tests.Unit.csproj" />
     <Project Path="tests/Web.Tests.Bunit/Web.Tests.Bunit.csproj" />
     <Project Path="tests/Web.Tests.Integration/Web.Tests.Integration.csproj" />
+    <Project Path="tests/Web.Tests.E2E/Web.Tests.E2E.csproj" />
   </Folder>
 </Solution>
