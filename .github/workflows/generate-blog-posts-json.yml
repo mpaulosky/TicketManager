@@ -1,0 +1,113 @@
+---
+# Regenerates docs/data/blog-posts.json from docs/blogs/*.md via a PR back to protected main.
+# Keeps the checked-in blog post catalog in sync without direct pushes to main.
+name: Generate blog posts JSON
+
+"on":
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/blogs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: "generate-blog-posts-json"
+  cancel-in-progress: true
+
+env:
+  MAIN_BRANCH: >-
+    ${{ github.event.repository.default_branch || 'main' }}
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare generated blog posts JSON
+        id: prepare_generate_blog_posts_json
+        run: |
+          python3 .github/scripts/generate-blog-posts-json.py
+
+          if git diff --quiet docs/data/blog-posts.json; then
+            echo "docs_changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          cp docs/data/blog-posts.json "$RUNNER_TEMP/blog-posts.json"
+          git restore docs/data/blog-posts.json
+          echo "docs_changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit generated blog posts JSON to automation branch
+        id: commit_generate_blog_posts_json
+        if: steps.prepare_generate_blog_posts_json.outputs.docs_changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${MAIN_BRANCH}" --depth=1
+          git switch -C automation/generate-blog-posts-json "origin/${MAIN_BRANCH}"
+          cp "$RUNNER_TEMP/blog-posts.json" docs/data/blog-posts.json
+
+          if git diff --quiet docs/data/blog-posts.json; then
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            echo "No docs/data/blog-posts.json changes to commit against ${MAIN_BRANCH}"
+            exit 0
+          fi
+
+          git add docs/data/blog-posts.json
+          git commit -m "docs: regenerate blog-posts.json [skip ci]"
+          git push --force-with-lease origin HEAD
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Create or reuse blog posts JSON PR to main
+        if: steps.commit_generate_blog_posts_json.outputs.committed == 'true'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const mainBranch = process.env.MAIN_BRANCH;
+            const head = `${owner}:automation/generate-blog-posts-json`;
+
+            const openPrs = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              base: mainBranch,
+              head,
+              per_page: 1
+            });
+
+            if (openPrs.data.length > 0) {
+              core.info(
+                `Existing blog posts JSON PR found: #${openPrs.data[0].number}`
+              );
+              return;
+            }
+
+            const created = await github.rest.pulls.create({
+              owner,
+              repo,
+              base: mainBranch,
+              head: 'automation/generate-blog-posts-json',
+              title: 'docs: regenerate docs/data/blog-posts.json',
+              body: [
+                'Automated blog post catalog regeneration PR for protected main.',
+                '',
+                '- Trigger: push to `main` affecting `docs/blogs/**`',
+                '- Behavior: commits `docs/data/blog-posts.json` updates to',
+                '  `automation/generate-blog-posts-json`',
+                '- Target: opens or reuses a PR into `main`'
+              ].join('\n')
+            });
+
+            core.info(`Created blog posts JSON PR #${created.data.number}`);
