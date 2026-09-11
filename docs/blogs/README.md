@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-11 | [feat(web): add About page](2026-09-11-pr-34-feat-web-add-about-page.md) | release,automation |
 | 2026-09-11 | [docs(prompts): add README drift check to review-changes workflow](2026-09-11-pr-32-docs-prompts-add-readme-drift-check-to-review-changes-workflow.md) | release,automation |
 | 2026-09-11 | [fix(ci): surface release-docs failures instead of swallowing them](2026-09-11-pr-30-fix-ci-surface-release-docs-failures-instead-of-swallowing-them.md) | release,automation |
 | 2026-09-11 | [docs(blogs): recover stranded release-notes posts for PRs #19, #20, #22, #23](2026-09-11-pr-28-docs-blogs-recover-stranded-release-notes-posts-for-prs-19-20-22-23.md) | release,automation |
