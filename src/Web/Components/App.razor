@@ -7,7 +7,7 @@
 	<base href="/" />
 	<title>Ticket Manager</title>
 	<ResourcePreloader />
-	<link rel="stylesheet" href="@Assets["app.css"]" />
+	<link rel="stylesheet" href="@Assets["css/app.css"]" />
 	<link rel="stylesheet" href="@Assets["Web.styles.css"]" />
 	<link rel="stylesheet" href="_content/PSC.Blazor.Components.MarkdownEditor/css/markdowneditor.css" />
 	<link rel="stylesheet" href="_content/PSC.Blazor.Components.MarkdownEditor/css/easymde.min.css" />
@@ -17,7 +17,7 @@
 </head>
 
 <body>
-	<Routes />
+	<Routes @rendermode="InteractiveServer" />
 	<ReconnectModal />
 	<script>
 			(() => {
