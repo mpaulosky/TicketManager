@@ -1,4 +1,5 @@
 using Web.Components;
+using Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +8,22 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// GitHub Projects dashboard: bind configuration (owner/token) and fall back to the GITHUB_TOKEN
+// environment variable when no token is supplied via configuration/user-secrets.
+builder.Services
+    .AddOptions<GitHubProjectsOptions>()
+    .Bind(builder.Configuration.GetSection(GitHubProjectsOptions.SectionName));
+builder.Services.PostConfigure<GitHubProjectsOptions>(options =>
+{
+    if (string.IsNullOrWhiteSpace(options.Token))
+    {
+        options.Token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+    }
+});
+
+builder.Services.AddHttpClient(GitHubProjectsService.HttpClientName);
+builder.Services.AddScoped<IGitHubProjectsService, GitHubProjectsService>();
 
 var app = builder.Build();
 

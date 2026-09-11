@@ -1,0 +1,126 @@
+@page "/projects"
+@using Web.Services
+@inject IGitHubProjectsService GitHubProjectsService
+
+<PageTitle>GitHub Projects</PageTitle>
+
+<section class="app-page-stack">
+	<div class="app-page-card">
+		<div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+			<div class="max-w-2xl">
+				<p class="app-pill">Live status</p>
+				<h1 class="app-h1">GitHub Projects</h1>
+				<p class="app-copy">
+					An at-a-glance view of every repository's open issues and pull requests, pulled directly
+					from GitHub so you can jump straight in and review.
+				</p>
+			</div>
+
+			@if (_result is not null && !_result.IsAuthenticated)
+			{
+				<span class="app-badge" title="Configure GitHub:Token or the GITHUB_TOKEN environment variable to raise API rate limits.">
+					Unauthenticated — public repos only, rate limits may apply
+				</span>
+			}
+		</div>
+	</div>
+
+	@if (_isLoading)
+	{
+		<div class="app-panel-card">
+			<p class="app-body-copy">Loading repositories…</p>
+		</div>
+	}
+	else if (!string.IsNullOrWhiteSpace(_result?.ErrorMessage))
+	{
+		<div class="app-panel-card">
+			<div class="app-section-header">
+				<h2 class="app-section-title">Unable to load GitHub Projects</h2>
+				<span class="app-badge">Error</span>
+			</div>
+			<p class="app-body-copy">@_result.ErrorMessage</p>
+		</div>
+	}
+	else if (_result is not null && _result.Repositories.Count == 0)
+	{
+		<div class="app-panel-card">
+			<p class="app-body-copy">No repositories were found for the configured GitHub owner.</p>
+		</div>
+	}
+	else if (_result is not null)
+	{
+		<div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+			@foreach (var repository in _result.Repositories)
+			{
+				<section class="app-panel-card" data-testid="repo-card">
+					<div class="app-section-header">
+						<h2 class="app-section-title">
+							<a href="@repository.Url" target="_blank" rel="noreferrer" class="hover:underline">@repository.Name</a>
+						</h2>
+					</div>
+
+					<div class="app-body-copy">
+						<div>
+							<div class="flex items-center justify-between gap-2">
+								<h3 class="font-semibold text-(--app-text)">Issues</h3>
+								<span class="app-badge">@repository.Issues.Count open</span>
+							</div>
+							@if (repository.Issues.Count == 0)
+							{
+								<p class="mt-2 text-sm text-(--app-text-muted)">No open issues.</p>
+							}
+							else
+							{
+								<ul class="app-list mt-2">
+									@foreach (var issue in repository.Issues)
+									{
+										<li>
+											<a href="@issue.Url" target="_blank" rel="noreferrer" class="text-(--app-text) hover:underline">
+												#@issue.Number @issue.Title
+											</a>
+										</li>
+									}
+								</ul>
+							}
+						</div>
+
+						<div>
+							<div class="flex items-center justify-between gap-2">
+								<h3 class="font-semibold text-(--app-text)">Pull Requests</h3>
+								<span class="app-badge">@repository.PullRequests.Count open</span>
+							</div>
+							@if (repository.PullRequests.Count == 0)
+							{
+								<p class="mt-2 text-sm text-(--app-text-muted)">No open pull requests.</p>
+							}
+							else
+							{
+								<ul class="app-list mt-2">
+									@foreach (var pullRequest in repository.PullRequests)
+									{
+										<li>
+											<a href="@pullRequest.Url" target="_blank" rel="noreferrer" class="text-(--app-text) hover:underline">
+												#@pullRequest.Number @pullRequest.Title
+											</a>
+										</li>
+									}
+								</ul>
+							}
+						</div>
+					</div>
+				</section>
+			}
+		</div>
+	}
+</section>
+
+@code {
+	private GitHubProjectsResult? _result;
+	private bool _isLoading = true;
+
+	protected override async Task OnInitializedAsync()
+	{
+		_result = await GitHubProjectsService.GetProjectsAsync();
+		_isLoading = false;
+	}
+}

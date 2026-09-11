@@ -9,6 +9,7 @@
 		<TailwindWorkingDirectory Condition="'$(TailwindWorkingDirectory)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../..'))</TailwindWorkingDirectory>
 		<NpmCommand Condition="'$(NpmCommand)' == '' AND '$(OS)' == 'Windows_NT'">npm.cmd</NpmCommand>
 		<NpmCommand Condition="'$(NpmCommand)' == ''">npm</NpmCommand>
+		<UserSecretsId>328dbbf5-3386-4e20-9909-26504bcd8520</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>
