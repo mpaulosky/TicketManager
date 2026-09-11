@@ -82,7 +82,11 @@ rollout history of workflow-standard and major changes by release.
 <!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-11 | [docs(blogs): recover stranded release-notes posts for PRs #19, #20, #22, #23](docs/blogs/2026-09-11-pr-28-docs-blogs-recover-stranded-release-notes-posts-for-prs-19-20-22-23.md) | release,automation |
 | 2026-09-11 | [chore(docs): retest release pipeline after RELEASE_PR_PAT fix](docs/blogs/2026-09-11-pr-26-chore-docs-retest-release-pipeline-after-release-pr-pat-fix.md) | release,automation |
+| 2026-09-11 | [test(web): add coverage for untested Blazor pages and services](docs/blogs/2026-09-11-pr-23-test-web-add-coverage-for-untested-blazor-pages-and-services.md) | release,automation |
+| 2026-09-11 | [feat(web): add GitHub Projects dashboard page](docs/blogs/2026-09-11-pr-22-feat-web-add-github-projects-dashboard-page.md) | release,automation |
+| 2026-09-11 | [fix(web): correct app.css asset path and render mode](docs/blogs/2026-09-11-pr-20-fix-web-correct-app-css-asset-path-and-render-mode.md) | release,automation |
 <!-- BLOG_END -->
 
 ## Quick start
@@ -139,7 +143,11 @@ notes) and then:
 - updates this README latest-blog block (`<!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-11 | [docs(blogs): recover stranded release-notes posts for PRs #19, #20, #22, #23](docs/blogs/2026-09-11-pr-28-docs-blogs-recover-stranded-release-notes-posts-for-prs-19-20-22-23.md) | release,automation |
 | 2026-09-11 | [chore(docs): retest release pipeline after RELEASE_PR_PAT fix](docs/blogs/2026-09-11-pr-26-chore-docs-retest-release-pipeline-after-release-pr-pat-fix.md) | release,automation |
+| 2026-09-11 | [test(web): add coverage for untested Blazor pages and services](docs/blogs/2026-09-11-pr-23-test-web-add-coverage-for-untested-blazor-pages-and-services.md) | release,automation |
+| 2026-09-11 | [feat(web): add GitHub Projects dashboard page](docs/blogs/2026-09-11-pr-22-feat-web-add-github-projects-dashboard-page.md) | release,automation |
+| 2026-09-11 | [fix(web): correct app.css asset path and render mode](docs/blogs/2026-09-11-pr-20-fix-web-correct-app-css-asset-path-and-render-mode.md) | release,automation |
 <!-- BLOG_END -->`)
   from `docs/blogs/README.md` (top 5 rows),
 - updates [docs/index.html](docs/index.html) latest blog links from the same rows.
