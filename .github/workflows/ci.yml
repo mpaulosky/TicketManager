@@ -142,8 +142,10 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: src/Web/package-lock.json
 
       - name: Install npm dependencies
+        working-directory: src/Web
         run: npm ci
 
       - name: Cache NuGet packages
@@ -298,9 +300,11 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: src/Web/package-lock.json
 
       - name: Install npm dependencies
         if: needs.changes.outputs.code == 'true'
+        working-directory: src/Web
         run: npm ci
 
       - name: Cache NuGet packages

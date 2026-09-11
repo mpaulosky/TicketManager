@@ -57,8 +57,10 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: src/Web/package-lock.json
 
       - name: Install npm dependencies
+        working-directory: src/Web
         run: npm ci
 
       # Initializes the CodeQL tools for scanning.

@@ -1,28 +1,107 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <ItemGroup>
-    <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
-  </ItemGroup>
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+		<TailwindWorkingDirectory Condition="'$(SolutionDir)' != ''">$(SolutionDir)</TailwindWorkingDirectory>
+		<TailwindWorkingDirectory Condition="'$(TailwindWorkingDirectory)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../..'))</TailwindWorkingDirectory>
+		<NpmCommand Condition="'$(NpmCommand)' == '' AND '$(OS)' == 'Windows_NT'">npm.cmd</NpmCommand>
+		<NpmCommand Condition="'$(NpmCommand)' == ''">npm</NpmCommand>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="Style\Theme.css">
-      <Link>wwwroot\Style\Theme.css</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
+	</ItemGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-    <TailwindWorkingDirectory Condition="'$(SolutionDir)' != ''">$(SolutionDir)</TailwindWorkingDirectory>
-    <TailwindWorkingDirectory Condition="'$(TailwindWorkingDirectory)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../..'))</TailwindWorkingDirectory>
-  </PropertyGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="AppHost.Tests" />
+		<InternalsVisibleTo Include="Architecture.Tests" />
+		<InternalsVisibleTo Include="Web.Tests.Bunit" />
+		<InternalsVisibleTo Include="Web.Tests.E2E" />
+		<InternalsVisibleTo Include="Web.Tests.Integration" />
+		<InternalsVisibleTo Include="Web.Tests.Unit" />
+		<InternalsVisibleTo Include="Web.TestData" />
+	</ItemGroup>
 
-  <Target Name="BuildTailwind" BeforeTargets="Build">
-    <Exec Command="npm run tw:build" WorkingDirectory="$(TailwindWorkingDirectory)" />
-  </Target>
+	<!--
+		Generate BuildInfo.g.cs at build time with the git tag and short commit hash.
+		FooterComponent reads BuildInfo.Version and BuildInfo.Commit at runtime.
+	-->
+	<ItemGroup>
+		<Compile Include="$(IntermediateOutputPath)BuildInfo.g.cs" Condition="Exists('$(IntermediateOutputPath)BuildInfo.g.cs')" />
+	</ItemGroup>
+
+	<Target Name="GetGitBuildInfo" BeforeTargets="BeforeBuild" Condition="'$(DesignTimeBuild)' != 'true'">
+		<Exec Command="git describe --tags --abbrev=0" ConsoleToMSBuild="true" IgnoreExitCode="true" StandardOutputImportance="Low">
+			<Output TaskParameter="ConsoleOutput" PropertyName="_RawGitTag" />
+		</Exec>
+		<Exec Command="git rev-parse --short HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true" StandardOutputImportance="Low">
+			<Output TaskParameter="ConsoleOutput" PropertyName="_RawGitCommit" />
+		</Exec>
+
+		<PropertyGroup>
+			<_GitTag>$(_RawGitTag.Trim())</_GitTag>
+			<_GitCommit>$(_RawGitCommit.Trim())</_GitCommit>
+			<_GitTag Condition="'$(_GitTag)' == ''">v0.0.0</_GitTag>
+			<_GitCommit Condition="'$(_GitCommit)' == ''">unknown</_GitCommit>
+		</PropertyGroup>
+
+		<ItemGroup>
+			<_BuildInfoLine Include="// &lt;auto-generated /&gt;" />
+			<_BuildInfoLine Include="// Copyright (c) 2026. All rights reserved." />
+			<_BuildInfoLine Include="namespace Web%3B" />
+			<_BuildInfoLine Include="/// &lt;summary&gt;Build-time git metadata baked in by GetGitBuildInfo MSBuild target.&lt;/summary&gt;" />
+			<_BuildInfoLine Include="internal static class BuildInfo" />
+			<_BuildInfoLine Include="{" />
+			<_BuildInfoLine Include="    internal const string Version = &quot;$(_GitTag)&quot;%3B" />
+			<_BuildInfoLine Include="    internal const string Commit = &quot;$(_GitCommit)&quot;%3B" />
+			<_BuildInfoLine Include="}" />
+		</ItemGroup>
+
+		<WriteLinesToFile File="$(IntermediateOutputPath)BuildInfo.g.cs" Lines="@(_BuildInfoLine)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+		<ItemGroup>
+			<Compile Remove="$(IntermediateOutputPath)BuildInfo.g.cs" />
+			<Compile Include="$(IntermediateOutputPath)BuildInfo.g.cs" />
+		</ItemGroup>
+	</Target>
+
+	<!--
+	Ensure that npm is available on the build machine.
+	If not, check if a pre-built app.css exists. If neither is true, fail the build.
+	-->
+	<Target Name="DetectNpm" BeforeTargets="EnsureNpmPackages;BuildTailwind" Condition="'$(CI)' != 'true' AND '$(CI)' != '1'">
+		<Exec Command="$(NpmCommand) --version" IgnoreExitCode="true">
+			<Output TaskParameter="ExitCode" PropertyName="NpmExitCode" />
+		</Exec>
+		<PropertyGroup>
+			<NpmAvailable Condition="'$(NpmExitCode)' == '0'">true</NpmAvailable>
+			<NpmAvailable Condition="'$(NpmExitCode)' != '0'">false</NpmAvailable>
+		</PropertyGroup>
+		<Error Condition="'$(NpmAvailable)' != 'true' AND !Exists('$(MSBuildProjectDirectory)/wwwroot/css/app.css')" Text="npm was not found and no pre-built app.css exists. Install Node.js/npm and run 'cd src/Web &amp;&amp; npm ci' before building." />
+		<Warning Condition="'$(NpmAvailable)' != 'true' AND Exists('$(MSBuildProjectDirectory)/wwwroot/css/app.css')" Text="npm was not found. Skipping Tailwind build and using the existing generated CSS at wwwroot/css/app.css." />
+	</Target>
+
+	<!-- On a fresh machine, node_modules won't exist. Auto-run npm install before Tailwind builds. -->
+	<Target Name="EnsureNpmPackages" BeforeTargets="BuildTailwind" Condition="'$(CI)' != 'true' AND '$(CI)' != '1' AND '$(NpmAvailable)' == 'true' AND !Exists('$(MSBuildProjectDirectory)/node_modules')">
+		<Message Importance="high" Text="node_modules not found — running npm install..." />
+		<Exec Command="$(NpmCommand) ci --ignore-scripts" WorkingDirectory="$(MSBuildProjectDirectory)" />
+	</Target>
+
+	<!--
+		Only reinstall when package-lock.json actually changed since the last install (tracked via
+		the stamp file). Reinstalling unconditionally on every build deletes and rebuilds node_modules
+		out from under any concurrently running `npm run watch:css`, causing intermittent
+		"Can't resolve 'tailwindcss'" failures in the watcher.
+	-->
+	<Target Name="TailwindNpmCi" BeforeTargets="TailwindBuild" Condition="Exists('package.json')" Inputs="$(MSBuildProjectDirectory)/package-lock.json" Outputs="$(MSBuildProjectDirectory)/node_modules/.install-stamp">
+		<Exec Command="$(NpmCommand) ci --no-audit --no-fund" WorkingDirectory="$(MSBuildProjectDirectory)" />
+		<Touch Files="$(MSBuildProjectDirectory)/node_modules/.install-stamp" AlwaysCreate="true" />
+	</Target>
+
+	<Target Name="TailwindBuild" BeforeTargets="Build">
+		<Exec Command="npm run build:css" WorkingDirectory="$(MSBuildProjectDirectory)" Condition="Exists('package.json')" />
+	</Target>
 
 </Project>

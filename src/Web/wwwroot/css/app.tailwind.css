@@ -1,0 +1,469 @@
+@import "tailwindcss";
+@source "../Components";
+
+/*
+ * The in-app theme toggle (see App.razor's inline script) sets a `dark` class and
+ * `data-theme` attribute on <html>. Tailwind's default `dark:` variant only follows
+ * prefers-color-scheme, which ignores that toggle — key it off the class instead so
+ * manual light/dark switching actually affects `dark:` utilities.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+	--app-bg: #f8fafc;
+	--app-panel: rgba(255, 255, 255, 0.78);
+	--app-surface: rgba(255, 255, 255, 0.9);
+	--app-surface-muted: rgba(148, 163, 184, 0.09);
+	--app-border: rgba(148, 163, 184, 0.24);
+	--app-text: #0f172a;
+	--app-text-muted: #475569;
+	--app-brand: #2563eb;
+	--app-brand-strong: #1d4ed8;
+	--app-brand-soft: rgba(96, 165, 250, 0.12);
+	--app-sidebar: linear-gradient(
+		180deg,
+		rgba(15, 23, 42, 0.96) 0%,
+		rgba(30, 41, 59, 0.96) 100%
+	);
+}
+
+:root[data-theme="dark"] {
+	--app-bg: #020817;
+	--app-panel: rgba(15, 23, 42, 0.82);
+	--app-surface: rgba(15, 23, 42, 0.9);
+	--app-surface-muted: rgba(148, 163, 184, 0.12);
+	--app-border: rgba(148, 163, 184, 0.2);
+	--app-text: #e2e8f0;
+	--app-text-muted: #94a3b8;
+	--app-brand: #60a5fa;
+	--app-brand-strong: #bfdbfe;
+	--app-brand-soft: rgba(96, 165, 250, 0.16);
+	--app-sidebar: linear-gradient(
+		180deg,
+		rgba(8, 15, 27, 0.98) 0%,
+		rgba(15, 23, 42, 0.96) 100%
+	);
+}
+
+html {
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	background-color: var(--app-bg);
+}
+
+body {
+	margin: 0;
+	min-height: 100vh;
+	background:
+		radial-gradient(circle at top, rgba(96, 165, 250, 0.18), transparent 38%),
+		linear-gradient(180deg, var(--app-bg) 0%, rgba(148, 163, 184, 0.08) 100%);
+	color: var(--app-text);
+}
+
+@layer base {
+	a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	button {
+		font: inherit;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		margin: 0;
+	}
+
+	p {
+		margin: 0;
+	}
+
+	code {
+		font-family:
+			"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+	}
+}
+
+@layer components {
+	.app-shell {
+		@apply min-h-screen
+		bg-(--app-bg) text-(--app-text)
+		transition-colors duration-300;
+	}
+
+	.app-page {
+		@apply mx-auto flex min-h-screen w-[90%] flex-col;
+	}
+
+	.app-header {
+		@apply sticky top-4 z-40 mx-4 mt-4
+		rounded-3xl border border-(--app-border)
+		bg-(--app-panel)/80
+		shadow-lg shadow-slate-400/40
+		backdrop-blur-sm md:mx-6;
+	}
+
+	.app-brand {
+		@apply flex items-center
+		gap-3 text-sm
+		font-semibold uppercase
+		tracking-[0.22em]
+		text-(--app-brand);
+	}
+
+	.app-brand-mark {
+		@apply flex h-8 w-8
+		items-center justify-center
+		rounded-lg
+		bg-(--app-brand-soft)
+		text-base font-bold
+		text-(--app-brand-strong);
+	}
+
+	.app-nav {
+		@apply hidden items-center gap-2 md:flex;
+	}
+
+	.app-content-shell {
+		@apply mx-auto w-full px-4 pt-8 pb-6 md:px-8 lg:px-10;
+	}
+
+	.app-footer {
+		@apply mx-4 mb-4 rounded-3xl
+		border border-(--app-border)
+		bg-(--app-panel)/80
+		shadow-lg shadow-slate-400/40
+		backdrop-blur-sm md:mx-6;
+	}
+
+	.app-footer-inner {
+		@apply flex flex-col
+		items-center justify-between
+		gap-3 px-4 py-3
+		text-sm text-(--app-text-muted)
+		md:flex-row md:px-6;
+	}
+
+	.app-footer-brand {
+		@apply font-medium text-(--app-text);
+	}
+
+	.app-footer-meta {
+		@apply flex items-center gap-2 text-xs uppercase tracking-[0.18em];
+	}
+
+	.app-footer-label {
+		@apply text-(--app-text-muted);
+	}
+
+	.app-footer-value {
+		@apply font-semibold text-emerald-600
+		hover:text-emerald-700
+		dark:text-emerald-400
+		dark:hover:text-emerald-300;
+	}
+
+	.app-article {
+		@apply rounded-2xl
+		border border-(--app-border)
+		bg-(--app-surface)
+		shadow-lg shadow-slate-400/40 md:p-8;
+	}
+
+	.app-page-stack {
+		@apply space-y-8;
+	}
+
+	.app-page-card {
+		@apply mx-auto w-full
+		max-w-[calc(100%-2rem)]
+		rounded-3xl
+		border border-(--app-border)
+		bg-(--app-panel)
+		shadow-lg shadow-slate-400/40
+		md:max-w-[calc(100%-1rem)] md:p-8;
+	}
+
+	.app-panel-card {
+		@apply rounded-3xl
+		border border-(--app-border)
+		bg-(--app-panel) p-6
+		shadow-lg shadow-slate-400/40;
+	}
+
+	.app-pill {
+		@apply mb-3 inline-flex
+		rounded-full
+		border border-sky-200
+		bg-sky-100 px-3 py-1
+		text-xs font-semibold uppercase
+		tracking-[0.2em] text-sky-700;
+	}
+
+	.app-h1 {
+		@apply sm:text-3xl md:text-4xl lg:text-5xl;
+	}
+
+	.app-h2 {
+		@apply sm:text-2xl md:text-3xl lg:text-4xl;
+	}
+
+	.app-h3 {
+		@apply sm:text-xl md:text-2xl lg:text-3xl;
+	}
+
+	.app-h1,
+	.app-h2,
+	.app-h3,
+	.app-h4,
+	.app-h5,
+	.app-h6 {
+		@apply font-black tracking-tight text-(--app-text);
+	}
+	.app-copy {
+		@apply mt-4 max-w-xl text-base text-(--app-text-muted);
+	}
+
+	.app-markdown-content {
+		@apply max-w-none text-base leading-relaxed text-(--app-text);
+
+		:where(h1, h2, h3, h4, h5, h6) {
+			@apply mt-6 mb-3 font-bold text-(--app-text) first:mt-0;
+		}
+
+		:where(h1) {
+			@apply text-3xl;
+		}
+
+		:where(h2) {
+			@apply text-2xl;
+		}
+
+		:where(h3) {
+			@apply text-xl;
+		}
+
+		:where(p) {
+			@apply mb-4;
+		}
+
+		:where(ul, ol) {
+			@apply mb-4 ml-6 list-outside space-y-1;
+		}
+
+		:where(ul) {
+			@apply list-disc;
+		}
+
+		:where(ol) {
+			@apply list-decimal;
+		}
+
+		:where(a) {
+			@apply text-sky-600 underline hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300;
+		}
+
+		:where(blockquote) {
+			@apply mb-4 border-l-4 border-(--app-border) pl-4 text-(--app-text-muted) italic;
+		}
+
+		:where(code) {
+			@apply rounded bg-(--app-surface-muted) px-1.5 py-0.5 text-sm;
+		}
+
+		:where(pre) {
+			@apply mb-4 overflow-x-auto rounded-xl bg-(--app-surface-muted) p-4;
+		}
+
+		:where(pre code) {
+			@apply bg-transparent p-0;
+		}
+
+		:where(img) {
+			@apply mb-4 max-w-full rounded-xl;
+		}
+
+		:where(table) {
+			@apply mb-4 w-full border-collapse;
+		}
+
+		:where(th, td) {
+			@apply border border-(--app-border) px-3 py-2 text-left;
+		}
+
+		:where(hr) {
+			@apply my-6 border-(--app-border);
+		}
+	}
+
+	.app-stat-grid {
+		@apply grid grid-cols-2 gap-3 sm:grid-cols-3;
+	}
+
+	.app-stat-card {
+		@apply rounded-2xl border border-(--app-border) bg-(--app-surface) p-3;
+	}
+
+	.app-stat-label {
+		@apply text-[0.65rem] uppercase tracking-[0.18em] text-(--app-text-muted);
+	}
+
+	.app-stat-value {
+		@apply mt-2 text-lg font-bold text-(--app-brand-strong);
+	}
+
+	.app-section-header {
+		@apply mb-5 flex items-center justify-between gap-3;
+	}
+
+	.app-section-title {
+		@apply text-xl font-bold text-(--app-text);
+	}
+
+	.app-badge {
+		@apply rounded-full
+		border border-(--app-border)
+		bg-(--app-surface) px-2.5 py-1
+		text-xs font-medium text-(--app-text-muted);
+	}
+
+	.app-body-copy {
+		@apply space-y-4 text-(--app-text-muted);
+	}
+
+	.app-list {
+		@apply list-disc space-y-2 pl-5;
+	}
+
+	.app-button {
+		@apply inline-flex items-center justify-center
+		rounded-full border px-2 py-1
+		text-sm font-medium
+		shadow-sm transition duration-200;
+	}
+
+	.app-button-primary {
+		@apply border-(--app-brand)
+		bg-(--app-brand) text-white
+		hover:bg-sky-500;
+	}
+
+	.app-button-secondary {
+		@apply border-(--app-border)
+		bg-(--app-surface) text-(--app-text-muted)
+		hover:border-(--app-brand) hover:text-(--app-brand);
+	}
+
+	.app-button-unsetvalue {
+		@apply border-emerald-500
+		text-emerald-600
+		hover:bg-emerald-50
+		dark:hover:bg-emerald-950/30;
+	}
+
+	.app-button-warning {
+		@apply border-amber-500 bg-amber-50
+		text-amber-700
+		hover:bg-amber-100 dark:bg-amber-950/30
+		dark:hover:bg-amber-950/50;
+	}
+
+	.app-button-actions {
+		@apply w-full border-slate-300
+		bg-white text-slate-900
+		dark:border-slate-700
+		dark:bg-slate-900
+		dark:text-slate-100;
+	}
+
+	.theme-toggle {
+		@apply inline-flex h-10 w-10 items-center justify-center
+		rounded-full border border-(--app-border)
+		bg-(--app-surface) text-lg
+		shadow-sm transition duration-200
+		hover:-translate-y-0.5 hover:border-(--app-brand) hover:text-(--app-brand);
+	}
+
+	.theme-nav-link {
+		@apply inline-flex items-center gap-2
+		rounded-lg px-3 py-2
+		text-sm font-medium text-(--app-text-muted)
+		transition-colors duration-200
+		hover:bg-(--app-surface-muted) hover:text-(--app-text);
+	}
+
+	.theme-surface {
+		@apply rounded-2xl
+		border border-(--app-border)
+		bg-(--app-surface) p-5
+		shadow-lg shadow-slate-400/40 md:p-8;
+	}
+
+	.alert-error {
+		@apply flex items-center justify-between gap-3
+		rounded-xl border border-rose-300/70
+		bg-rose-50 px-4 py-3
+		text-sm text-rose-700
+		dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300;
+	}
+
+	.alert-dismiss {
+		@apply text-lg leading-none text-rose-500
+		transition hover:text-rose-700
+		dark:text-rose-400 dark:hover:text-rose-200;
+	}
+
+	.app-table {
+		@apply w-full text-left text-sm;
+	}
+
+	.app-table th {
+		@apply border-b border-(--app-border) px-4 py-3
+		text-xs font-semibold uppercase tracking-[0.08em]
+		text-(--app-text-muted);
+	}
+
+	.app-table td {
+		@apply border-b border-(--app-border) px-4 py-3
+		align-top text-(--app-text);
+	}
+
+	.app-table tbody tr:last-child td {
+		@apply border-b-0;
+	}
+
+	.role-toggle {
+		@apply mr-1 mb-1 inline-flex items-center gap-1
+		rounded-full border px-3 py-1
+		text-xs font-medium transition;
+	}
+
+	.role-toggle-active {
+		@apply border-emerald-500 bg-emerald-50 text-emerald-700
+		hover:bg-emerald-100
+		dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:bg-emerald-950/50;
+	}
+
+	.role-toggle-inactive {
+		@apply border-(--app-border) text-(--app-text-muted)
+		hover:border-emerald-500 hover:text-emerald-600
+		dark:hover:border-emerald-400 dark:hover:text-emerald-400;
+	}
+}
+
+/* Zebra-striped rows for QuickGrid tables (e.g. the Articles list). */
+.zebra-grid tbody tr:nth-child(even) > td {
+	background-color: rgba(148, 163, 184, 0.08);
+}
+
+:root[data-theme="dark"] .zebra-grid tbody tr:nth-child(even) > td {
+	background-color: rgba(148, 163, 184, 0.1);
+}
+
+::selection {
+	background: rgba(96, 165, 250, 0.22);
+}

@@ -1,0 +1,79 @@
+@using Web.Services
+
+@inject IHttpClientFactory HttpClientFactory
+
+<footer class="app-footer">
+	<div class="app-footer-inner">
+		<div class="app-footer-brand">
+			<span>© @CurrentYear Ticket Manager</span>
+			<span>@CompanyName</span>
+		</div>
+
+		<div class="app-footer-meta">
+			<a class="app-footer-label" href="@ReleaseUrl" target="_blank" rel="noreferrer">GitHub Release</a>
+			<a class="app-footer-value" href="@ReleaseUrl" target="_blank" rel="noreferrer">@ReleaseLabel</a>
+		</div>
+
+		<div class="app-footer-meta">
+			<span class="app-footer-label">Last Commit</span>
+			<a class="app-footer-value" href="@CommitUrl" target="_blank" rel="noreferrer">@CommitLabel</a>
+		</div>
+	</div>
+</footer>
+
+@code {
+	private const string RepositoryName = "TicketManager";
+	private const string RepoBase = $"https://github.com/mpaulosky/{RepositoryName}";
+	private GitHubMetadata? _metadata;
+
+	private int CurrentYear => DateTime.UtcNow.Year;
+	private string CompanyName => "from mpaulosky.org";
+
+	private string ReleaseLabel => GetKnownValue(_metadata?.ReleaseTag, BuildInfo.Version, "no release");
+	private string CommitLabel => GetKnownValue(_metadata?.LastCommit, BuildInfo.Commit, "unknown");
+	private string ReleaseUrl => BuildReleaseUrl();
+	private string CommitUrl => BuildCommitUrl();
+
+	protected override async Task OnInitializedAsync()
+	{
+		var httpClient = HttpClientFactory.CreateClient();
+		_metadata = await GitHubMetadataProvider.GetMetadataAsync(httpClient, CancellationToken.None);
+	}
+
+	private string BuildReleaseUrl()
+	{
+		var releaseTag = GetKnownValue(_metadata?.ReleaseTag, BuildInfo.Version, null);
+		return string.IsNullOrWhiteSpace(releaseTag)
+			? $"{RepoBase}/releases"
+			: $"{RepoBase}/releases/tag/{releaseTag}";
+	}
+
+	private string BuildCommitUrl()
+	{
+		var commit = GetKnownValue(_metadata?.LastCommit, BuildInfo.Commit, null);
+		return string.IsNullOrWhiteSpace(commit)
+			? $"{RepoBase}/commits"
+			: $"{RepoBase}/commit/{commit}";
+	}
+
+	private static string GetKnownValue(string? primaryValue, string? fallbackValue, string? defaultValue)
+	{
+		if (IsKnown(primaryValue))
+		{
+			return primaryValue!;
+		}
+
+		if (IsKnown(fallbackValue))
+		{
+			return fallbackValue!;
+		}
+
+		return defaultValue ?? string.Empty;
+	}
+
+	private static bool IsKnown(string? value) =>
+		!string.IsNullOrWhiteSpace(value)
+		&& !string.Equals(value, "unknown", StringComparison.OrdinalIgnoreCase)
+		&& !string.Equals(value, "no release", StringComparison.OrdinalIgnoreCase)
+		&& !string.Equals(value, "v0.0.0", StringComparison.OrdinalIgnoreCase);
+}

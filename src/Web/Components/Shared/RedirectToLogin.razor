@@ -1,0 +1,16 @@
+@using Web.Security
+
+@inject NavigationManager Navigation
+@inject IConfiguration Configuration
+
+@code {
+
+	protected override void OnInitialized()
+	{
+		if (Auth0ConfigurationHelper.IsAuthenticationEnabled(Configuration["Auth0:Domain"], Configuration["Auth0:ClientId"], Configuration["Auth0:ClientSecret"]))
+		{
+			Navigation.NavigateTo($"/Account/Login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}", forceLoad: true);
+		}
+	}
+
+}
