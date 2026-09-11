@@ -24,7 +24,7 @@ public class HomePageTests : PageTest, IClassFixture<WebFactory>
 		await Page.GotoAsync("/");
 
 		// Assert
-		Assert.Equal("Home", await Page.TitleAsync());
-		Assert.Contains("Hello, world!", await Page.ContentAsync());
+		Assert.Equal("Ticket Manager", await Page.TitleAsync());
+		Assert.Contains("Articles", await Page.ContentAsync());
 	}
 }

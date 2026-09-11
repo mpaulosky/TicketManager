@@ -2,6 +2,71 @@
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<section class="app-page-stack">
+	<div class="app-page-card">
+		<div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+			<div class="max-w-2xl">
+				<p class="app-pill">Release ready</p>
+				<h1 class="app-h1">Articles</h1>
+				<p class="app-copy">
+					Build a durable foundation for modern .NET application work with responsive UI patterns,
+					clear boundaries, and a lighter, cleaner front-end that still feels production-ready.
+				</p>
+			</div>
 
-Welcome to your new app.
+			<div class="app-stat-grid">
+				<div class="app-stat-card">
+					<p class="app-stat-label">Stack</p>
+					<p class="app-stat-value">.NET 10</p>
+				</div>
+				<div class="app-stat-card">
+					<p class="app-stat-label">UI</p>
+					<p class="app-stat-value">Tailwind</p>
+				</div>
+				<div class="app-stat-card sm:col-span-1 col-span-2">
+					<p class="app-stat-label">Delivery</p>
+					<p class="app-stat-value">Production ready</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="grid gap-6 lg:grid-cols-[1.6fr_0.9fr]">
+		<section class="app-panel-card">
+			<div class="app-section-header">
+				<h2 class="app-section-title">Project overview</h2>
+				<span class="app-badge">Updated</span>
+			</div>
+
+			<div class="app-body-copy">
+				<p>
+					The repository is intentionally shaped as a foundation for real engineering work: a
+					composition root, domain boundaries, UI patterns, and a layered workflow that keeps
+					application logic easy to trace.
+				</p>
+				<ul class="app-list">
+					<li><span class="font-semibold text-(--app-text)">AppHost:</span> local orchestration and service discovery.
+					</li>
+					<li><span class="font-semibold text-(--app-text)">Domain:</span> application-focused contracts and model
+						boundaries.</li>
+						<li><span class="font-semibold text-(--app-text)">UI:</span> Blazor components with a modern, responsive,
+							theme-aware layout.</li>
+						</ul>
+					</div>
+				</section>
+
+				<aside class="app-panel-card">
+					<h2 class="app-section-title">Highlights</h2>
+					<div class="mt-4 flex flex-wrap gap-2">
+						<span
+						class="rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-700">Aspire</span>
+						<span
+						class="rounded-full border border-violet-200 bg-violet-100 px-2.5 py-1 text-xs font-medium text-violet-700">Blazor</span>
+						<span
+						class="rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">Auth0</span>
+						<span
+						class="rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">xUnit</span>
+					</div>
+				</aside>
+			</div>
+		</section>

@@ -1,30 +1,48 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Web</a>
-    </div>
-</div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+@inject IJSRuntime Js
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
+<header class="app-header">
+	<div class="flex items-center justify-between gap-3 px-4 py-3 md:px-6">
+		<a href="/" class="app-brand">
+			<span class="app-brand-mark">TM</span>
+			Ticket Manager
+		</a>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
+		<div class="flex items-center gap-3">
+			<nav class="app-nav hidden items-center gap-2 md:flex">
+				<a href="/" class="theme-nav-link">Overview</a>
+			</nav>
+			<button type="button" class="theme-toggle"
+							aria-label="@(_isDarkMode ? "Switch to light theme" : "Switch to dark theme")"
+							title="@(_isDarkMode ? "Switch to light theme" : "Switch to dark theme")" @onclick="ToggleTheme">
+				@(_isDarkMode ? "☀️" : "🌙")
+			</button>
+		</div>
+	</div>
+</header>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-    </nav>
-</div>
+@code {
+	private bool _isDarkMode;
 
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			var theme = await Js.InvokeAsync<string>("getTheme");
+			var isDarkMode = string.Equals(theme, "dark", StringComparison.OrdinalIgnoreCase);
+			if (_isDarkMode != isDarkMode)
+			{
+				_isDarkMode = isDarkMode;
+				StateHasChanged();
+			}
+		}
+	}
+
+	private async Task ToggleTheme()
+	{
+		_isDarkMode = !_isDarkMode;
+		await Js.InvokeVoidAsync("applyTheme", _isDarkMode ? "dark" : "light");
+		StateHasChanged();
+	}
+
+}

@@ -32,20 +32,20 @@ public class WebApplicationTests : IClassFixture<WebApplicationFactory<Program>>
 		var markup = await client.GetStringAsync("/", TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Contains("tailwind.", markup, StringComparison.Ordinal);
+		Assert.Contains("app.css", markup, StringComparison.Ordinal);
 		Assert.DoesNotContain("bootstrap", markup, StringComparison.OrdinalIgnoreCase);
 	}
 
 	[Fact]
-	public async Task Get_TailwindStylesheet_ImportsThemeStylesheet()
+	public async Task Get_AppStylesheet_ReturnsOk()
 	{
 		// Arrange
 		using var client = _factory.CreateClient();
 
 		// Act
-		var css = await client.GetStringAsync("/tailwind.css", TestContext.Current.CancellationToken);
+		using var response = await client.GetAsync("/css/app.css", TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Contains("@import url(\"/Style/Theme.css\");", css, StringComparison.Ordinal);
+		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 	}
 }

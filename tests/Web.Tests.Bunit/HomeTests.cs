@@ -11,7 +11,7 @@ public class HomeTests : BunitContext
 		var cut = Render<Home>();
 
 		// Assert
-		Assert.Equal("Hello, world!", cut.Find("h1").TextContent);
-		Assert.Contains("Welcome to your new app.", cut.Markup);
+		Assert.Equal("Articles", cut.Find("h1").TextContent);
+		Assert.Contains("Build a durable foundation for modern .NET application work", cut.Markup);
 	}
 }
