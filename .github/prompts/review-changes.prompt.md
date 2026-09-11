@@ -24,8 +24,9 @@ Mode selection:
   2. Treat existing user changes as protected. Do not reset, checkout, clean, amend, or otherwise modify unrelated files. Do not include this prompt file in the review or the proposed staging set.
   3. Identify all current changes and the files and behavior that are in scope. If the intended scope is unclear, report that clarification is required and stop.
   4. Review the in-scope diff for correctness, regressions, security concerns, missing focused tests, and broken lint issues. Keep unrelated changes untouched.
-  5. Run YAML lint, Markdown lint, the required build-repair flow, and the narrowest relevant tests or validation that is safe in read-only dry-run mode. Do not claim validation that was not run. Report failures without making changes.
-  6. Report exactly what would be staged, the commit message that would be used, the validation commands and results, and what would remain uncommitted. Do not stage, commit, amend, push, or modify files.
+  5. Check for README drift using the same signals and scope as step 5 of normal mode below. If a signal is present, draft the proposed section update and include it in the report as a diff that *would* be offered for approval — do not write it to the file.
+  6. Run YAML lint, Markdown lint, the required build-repair flow, and the narrowest relevant tests or validation that is safe in read-only dry-run mode. Do not claim validation that was not run. Report failures without making changes.
+  7. Report exactly what would be staged, the commit message that would be used, the validation commands and results, the proposed README diff (if any), and what would remain uncommitted. Do not stage, commit, amend, push, or modify files.
 
 Follow this workflow:
 
@@ -33,12 +34,13 @@ Follow this workflow:
 2. Treat existing user changes as protected. Do not reset, checkout, clean, amend, or otherwise modify unrelated files. Do not include this prompt file in the review or commit.
 3. Identify the full current worktree and the files and behavior in scope. If the intended scope is unclear, ask for clarification before staging or committing.
 4. Review the in-scope diff for correctness, regressions, security concerns, and missing focused tests. Keep unrelated changes untouched.
-5. Run the required lint and build gates before finalizing the patch:
+5. Check for README drift. Only when the in-scope diff touches one of these signals — a new or removed top-level directory under `src/`, `tests/`, or `docs/`; a new page under `src/Web/Components/Pages`; or a change to `TicketManager.slnx`, `Directory.Packages.props`, or `GitVersion.yml` — compare the change against README.md's "Repository structure" and "Current implementation state" sections. Draft an updated version of whichever of those two sections is now stale, show it to the user as a diff, and fold it into this review's commit only if approved. Never touch "Purpose" or anything below "Documentation index" (badges, quick start, release automation docs), and never apply a README edit without explicit approval — these sections describe project state in prose and require human judgment, not confident regeneration. Skip this step entirely when the diff doesn't touch a listed signal.
+6. Run the required lint and build gates before finalizing the patch:
    - YAML lint: run the repo YAML lint command and fix all findings.
    - Markdown lint: run the repo Markdown lint command and fix all findings.
    - Build repair: run the full build-repair flow from `.github/prompts/build-repair.prompt.md` until it succeeds.
    - Focused tests: run the narrowest relevant tests for the approved change set and fix any failures.
-6. Do not stop after the first passing subset. Continue the repair loop until the repo validation gates pass and the build is successful.
-7. Stage only the approved in-scope files by path. Recheck the staged diff and confirm that no unrelated files or the prompt itself are staged.
-8. Create one concise commit with an appropriate conventional message. Do not amend an existing commit or push changes.
-9. Report the commit hash and message, the files committed, the validation commands and results, and any worktree changes that remain uncommitted.
+7. Do not stop after the first passing subset. Continue the repair loop until the repo validation gates pass and the build is successful.
+8. Stage only the approved in-scope files by path. Recheck the staged diff and confirm that no unrelated files or the prompt itself are staged.
+9. Create one concise commit with an appropriate conventional message. Do not amend an existing commit or push changes.
+10. Report the commit hash and message, the files committed, the validation commands and results, and any worktree changes that remain uncommitted.
