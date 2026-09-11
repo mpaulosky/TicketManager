@@ -183,6 +183,7 @@ jobs:
               if (
                 combinedMessage.includes("already merged") ||
                 combinedMessage.includes("already enabled") ||
+                combinedMessage.includes("clean status") ||
                 combinedMessage.includes("unstable status") ||
                 combinedMessage.includes("mergeable") ||
                 combinedMessage.includes("required status") ||
