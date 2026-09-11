@@ -456,7 +456,6 @@ jobs:
       - name: Commit and push docs updates
         if: steps.files.outputs.eligible == 'true' && steps.idempotency.outputs.already_released != 'true' && steps.docs.outputs.docs_changed == 'true'
         id: commit
-        continue-on-error: true
         env:
           # Same PAT-with-fallback as the checkout step (see comment there);
           # gh pr create authors the PR as whichever identity this token
@@ -509,8 +508,39 @@ jobs:
 
           echo "committed=true" >> "$GITHUB_OUTPUT"
 
+      - name: Report docs generation failure
+        if: failure() && steps.commit.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          MARKER="<!-- release-docs-failure-tracker -->"
+          EXISTING=$(gh issue list --state open --search "$MARKER in:body" --json number --jq '.[0].number // empty')
+
+          BODY=$(cat <<EOF
+          $MARKER
+          The release-docs generation/commit step failed for PR #${PR_NUMBER}.
+
+          Run: ${RUN_URL}
+
+          This does not block the release itself, but the blog post and README
+          latest-blog block were not updated for this release. Investigate and
+          close this issue once resolved.
+          EOF
+          )
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create \
+              --title "Release docs generation is failing" \
+              --body "$BODY" \
+              --label "bug"
+          fi
+
       - name: Create tag and release
-        if: steps.files.outputs.eligible == 'true' && steps.idempotency.outputs.already_released != 'true'
+        if: (!cancelled()) && steps.files.outputs.eligible == 'true' && steps.idempotency.outputs.already_released != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -555,3 +585,4 @@ jobs:
           echo "Eligible: ${{ steps.files.outputs.eligible || 'n/a' }}"
           echo "Already released: ${{ steps.idempotency.outputs.already_released || 'n/a' }}"
           echo "Tag: ${{ steps.version.outputs.tag || 'n/a' }}"
+          echo "Docs commit outcome: ${{ steps.commit.outcome || 'n/a' }}"
