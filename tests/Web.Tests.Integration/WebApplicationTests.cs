@@ -32,7 +32,7 @@ public class WebApplicationTests : IClassFixture<WebApplicationFactory<Program>>
 		var markup = await client.GetStringAsync("/", TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Contains("app.css", markup, StringComparison.Ordinal);
+		Assert.Contains("css/app", markup, StringComparison.Ordinal);
 		Assert.DoesNotContain("bootstrap", markup, StringComparison.OrdinalIgnoreCase);
 	}
 
