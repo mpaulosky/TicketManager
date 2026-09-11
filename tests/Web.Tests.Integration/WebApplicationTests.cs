@@ -48,4 +48,33 @@ public class WebApplicationTests : IClassFixture<WebApplicationFactory<Program>>
 		// Assert
 		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 	}
+
+	[Fact]
+	public async Task Get_UnknownRoute_ReturnsNotFoundPageContent()
+	{
+		// Arrange
+		using var client = _factory.CreateClient();
+
+		// Act
+		using var response = await client.GetAsync("/this-route-does-not-exist",
+			TestContext.Current.CancellationToken);
+		var markup = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+		// Assert
+		Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+		Assert.Contains("Sorry, the content you are looking for does not exist.", markup, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public async Task Get_ProjectsRoute_ReturnsOk()
+	{
+		// Arrange
+		using var client = _factory.CreateClient();
+
+		// Act
+		using var response = await client.GetAsync("/projects", TestContext.Current.CancellationToken);
+
+		// Assert
+		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+	}
 }
