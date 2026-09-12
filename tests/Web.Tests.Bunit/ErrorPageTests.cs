@@ -1,4 +1,14 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     ErrorPageTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Microsoft.AspNetCore.Http;
+
 using Web.Components.Pages;
 
 namespace Web.Tests.Bunit;
@@ -12,7 +22,7 @@ public class ErrorPageTests : BunitContext
 		var cut = Render<Error>();
 
 		// Assert
-		Assert.Contains("An error occurred while processing your request.", cut.Markup);
+		cut.Markup.Should().Contain("An error occurred while processing your request.");
 	}
 
 	[Fact]
@@ -22,7 +32,7 @@ public class ErrorPageTests : BunitContext
 		var cut = Render<Error>();
 
 		// Assert
-		Assert.DoesNotContain("Request ID", cut.Markup);
+		cut.Markup.Should().NotContain("Request ID");
 	}
 
 	[Fact]
@@ -35,7 +45,7 @@ public class ErrorPageTests : BunitContext
 		var cut = Render<Error>(parameters => parameters.AddCascadingValue(httpContext));
 
 		// Assert
-		Assert.Contains("Request ID", cut.Markup);
-		Assert.Contains("trace-123", cut.Markup);
+		cut.Markup.Should().Contain("Request ID");
+		cut.Markup.Should().Contain("trace-123");
 	}
 }

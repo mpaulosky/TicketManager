@@ -1,4 +1,14 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     GitHubRepositoriesService.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web
+// =============================================
+
 using System.Diagnostics.CodeAnalysis;
+
 using Microsoft.Extensions.Options;
 
 namespace Web.Services;
@@ -11,9 +21,9 @@ public interface IGitHubRepositoriesService
 }
 
 /// <summary>
-/// Loads a per-repository snapshot of open issues and pull requests for a configured GitHub
-/// user/organization. Owns the orgs-vs-users fallback policy and the open-issues/open-pull-requests
-/// split; the actual GitHub HTTP calls go through <see cref="IGitHubRestClient" />.
+///   Loads a per-repository snapshot of open issues and pull requests for a configured GitHub
+///   user/organization. Owns the orgs-vs-users fallback policy and the open-issues/open-pull-requests
+///   split; the actual GitHub HTTP calls go through <see cref="IGitHubRestClient" />.
 /// </summary>
 [SuppressMessage("Design", "CA1515",
 	Justification = "Injected into the GitHub Repositories Razor page and consumed by Web tests.")]
@@ -49,7 +59,8 @@ public sealed class GitHubRepositoriesService : IGitHubRepositoriesService
 				$"Could not find a GitHub user or organization named \"{owner}\".");
 		}
 
-		var statuses = await Task.WhenAll(repositories.Select(repo => GetRepositoryStatusAsync(owner, repo, cancellationToken)))
+		var statuses = await Task
+			.WhenAll(repositories.Select(repo => GetRepositoryStatusAsync(owner, repo, cancellationToken)))
 			.ConfigureAwait(false);
 
 		return new GitHubRepositoriesResult(isAuthenticated, statuses.OrderBy(status => status.Name,

@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     AppHost.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  AppHost
+// =============================================
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Real local/dev runs use Web's default (https) launch profile. AppHost.Tests

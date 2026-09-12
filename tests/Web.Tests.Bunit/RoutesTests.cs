@@ -1,4 +1,14 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     RoutesTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Microsoft.Extensions.DependencyInjection;
+
 using Web.Components;
 using Web.Services;
 
@@ -24,7 +34,7 @@ public class RoutesTests : BunitContext
 		var cut = Render<Routes>();
 
 		// Assert
-		Assert.Contains("Sorry, the content you are looking for does not exist.", cut.Markup);
+		cut.Markup.Should().Contain("Sorry, the content you are looking for does not exist.");
 	}
 
 	[Fact]
@@ -38,7 +48,7 @@ public class RoutesTests : BunitContext
 		var cut = Render<Routes>();
 
 		// Assert
-		Assert.Contains("You are not authorized to access this resource.", cut.Markup);
+		cut.Markup.Should().Contain("You are not authorized to access this resource.");
 	}
 
 	private sealed class NullGitHubMetadataProvider : IGitHubMetadataProvider

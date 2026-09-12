@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     GitHubMetadataProviderTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Unit
+// =============================================
+
 using Web.Services;
 
 namespace Web.Tests.Unit;
@@ -18,9 +27,9 @@ public class GitHubMetadataProviderTests
 		var result = GitHubMetadataProvider.TryParseGitHubRepository(remoteUrl, out var owner, out var repo);
 
 		// Assert
-		Assert.True(result);
-		Assert.Equal(expectedOwner, owner);
-		Assert.Equal(expectedRepo, repo);
+		result.Should().BeTrue();
+		owner.Should().Be(expectedOwner);
+		repo.Should().Be(expectedRepo);
 	}
 
 	[Theory]
@@ -36,9 +45,9 @@ public class GitHubMetadataProviderTests
 		var result = GitHubMetadataProvider.TryParseGitHubRepository(remoteUrl, out var owner, out var repo);
 
 		// Assert
-		Assert.False(result);
-		Assert.Equal(string.Empty, owner);
-		Assert.Equal(string.Empty, repo);
+		result.Should().BeFalse();
+		owner.Should().Be(string.Empty);
+		repo.Should().Be(string.Empty);
 	}
 
 	[Fact]
@@ -48,7 +57,7 @@ public class GitHubMetadataProviderTests
 		var act = () => new GitHubMetadataProvider(null!, new FakeGitCommandRunner((_, _) => null));
 
 		// Assert
-		Assert.Throws<ArgumentNullException>(act);
+		act.Should().Throw<ArgumentNullException>();
 	}
 
 	[Fact]
@@ -58,7 +67,7 @@ public class GitHubMetadataProviderTests
 		var act = () => new GitHubMetadataProvider(new FakeGitHubRestClient((_, _) => null), null!);
 
 		// Assert
-		Assert.Throws<ArgumentNullException>(act);
+		act.Should().Throw<ArgumentNullException>();
 	}
 
 	[Fact]
@@ -78,7 +87,7 @@ public class GitHubMetadataProviderTests
 		var result = await provider.GetMetadataAsync(TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Null(result);
+		result.Should().BeNull();
 	}
 
 	[Fact]
@@ -113,9 +122,9 @@ public class GitHubMetadataProviderTests
 			var result = await provider.GetMetadataAsync(TestContext.Current.CancellationToken);
 
 			// Assert
-			Assert.NotNull(result);
-			Assert.Equal("v1.2.3", result.ReleaseTag);
-			Assert.Equal("abcdef1", result.LastCommit);
+			result.Should().NotBeNull();
+			result.ReleaseTag.Should().Be("v1.2.3");
+			result.LastCommit.Should().Be("abcdef1");
 		}
 		finally
 		{
@@ -134,7 +143,7 @@ public class GitHubMetadataProviderTests
 			var restClient = new FakeGitHubRestClient((_, _) => null);
 			var gitRunner = new FakeGitCommandRunner((workingDirectory, arguments) =>
 			{
-				Assert.NotEmpty(workingDirectory);
+				workingDirectory.Should().NotBeEmpty();
 
 				return arguments switch
 				{
@@ -150,9 +159,9 @@ public class GitHubMetadataProviderTests
 			var result = await provider.GetMetadataAsync(TestContext.Current.CancellationToken);
 
 			// Assert
-			Assert.NotNull(result);
-			Assert.Equal("v0.9.0", result.ReleaseTag);
-			Assert.Equal("1234567", result.LastCommit);
+			result.Should().NotBeNull();
+			result.ReleaseTag.Should().Be("v0.9.0");
+			result.LastCommit.Should().Be("1234567");
 		}
 		finally
 		{
@@ -176,9 +185,95 @@ public class GitHubMetadataProviderTests
 			var result = await provider.GetMetadataAsync(TestContext.Current.CancellationToken);
 
 			// Assert
-			Assert.NotNull(result);
-			Assert.Equal("no release", result.ReleaseTag);
-			Assert.Equal("unknown", result.LastCommit);
+			result.Should().NotBeNull();
+			result.ReleaseTag.Should().Be("no release");
+			result.LastCommit.Should().Be("unknown");
+		}
+		finally
+		{
+			Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", null);
+		}
+	}
+
+	[Fact]
+	public async Task GetMetadataAsync_LocalGitCommandThrowsWhileResolvingOrigin_ReturnsNull()
+	{
+		// Arrange
+		Environment.SetEnvironmentVariable("GITHUB_REPOSITORY_URL", null);
+		Environment.SetEnvironmentVariable("REPOSITORY_URL", null);
+		Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", null);
+
+		var provider = new GitHubMetadataProvider(
+			new FakeGitHubRestClient((_, _) =>
+				throw new InvalidOperationException("GitHub should not be called without a resolved owner/repo.")),
+			new FakeGitCommandRunner((_, arguments) => arguments is ["remote", "get-url", "origin"]
+				? throw new InvalidOperationException("no such remote 'origin'")
+				: null));
+
+		// Act
+		var result = await provider.GetMetadataAsync(TestContext.Current.CancellationToken);
+
+		// Assert
+		result.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task GetMetadataAsync_LocalReleaseTagLookupThrows_FallsBackToNoRelease()
+	{
+		// Arrange
+		Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "mpaulosky/TicketManager");
+
+		try
+		{
+			var restClient = new FakeGitHubRestClient((_, _) => null);
+			var gitRunner = new FakeGitCommandRunner((_, arguments) => arguments switch
+			{
+				["describe", "--tags", "--abbrev=0"] => throw new InvalidOperationException("no tags found"),
+				["rev-parse", "--short", "HEAD"] => "1234567",
+				_ => null,
+			});
+
+			var provider = new GitHubMetadataProvider(restClient, gitRunner);
+
+			// Act
+			var result = await provider.GetMetadataAsync(TestContext.Current.CancellationToken);
+
+			// Assert
+			result.Should().NotBeNull();
+			result.ReleaseTag.Should().Be("no release");
+			result.LastCommit.Should().Be("1234567");
+		}
+		finally
+		{
+			Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", null);
+		}
+	}
+
+	[Fact]
+	public async Task GetMetadataAsync_LocalLastCommitLookupThrows_FallsBackToUnknown()
+	{
+		// Arrange
+		Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "mpaulosky/TicketManager");
+
+		try
+		{
+			var restClient = new FakeGitHubRestClient((_, _) => null);
+			var gitRunner = new FakeGitCommandRunner((_, arguments) => arguments switch
+			{
+				["describe", "--tags", "--abbrev=0"] => "v0.9.0",
+				["rev-parse", "--short", "HEAD"] => throw new InvalidOperationException("not a git repository"),
+				_ => null,
+			});
+
+			var provider = new GitHubMetadataProvider(restClient, gitRunner);
+
+			// Act
+			var result = await provider.GetMetadataAsync(TestContext.Current.CancellationToken);
+
+			// Assert
+			result.Should().NotBeNull();
+			result.ReleaseTag.Should().Be("v0.9.0");
+			result.LastCommit.Should().Be("unknown");
 		}
 		finally
 		{

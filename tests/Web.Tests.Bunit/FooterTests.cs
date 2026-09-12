@@ -1,4 +1,14 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     FooterTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Microsoft.Extensions.DependencyInjection;
+
 using Web.Components.Layout;
 using Web.Services;
 
@@ -19,8 +29,8 @@ public class FooterTests : BunitContext
 		var cut = Render<Footer>();
 
 		// Assert
-		Assert.Contains($"© {DateTime.UtcNow.Year} Ticket Manager", cut.Markup);
-		Assert.Contains("from mpaulosky.org", cut.Markup);
+		cut.Markup.Should().Contain($"© {DateTime.UtcNow.Year} Ticket Manager");
+		cut.Markup.Should().Contain("from mpaulosky.org");
 	}
 
 	[Fact]
@@ -31,10 +41,10 @@ public class FooterTests : BunitContext
 
 		// Assert
 		var releaseLink = cut.Find("a.app-footer-label");
-		Assert.StartsWith("https://github.com/mpaulosky/TicketManager", releaseLink.GetAttribute("href"));
+		releaseLink.GetAttribute("href").Should().StartWith("https://github.com/mpaulosky/TicketManager");
 
 		var commitLink = cut.FindAll("a.app-footer-value")[1];
-		Assert.StartsWith("https://github.com/mpaulosky/TicketManager", commitLink.GetAttribute("href"));
+		commitLink.GetAttribute("href").Should().StartWith("https://github.com/mpaulosky/TicketManager");
 	}
 
 	private sealed class NullGitHubMetadataProvider : IGitHubMetadataProvider

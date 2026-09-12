@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     AppSettingsTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Unit
+// =============================================
+
 using Microsoft.Extensions.Configuration;
 
 namespace Web.Tests.Unit;
@@ -17,6 +26,6 @@ public class AppSettingsTests
 		var allowedHosts = configuration["AllowedHosts"];
 
 		// Assert
-		Assert.Equal("*", allowedHosts);
+		allowedHosts.Should().Be("*");
 	}
 }

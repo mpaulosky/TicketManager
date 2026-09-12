@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     WebApplicationTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Integration
+// =============================================
+
 namespace Web.Tests.Integration;
 
 public class WebApplicationTests : IClassFixture<WebApplicationFactory<Program>>
@@ -19,7 +28,7 @@ public class WebApplicationTests : IClassFixture<WebApplicationFactory<Program>>
 		using var response = await client.GetAsync("/", TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+		response.StatusCode.Should().Be(HttpStatusCode.OK);
 	}
 
 	[Fact]
@@ -32,8 +41,8 @@ public class WebApplicationTests : IClassFixture<WebApplicationFactory<Program>>
 		var markup = await client.GetStringAsync("/", TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Contains("css/app", markup, StringComparison.Ordinal);
-		Assert.DoesNotContain("bootstrap", markup, StringComparison.OrdinalIgnoreCase);
+		markup.Should().Contain("css/app");
+		markup.Should().NotContainEquivalentOf("bootstrap");
 	}
 
 	[Fact]
@@ -46,7 +55,7 @@ public class WebApplicationTests : IClassFixture<WebApplicationFactory<Program>>
 		using var response = await client.GetAsync("/css/app.css", TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+		response.StatusCode.Should().Be(HttpStatusCode.OK);
 	}
 
 	[Fact]
@@ -61,8 +70,8 @@ public class WebApplicationTests : IClassFixture<WebApplicationFactory<Program>>
 		var markup = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-		Assert.Contains("Sorry, the content you are looking for does not exist.", markup, StringComparison.Ordinal);
+		response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+		markup.Should().Contain("Sorry, the content you are looking for does not exist.");
 	}
 
 	[Fact]
@@ -75,6 +84,6 @@ public class WebApplicationTests : IClassFixture<WebApplicationFactory<Program>>
 		using var response = await client.GetAsync("/repositories", TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+		response.StatusCode.Should().Be(HttpStatusCode.OK);
 	}
 }

@@ -1,5 +1,15 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     RedirectToLoginPageTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+
 using Web.Components.Pages;
 
 namespace Web.Tests.Bunit;
@@ -13,6 +23,6 @@ public class RedirectToLoginPageTests : BunitContext
 		Render<RedirectToLoginPage>();
 
 		// Assert
-		Assert.Equal("/Account/Login", new Uri(Services.GetRequiredService<NavigationManager>().Uri).AbsolutePath);
+		new Uri(Services.GetRequiredService<NavigationManager>().Uri).AbsolutePath.Should().Be("/Account/Login");
 	}
 }

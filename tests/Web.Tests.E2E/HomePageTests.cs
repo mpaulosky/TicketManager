@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     HomePageTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.E2E
+// =============================================
+
 namespace Web.Tests.E2E;
 
 public class HomePageTests : PageTest, IClassFixture<WebFactory>
@@ -24,7 +33,7 @@ public class HomePageTests : PageTest, IClassFixture<WebFactory>
 		await Page.GotoAsync("/");
 
 		// Assert
-		Assert.Equal("Ticket Manager", await Page.TitleAsync());
-		Assert.Contains("Articles", await Page.ContentAsync());
+		(await Page.TitleAsync()).Should().Be("Ticket Manager");
+		(await Page.ContentAsync()).Should().Contain("Articles");
 	}
 }

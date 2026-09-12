@@ -1,5 +1,15 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     RedirectToNotAuthorizedPageTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+
 using Web.Components.Pages;
 
 namespace Web.Tests.Bunit;
@@ -13,6 +23,6 @@ public class RedirectToNotAuthorizedPageTests : BunitContext
 		Render<RedirectToNotAuthorizedPage>();
 
 		// Assert
-		Assert.Equal("/not-authorized", new Uri(Services.GetRequiredService<NavigationManager>().Uri).AbsolutePath);
+		new Uri(Services.GetRequiredService<NavigationManager>().Uri).AbsolutePath.Should().Be("/not-authorized");
 	}
 }

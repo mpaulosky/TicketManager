@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     GitHubRepositoriesResultTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Unit
+// =============================================
+
 using Web.Services;
 
 namespace Web.Tests.Unit;
@@ -11,9 +20,9 @@ public class GitHubRepositoriesResultTests
 		var result = GitHubRepositoriesResult.Empty(isAuthenticated: true);
 
 		// Assert
-		Assert.True(result.IsAuthenticated);
-		Assert.Empty(result.Repositories);
-		Assert.Null(result.ErrorMessage);
+		result.IsAuthenticated.Should().BeTrue();
+		result.Repositories.Should().BeEmpty();
+		result.ErrorMessage.Should().BeNull();
 	}
 
 	[Fact]
@@ -23,8 +32,8 @@ public class GitHubRepositoriesResultTests
 		var result = GitHubRepositoriesResult.Empty(isAuthenticated: false, errorMessage: "boom");
 
 		// Assert
-		Assert.False(result.IsAuthenticated);
-		Assert.Empty(result.Repositories);
-		Assert.Equal("boom", result.ErrorMessage);
+		result.IsAuthenticated.Should().BeFalse();
+		result.Repositories.Should().BeEmpty();
+		result.ErrorMessage.Should().Be("boom");
 	}
 }

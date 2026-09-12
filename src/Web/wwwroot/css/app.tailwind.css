@@ -1,4 +1,5 @@
 @import "tailwindcss";
+
 @source "../Components";
 
 /*
@@ -53,9 +54,8 @@ html {
 body {
 	margin: 0;
 	min-height: 100vh;
-	background:
-		radial-gradient(circle at top, rgba(96, 165, 250, 0.18), transparent 38%),
-		linear-gradient(180deg, var(--app-bg) 0%, rgba(148, 163, 184, 0.08) 100%);
+	background: radial-gradient(circle at top, rgba(96, 165, 250, 0.18), transparent 38%),
+	linear-gradient(180deg, var(--app-bg) 0%, rgba(148, 163, 184, 0.08) 100%);
 	color: var(--app-text);
 }
 
@@ -83,8 +83,7 @@ body {
 	}
 
 	code {
-		font-family:
-			"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+		font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 	}
 }
 
@@ -224,6 +223,7 @@ body {
 	.app-h6 {
 		@apply font-black tracking-tight text-(--app-text);
 	}
+
 	.app-copy {
 		@apply mt-4 max-w-xl text-base text-(--app-text-muted);
 	}

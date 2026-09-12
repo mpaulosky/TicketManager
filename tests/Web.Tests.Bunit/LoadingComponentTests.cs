@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     LoadingComponentTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Web.Components.Shared;
 
 namespace Web.Tests.Bunit;
@@ -11,6 +20,6 @@ public class LoadingComponentTests : BunitContext
 		var cut = Render<LoadingComponent>();
 
 		// Assert
-		Assert.Contains("Loading...", cut.Markup);
+		cut.Markup.Should().Contain("Loading...");
 	}
 }

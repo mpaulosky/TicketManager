@@ -1,6 +1,16 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     RedirectToLoginTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+
 using Web.Components.Shared;
 
 namespace Web.Tests.Bunit;
@@ -23,8 +33,8 @@ public class RedirectToLoginTests : BunitContext
 		Render<RedirectToLogin>();
 
 		// Assert
-		Assert.Contains("/Account/Login", Services.GetRequiredService<NavigationManager>().Uri);
-		Assert.Contains("returnUrl=", Services.GetRequiredService<NavigationManager>().Uri);
+		Services.GetRequiredService<NavigationManager>().Uri.Should().Contain("/Account/Login");
+		Services.GetRequiredService<NavigationManager>().Uri.Should().Contain("returnUrl=");
 	}
 
 	[Fact]
@@ -39,6 +49,6 @@ public class RedirectToLoginTests : BunitContext
 		Render<RedirectToLogin>();
 
 		// Assert
-		Assert.Equal(initialUri, Services.GetRequiredService<NavigationManager>().Uri);
+		Services.GetRequiredService<NavigationManager>().Uri.Should().Be(initialUri);
 	}
 }

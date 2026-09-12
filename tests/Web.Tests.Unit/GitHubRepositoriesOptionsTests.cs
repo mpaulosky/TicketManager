@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     GitHubRepositoriesOptionsTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Unit
+// =============================================
+
 using Web.Services;
 
 namespace Web.Tests.Unit;
@@ -11,7 +20,7 @@ public class GitHubRepositoriesOptionsTests
 		var options = new GitHubRepositoriesOptions();
 
 		// Assert
-		Assert.Equal("User", options.OwnerType);
+		options.OwnerType.Should().Be("User");
 	}
 
 	[Theory]
@@ -24,7 +33,7 @@ public class GitHubRepositoriesOptionsTests
 		var options = new GitHubRepositoriesOptions { Token = token };
 
 		// Act & Assert
-		Assert.False(options.HasToken);
+		options.HasToken.Should().BeFalse();
 	}
 
 	[Fact]
@@ -34,6 +43,6 @@ public class GitHubRepositoriesOptionsTests
 		var options = new GitHubRepositoriesOptions { Token = "gh-token" };
 
 		// Act & Assert
-		Assert.True(options.HasToken);
+		options.HasToken.Should().BeTrue();
 	}
 }

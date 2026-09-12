@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     WebArchitectureTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Architecture.Tests
+// =============================================
+
 using NetArchTest.Rules;
 
 namespace Architecture.Tests;
@@ -17,6 +26,6 @@ public class WebArchitectureTests
 			.GetResult();
 
 		// Assert
-		Assert.True(result.IsSuccessful, string.Join(", ", result.FailingTypeNames ?? []));
+		result.IsSuccessful.Should().BeTrue(string.Join(", ", result.FailingTypeNames ?? []));
 	}
 }

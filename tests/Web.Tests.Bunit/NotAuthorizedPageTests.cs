@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     NotAuthorizedPageTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Web.Components.Pages;
 
 namespace Web.Tests.Bunit;
@@ -11,10 +20,10 @@ public class NotAuthorizedPageTests : BunitContext
 		var cut = Render<NotAuthorizedPage>();
 
 		// Assert
-		Assert.Contains("Not Authorized", cut.Markup);
-		Assert.Contains("You are not authorized to access this resource.", cut.Find("[role='alert']").TextContent);
+		cut.Markup.Should().Contain("Not Authorized");
+		cut.Find("[role='alert']").TextContent.Should().Contain("You are not authorized to access this resource.");
 
 		var homeLink = cut.Find("a[href='/']");
-		Assert.Equal("Go to Home", homeLink.TextContent);
+		homeLink.TextContent.Should().Be("Go to Home");
 	}
 }
