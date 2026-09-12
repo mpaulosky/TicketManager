@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-12 | [refactor(web): extract IGitHubRestClient to deduplicate GitHub API access](2026-09-12-pr-36-refactor-web-extract-igithubrestclient-to-deduplicate-github-api-access.md) | release,automation |
 | 2026-09-11 | [feat(web): add About page](2026-09-11-pr-34-feat-web-add-about-page.md) | release,automation |
 | 2026-09-11 | [docs(prompts): add README drift check to review-changes workflow](2026-09-11-pr-32-docs-prompts-add-readme-drift-check-to-review-changes-workflow.md) | release,automation |
 | 2026-09-11 | [fix(ci): surface release-docs failures instead of swallowing them](2026-09-11-pr-30-fix-ci-surface-release-docs-failures-instead-of-swallowing-them.md) | release,automation |

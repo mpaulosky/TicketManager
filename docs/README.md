@@ -83,11 +83,11 @@ rollout history of workflow-standard and major changes by release.
 <!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-12 | [refactor(web): extract IGitHubRestClient to deduplicate GitHub API access](docs/blogs/2026-09-12-pr-36-refactor-web-extract-igithubrestclient-to-deduplicate-github-api-access.md) | release,automation |
 | 2026-09-11 | [feat(web): add About page](docs/blogs/2026-09-11-pr-34-feat-web-add-about-page.md) | release,automation |
 | 2026-09-11 | [docs(prompts): add README drift check to review-changes workflow](docs/blogs/2026-09-11-pr-32-docs-prompts-add-readme-drift-check-to-review-changes-workflow.md) | release,automation |
 | 2026-09-11 | [fix(ci): surface release-docs failures instead of swallowing them](docs/blogs/2026-09-11-pr-30-fix-ci-surface-release-docs-failures-instead-of-swallowing-them.md) | release,automation |
 | 2026-09-11 | [docs(blogs): recover stranded release-notes posts for PRs #19, #20, #22, #23](docs/blogs/2026-09-11-pr-28-docs-blogs-recover-stranded-release-notes-posts-for-prs-19-20-22-23.md) | release,automation |
-| 2026-09-11 | [chore(docs): retest release pipeline after RELEASE_PR_PAT fix](docs/blogs/2026-09-11-pr-26-chore-docs-retest-release-pipeline-after-release-pr-pat-fix.md) | release,automation |
 <!-- BLOG_END -->
 
 ## Quick start
@@ -144,11 +144,11 @@ notes) and then:
 - updates this README latest-blog block (`<!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-12 | [refactor(web): extract IGitHubRestClient to deduplicate GitHub API access](docs/blogs/2026-09-12-pr-36-refactor-web-extract-igithubrestclient-to-deduplicate-github-api-access.md) | release,automation |
 | 2026-09-11 | [feat(web): add About page](docs/blogs/2026-09-11-pr-34-feat-web-add-about-page.md) | release,automation |
 | 2026-09-11 | [docs(prompts): add README drift check to review-changes workflow](docs/blogs/2026-09-11-pr-32-docs-prompts-add-readme-drift-check-to-review-changes-workflow.md) | release,automation |
 | 2026-09-11 | [fix(ci): surface release-docs failures instead of swallowing them](docs/blogs/2026-09-11-pr-30-fix-ci-surface-release-docs-failures-instead-of-swallowing-them.md) | release,automation |
 | 2026-09-11 | [docs(blogs): recover stranded release-notes posts for PRs #19, #20, #22, #23](docs/blogs/2026-09-11-pr-28-docs-blogs-recover-stranded-release-notes-posts-for-prs-19-20-22-23.md) | release,automation |
-| 2026-09-11 | [chore(docs): retest release pipeline after RELEASE_PR_PAT fix](docs/blogs/2026-09-11-pr-26-chore-docs-retest-release-pipeline-after-release-pr-pat-fix.md) | release,automation |
 <!-- BLOG_END -->`)
   from `docs/blogs/README.md` (top 5 rows),
 - updates [docs/index.html](docs/index.html) latest blog links from the same rows.
