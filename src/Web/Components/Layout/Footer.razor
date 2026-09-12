@@ -1,6 +1,6 @@
 @using Web.Services
 
-@inject IHttpClientFactory HttpClientFactory
+@inject IGitHubRestClient GitHubRestClient
 
 <footer class="app-footer">
 	<div class="app-footer-inner">
@@ -36,8 +36,7 @@
 
 	protected override async Task OnInitializedAsync()
 	{
-		var httpClient = HttpClientFactory.CreateClient();
-		_metadata = await GitHubMetadataProvider.GetMetadataAsync(httpClient, CancellationToken.None);
+		_metadata = await GitHubMetadataProvider.GetMetadataAsync(GitHubRestClient, CancellationToken.None);
 	}
 
 	private string BuildReleaseUrl()

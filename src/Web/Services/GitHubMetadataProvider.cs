@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Net;
-using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 
 namespace Web.Services;
@@ -19,10 +17,10 @@ public sealed record GitHubMetadata(string ReleaseTag, string LastCommit);
 		"These are best-effort git/GitHub API lookups used to enrich footer metadata; any failure should fall back silently rather than propagate.")]
 public static class GitHubMetadataProvider
 {
-	public static async Task<GitHubMetadata?> GetMetadataAsync(HttpClient httpClient,
+	public static async Task<GitHubMetadata?> GetMetadataAsync(IGitHubRestClient gitHubRestClient,
 		CancellationToken cancellationToken = default)
 	{
-		ArgumentNullException.ThrowIfNull(httpClient);
+		ArgumentNullException.ThrowIfNull(gitHubRestClient);
 
 		var remoteUrl = await GetOriginUrlAsync().ConfigureAwait(false);
 		if (!TryParseGitHubRepository(remoteUrl, out var owner, out var repo))
@@ -30,11 +28,11 @@ public static class GitHubMetadataProvider
 			return null;
 		}
 
-		var repoDetails = await GetRepositoryDetailsAsync(httpClient, owner, repo, cancellationToken).ConfigureAwait(false);
-		var releaseTag = await GetLatestReleaseTagAsync(httpClient, owner, repo, cancellationToken).ConfigureAwait(false)
+		var repoDetails = await GetRepositoryDetailsAsync(gitHubRestClient, owner, repo, cancellationToken).ConfigureAwait(false);
+		var releaseTag = await GetLatestReleaseTagAsync(gitHubRestClient, owner, repo, cancellationToken).ConfigureAwait(false)
 		                 ?? await GetLocalReleaseTagAsync().ConfigureAwait(false);
 		var defaultBranch = repoDetails?.DefaultBranch ?? "main";
-		var lastCommit = await GetLastCommitAsync(httpClient, owner, repo, defaultBranch, cancellationToken).ConfigureAwait(false)
+		var lastCommit = await GetLastCommitAsync(gitHubRestClient, owner, repo, defaultBranch, cancellationToken).ConfigureAwait(false)
 		                 ?? await GetLocalLastCommitAsync().ConfigureAwait(false);
 
 		return new GitHubMetadata(
@@ -193,85 +191,29 @@ public static class GitHubMetadataProvider
 		return null;
 	}
 
-	private static async Task<RepositoryDetails?> GetRepositoryDetailsAsync(HttpClient httpClient, string owner,
+	private static Task<RepositoryDetails?> GetRepositoryDetailsAsync(IGitHubRestClient gitHubRestClient, string owner,
+		string repo, CancellationToken cancellationToken) =>
+		gitHubRestClient.TryGetAsync<RepositoryDetails>($"repos/{owner}/{repo}", cancellationToken: cancellationToken);
+
+	private static async Task<string?> GetLatestReleaseTagAsync(IGitHubRestClient gitHubRestClient, string owner,
 		string repo, CancellationToken cancellationToken)
 	{
-		try
-		{
-			using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{owner}/{repo}");
-			request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-			request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Articles-Web", "1.0"));
+		var release = await gitHubRestClient
+			.TryGetAsync<GitHubRelease>($"repos/{owner}/{repo}/releases/latest", cancellationToken: cancellationToken)
+			.ConfigureAwait(false);
 
-			using var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-			if (!response.IsSuccessStatusCode)
-			{
-				return null;
-			}
-
-			return await response.Content.ReadFromJsonAsync<RepositoryDetails>(cancellationToken: cancellationToken)
-				.ConfigureAwait(false);
-		}
-		catch
-		{
-			return null;
-		}
+		return release?.TagName;
 	}
 
-	private static async Task<string?> GetLatestReleaseTagAsync(HttpClient httpClient, string owner, string repo,
-		CancellationToken cancellationToken)
+	private static async Task<string?> GetLastCommitAsync(IGitHubRestClient gitHubRestClient, string owner,
+		string repo, string defaultBranch, CancellationToken cancellationToken)
 	{
-		try
-		{
-			using var request =
-				new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{owner}/{repo}/releases/latest");
-			request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-			request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Articles-Web", "1.0"));
+		var commit = await gitHubRestClient
+			.TryGetAsync<GitHubCommit>($"repos/{owner}/{repo}/commits/{Uri.EscapeDataString(defaultBranch)}",
+				cancellationToken: cancellationToken)
+			.ConfigureAwait(false);
 
-			using var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-			if (response.StatusCode == HttpStatusCode.NotFound)
-			{
-				return null;
-			}
-
-			if (!response.IsSuccessStatusCode)
-			{
-				return null;
-			}
-
-			var release = await response.Content.ReadFromJsonAsync<GitHubRelease>(cancellationToken: cancellationToken)
-				.ConfigureAwait(false);
-			return release?.TagName;
-		}
-		catch
-		{
-			return null;
-		}
-	}
-
-	private static async Task<string?> GetLastCommitAsync(HttpClient httpClient, string owner, string repo,
-		string defaultBranch, CancellationToken cancellationToken)
-	{
-		try
-		{
-			using var request = new HttpRequestMessage(HttpMethod.Get,
-				$"https://api.github.com/repos/{owner}/{repo}/commits/{Uri.EscapeDataString(defaultBranch)}");
-			request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-			request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Articles-Web", "1.0"));
-
-			using var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-			if (!response.IsSuccessStatusCode)
-			{
-				return null;
-			}
-
-			var commit = await response.Content.ReadFromJsonAsync<GitHubCommit>(cancellationToken: cancellationToken)
-				.ConfigureAwait(false);
-			return commit?.Sha?[..7];
-		}
-		catch
-		{
-			return null;
-		}
+		return commit?.Sha?[..7];
 	}
 
 	private static async Task<string?> GetLocalReleaseTagAsync()

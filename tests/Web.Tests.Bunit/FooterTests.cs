@@ -1,6 +1,6 @@
-using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Web.Components.Layout;
+using Web.Services;
 
 namespace Web.Tests.Bunit;
 
@@ -9,7 +9,7 @@ public class FooterTests : BunitContext
 	public FooterTests()
 	{
 		// Prevent the footer's best-effort GitHub metadata lookup from making real network calls.
-		Services.AddSingleton<IHttpClientFactory>(new NotFoundHttpClientFactory());
+		Services.AddSingleton<IGitHubRestClient>(new NullGitHubRestClient());
 	}
 
 	[Fact]
@@ -37,15 +37,9 @@ public class FooterTests : BunitContext
 		Assert.StartsWith("https://github.com/mpaulosky/TicketManager", commitLink.GetAttribute("href"));
 	}
 
-	private sealed class NotFoundHttpClientFactory : IHttpClientFactory
+	private sealed class NullGitHubRestClient : IGitHubRestClient
 	{
-		public HttpClient CreateClient(string name) => new(new NotFoundHandler());
-	}
-
-	private sealed class NotFoundHandler : HttpMessageHandler
-	{
-		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
-			CancellationToken cancellationToken) =>
-			Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+		public Task<T?> TryGetAsync<T>(string path, string? token = null,
+			CancellationToken cancellationToken = default) => Task.FromResult<T?>(default);
 	}
 }

@@ -42,7 +42,7 @@ public class GitHubMetadataProviderTests
 	}
 
 	[Fact]
-	public async Task GetMetadataAsync_NullHttpClient_ThrowsArgumentNullException()
+	public async Task GetMetadataAsync_NullGitHubRestClient_ThrowsArgumentNullException()
 	{
 		// Act
 		var act = () => GitHubMetadataProvider.GetMetadataAsync(null!, TestContext.Current.CancellationToken);
