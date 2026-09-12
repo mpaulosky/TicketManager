@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-12 | [fix(apphost): revert AspireUseCliBundle to avoid breaking CI](2026-09-12-pr-46-fix-apphost-revert-aspireuseclibundle-to-avoid-breaking-ci.md) | release,automation |
 | 2026-09-12 | [chore(deps): update Aspire.AppHost.Sdk to 13.5.3](2026-09-12-pr-44-chore-deps-update-aspire-apphost-sdk-to-13-5-3.md) | release,automation |
 | 2026-09-12 | [chore(tests): adopt FluentAssertions and close coverage gaps](2026-09-12-pr-42-chore-tests-adopt-fluentassertions-and-close-coverage-gaps.md) | release,automation |
 | 2026-09-12 | [refactor(web): rename GitHub Projects dashboard to GitHub Repositories](2026-09-12-pr-40-refactor-web-rename-github-projects-dashboard-to-github-repositories.md) | release,automation |
