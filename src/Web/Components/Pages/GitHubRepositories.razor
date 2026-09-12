@@ -18,7 +18,8 @@
 
 			@if (_result is not null && !_result.IsAuthenticated)
 			{
-				<span class="app-badge" title="Configure GitHub:Token or the GITHUB_TOKEN environment variable to raise API rate limits.">
+				<span class="app-badge"
+				      title="Configure GitHub:Token or the GITHUB_TOKEN environment variable to raise API rate limits.">
 					Unauthenticated — public repos only, rate limits may apply
 				</span>
 			}
@@ -99,7 +100,8 @@
 									@foreach (var pullRequest in repository.PullRequests)
 									{
 										<li>
-											<a href="@pullRequest.Url" target="_blank" rel="noreferrer" class="text-(--app-text) hover:underline">
+											<a href="@pullRequest.Url" target="_blank" rel="noreferrer"
+											   class="text-(--app-text) hover:underline">
 												#@pullRequest.Number @pullRequest.Title
 											</a>
 										</li>
@@ -123,4 +125,5 @@
 		_result = await GitHubRepositoriesService.GetRepositoriesAsync();
 		_isLoading = false;
 	}
+
 }

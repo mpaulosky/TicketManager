@@ -1,4 +1,14 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     GitHubRepositoriesTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Microsoft.Extensions.DependencyInjection;
+
 using Web.Components.Pages;
 using Web.Services;
 
@@ -28,13 +38,13 @@ public class GitHubRepositoriesTests : BunitContext
 		var cut = Render<GitHubRepositories>();
 
 		// Assert
-		Assert.Equal("repo-a", cut.Find("[data-testid='repo-card'] h2").TextContent.Trim());
+		cut.Find("[data-testid='repo-card'] h2").TextContent.Trim().Should().Be("repo-a");
 
 		var issueLink = cut.Find("a[href='https://github.com/octocat/repo-a/issues/1']");
-		Assert.Contains("Fix the thing", issueLink.TextContent);
+		issueLink.TextContent.Should().Contain("Fix the thing");
 
 		var pullRequestLink = cut.Find("a[href='https://github.com/octocat/repo-a/pull/2']");
-		Assert.Contains("Add the feature", pullRequestLink.TextContent);
+		pullRequestLink.TextContent.Should().Contain("Add the feature");
 	}
 
 	[Fact]
@@ -48,7 +58,40 @@ public class GitHubRepositoriesTests : BunitContext
 		var cut = Render<GitHubRepositories>();
 
 		// Assert
-		Assert.Contains("Unauthenticated", cut.Markup);
+		cut.Markup.Should().Contain("Unauthenticated");
+	}
+
+	[Fact]
+	public void GitHubRepositories_NoErrorAndNoRepositories_ShowsNoRepositoriesFoundMessage()
+	{
+		// Arrange
+		var result = GitHubRepositoriesResult.Empty(isAuthenticated: true);
+		Services.AddSingleton<IGitHubRepositoriesService>(new FakeGitHubRepositoriesService(result));
+
+		// Act
+		var cut = Render<GitHubRepositories>();
+
+		// Assert
+		cut.Markup.Should().Contain("No repositories were found for the configured GitHub owner.");
+	}
+
+	[Fact]
+	public void GitHubRepositories_RepositoryWithNoIssuesOrPullRequests_ShowsEmptyStateCopy()
+	{
+		// Arrange
+		var result = new GitHubRepositoriesResult(
+			IsAuthenticated: true,
+			Repositories: [new GitHubRepositoryStatus("repo-a", "https://github.com/octocat/repo-a", [], [])],
+			ErrorMessage: null);
+
+		Services.AddSingleton<IGitHubRepositoriesService>(new FakeGitHubRepositoriesService(result));
+
+		// Act
+		var cut = Render<GitHubRepositories>();
+
+		// Assert
+		cut.Markup.Should().Contain("No open issues.");
+		cut.Markup.Should().Contain("No open pull requests.");
 	}
 
 	[Fact]
@@ -62,7 +105,7 @@ public class GitHubRepositoriesTests : BunitContext
 		var cut = Render<GitHubRepositories>();
 
 		// Assert
-		Assert.Contains("No GitHub owner is configured.", cut.Markup);
+		cut.Markup.Should().Contain("No GitHub owner is configured.");
 	}
 
 	private sealed class FakeGitHubRepositoriesService(GitHubRepositoriesResult result) : IGitHubRepositoriesService

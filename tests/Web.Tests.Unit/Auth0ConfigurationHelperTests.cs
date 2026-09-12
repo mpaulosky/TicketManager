@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     Auth0ConfigurationHelperTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Unit
+// =============================================
+
 using Web.Security;
 
 namespace Web.Tests.Unit;
@@ -11,7 +20,7 @@ public class Auth0ConfigurationHelperTests
 		var result = Auth0ConfigurationHelper.IsAuthenticationEnabled("domain", "clientId", "clientSecret");
 
 		// Assert
-		Assert.True(result);
+		result.Should().BeTrue();
 	}
 
 	[Theory]
@@ -29,6 +38,6 @@ public class Auth0ConfigurationHelperTests
 		var result = Auth0ConfigurationHelper.IsAuthenticationEnabled(domain, clientId, clientSecret);
 
 		// Assert
-		Assert.False(result);
+		result.Should().BeFalse();
 	}
 }

@@ -1,5 +1,16 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     GitHubRestClientTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Unit
+// =============================================
+
 using System.Net;
+
 using Microsoft.Extensions.Logging;
+
 using Web.Services;
 
 namespace Web.Tests.Unit;
@@ -14,12 +25,13 @@ public class GitHubRestClientTests
 		var (client, logger) = CreateClient(handler);
 
 		// Act
-		var result = await client.TryGetAsync<Repo>("repos/octocat/repo-a", cancellationToken: TestContext.Current.CancellationToken);
+		var result = await client.TryGetAsync<Repo>("repos/octocat/repo-a",
+			cancellationToken: TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.NotNull(result);
-		Assert.Equal("repo-a", result.Name);
-		Assert.Empty(logger.Warnings);
+		result.Should().NotBeNull();
+		result.Name.Should().Be("repo-a");
+		logger.Warnings.Should().BeEmpty();
 	}
 
 	[Fact]
@@ -38,11 +50,12 @@ public class GitHubRestClientTests
 		await client.TryGetAsync<Repo>("repos/octocat/repo-a", cancellationToken: TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.NotNull(capturedRequest);
-		Assert.Equal("https://api.github.com/repos/octocat/repo-a", capturedRequest.RequestUri!.ToString());
-		Assert.Contains(capturedRequest.Headers.Accept, value => value.MediaType == "application/vnd.github+json");
-		Assert.Contains(capturedRequest.Headers.UserAgent, value => value.Product?.Name == "TicketManager-Web");
-		Assert.Null(capturedRequest.Headers.Authorization);
+		capturedRequest.Should().NotBeNull();
+		capturedRequest.RequestUri!.ToString().Should().Be("https://api.github.com/repos/octocat/repo-a");
+		capturedRequest.Headers.Accept.Should().Contain(value => value.MediaType == "application/vnd.github+json");
+		capturedRequest.Headers.UserAgent.Should()
+			.Contain(value => value.Product != null && value.Product.Name == "TicketManager-Web");
+		capturedRequest.Headers.Authorization.Should().BeNull();
 	}
 
 	[Fact]
@@ -61,8 +74,8 @@ public class GitHubRestClientTests
 		await client.TryGetAsync<Repo>("repos/octocat/repo-a", "test-token", TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Equal("Bearer", capturedRequest!.Headers.Authorization!.Scheme);
-		Assert.Equal("test-token", capturedRequest.Headers.Authorization.Parameter);
+		capturedRequest!.Headers.Authorization!.Scheme.Should().Be("Bearer");
+		capturedRequest.Headers.Authorization.Parameter.Should().Be("test-token");
 	}
 
 	[Fact]
@@ -73,11 +86,12 @@ public class GitHubRestClientTests
 		var (client, logger) = CreateClient(handler);
 
 		// Act
-		var result = await client.TryGetAsync<Repo>("repos/octocat/missing", cancellationToken: TestContext.Current.CancellationToken);
+		var result = await client.TryGetAsync<Repo>("repos/octocat/missing",
+			cancellationToken: TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Null(result);
-		Assert.Single(logger.Warnings);
+		result.Should().BeNull();
+		logger.Warnings.Should().ContainSingle();
 	}
 
 	[Fact]
@@ -88,11 +102,49 @@ public class GitHubRestClientTests
 		var (client, logger) = CreateClient(handler);
 
 		// Act
-		var result = await client.TryGetAsync<Repo>("repos/octocat/repo-a", cancellationToken: TestContext.Current.CancellationToken);
+		var result = await client.TryGetAsync<Repo>("repos/octocat/repo-a",
+			cancellationToken: TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Null(result);
-		Assert.Single(logger.Warnings);
+		result.Should().BeNull();
+		logger.Warnings.Should().ContainSingle();
+	}
+
+	[Theory]
+	[InlineData(null)]
+	[InlineData("")]
+	[InlineData("   ")]
+	public async Task TryGetAsync_NullOrWhitespacePath_ThrowsArgumentException(string? path)
+	{
+		// Arrange
+		var handler = new StubHttpMessageHandler((_, _) =>
+			throw new InvalidOperationException("The HTTP client should not be invoked for an invalid path."));
+		var (client, _) = CreateClient(handler);
+
+		// Act
+		var act = async () => await client.TryGetAsync<Repo>(path!, cancellationToken: TestContext.Current.CancellationToken);
+
+		// Assert
+		await act.Should().ThrowAsync<ArgumentException>();
+	}
+
+	[Fact]
+	public async Task TryGetAsync_MalformedJsonBody_ReturnsNullAndLogsWarning()
+	{
+		// Arrange
+		var handler = new StubHttpMessageHandler((_, _) => new HttpResponseMessage(HttpStatusCode.OK)
+		{
+			Content = new StringContent("not valid json", System.Text.Encoding.UTF8, "application/json"),
+		});
+		var (client, logger) = CreateClient(handler);
+
+		// Act
+		var result = await client.TryGetAsync<Repo>("repos/octocat/repo-a",
+			cancellationToken: TestContext.Current.CancellationToken);
+
+		// Assert
+		result.Should().BeNull();
+		logger.Warnings.Should().ContainSingle();
 	}
 
 	private static (GitHubRestClient Client, RecordingLogger<GitHubRestClient> Logger) CreateClient(

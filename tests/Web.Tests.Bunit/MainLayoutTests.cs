@@ -1,5 +1,15 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     MainLayoutTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+
 using Web.Components.Layout;
 using Web.Services;
 
@@ -25,9 +35,9 @@ public class MainLayoutTests : BunitContext
 			.Add(p => p.Body, (RenderFragment)(builder => builder.AddMarkupContent(0, body))));
 
 		// Assert
-		Assert.Contains("page body", cut.Markup);
-		Assert.NotNull(cut.Find("header.app-header"));
-		Assert.NotNull(cut.Find("footer.app-footer"));
+		cut.Markup.Should().Contain("page body");
+		cut.Find("header.app-header").Should().NotBeNull();
+		cut.Find("footer.app-footer").Should().NotBeNull();
 	}
 
 	private sealed class NullGitHubMetadataProvider : IGitHubMetadataProvider

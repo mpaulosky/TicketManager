@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     GitHubMetadataProvider.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web
+// =============================================
+
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
@@ -17,9 +26,9 @@ public interface IGitCommandRunner
 }
 
 /// <summary>
-/// Runs the real <c>git</c> executable as a child process, used to discover the origin remote
-/// and the local release tag/commit when GitHub's API is unavailable or the repository has no
-/// releases yet.
+///   Runs the real <c>git</c> executable as a child process, used to discover the origin remote
+///   and the local release tag/commit when GitHub's API is unavailable or the repository has no
+///   releases yet.
 /// </summary>
 [SuppressMessage("Design", "CA1515",
 	Justification = "Injected into GitHubMetadataProvider and consumed by Web tests.")]
@@ -67,10 +76,10 @@ public interface IGitHubMetadataProvider
 }
 
 /// <summary>
-/// Composes the local <c>git</c> checkout and the GitHub REST API to answer "what release and
-/// commit is running right now": the origin remote identifies the owner/repo, the GitHub API is
-/// tried first for the release tag and default-branch commit, and a local <c>git</c> lookup is
-/// the fallback when the API has nothing (e.g. no releases published yet, or offline).
+///   Composes the local <c>git</c> checkout and the GitHub REST API to answer "what release and
+///   commit is running right now": the origin remote identifies the owner/repo, the GitHub API is
+///   tried first for the release tag and default-branch commit, and a local <c>git</c> lookup is
+///   the fallback when the API has nothing (e.g. no releases published yet, or offline).
 /// </summary>
 [SuppressMessage("Design", "CA1515",
 	Justification =

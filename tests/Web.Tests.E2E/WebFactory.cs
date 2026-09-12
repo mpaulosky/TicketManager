@@ -1,8 +1,17 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     WebFactory.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.E2E
+// =============================================
+
 namespace Web.Tests.E2E;
 
 /// <summary>
-/// Hosts <c>Web</c> on a real Kestrel TCP port (not the in-memory TestServer) so an
-/// out-of-process Playwright browser can navigate to it over real HTTP.
+///   Hosts <c>Web</c> on a real Kestrel TCP port (not the in-memory TestServer) so an
+///   out-of-process Playwright browser can navigate to it over real HTTP.
 /// </summary>
 public sealed class WebFactory : WebApplicationFactory<Program>
 {

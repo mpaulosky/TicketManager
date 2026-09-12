@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     HomeTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Web.Components.Pages;
 
 namespace Web.Tests.Bunit;
@@ -11,7 +20,7 @@ public class HomeTests : BunitContext
 		var cut = Render<Home>();
 
 		// Assert
-		Assert.Equal("Articles", cut.Find("h1").TextContent);
-		Assert.Contains("Build a durable foundation for modern .NET application work", cut.Markup);
+		cut.Find("h1").TextContent.Should().Be("Articles");
+		cut.Markup.Should().Contain("Build a durable foundation for modern .NET application work");
 	}
 }

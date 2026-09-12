@@ -1,5 +1,15 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     GitHubRestClient.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web
+// =============================================
+
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
+
 using Microsoft.Extensions.Logging;
 
 namespace Web.Services;
@@ -12,10 +22,10 @@ public interface IGitHubRestClient
 }
 
 /// <summary>
-/// The one place TicketManager talks HTTP to the GitHub REST API: builds the request (base URL,
-/// Accept header, User-Agent, optional bearer token), and degrades any failure - a non-success
-/// status, a transport exception, or a malformed body - to <see langword="null" /> rather than
-/// throwing, logging a warning so a quiet dashboard is still diagnosable.
+///   The one place TicketManager talks HTTP to the GitHub REST API: builds the request (base URL,
+///   Accept header, User-Agent, optional bearer token), and degrades any failure - a non-success
+///   status, a transport exception, or a malformed body - to <see langword="null" /> rather than
+///   throwing, logging a warning so a quiet dashboard is still diagnosable.
 /// </summary>
 [SuppressMessage("Design", "CA1515",
 	Justification = "Injected into GitHubRepositoriesService and GitHubMetadataProvider, and consumed by Web tests.")]

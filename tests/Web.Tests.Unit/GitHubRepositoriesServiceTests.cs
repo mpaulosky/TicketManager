@@ -1,4 +1,14 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     GitHubRepositoriesServiceTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Unit
+// =============================================
+
 using Microsoft.Extensions.Options;
+
 using Web.Services;
 
 namespace Web.Tests.Unit;
@@ -17,9 +27,70 @@ public class GitHubRepositoriesServiceTests
 		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Empty(result.Repositories);
-		Assert.False(result.IsAuthenticated);
-		Assert.Contains("GitHub:Owner", result.ErrorMessage);
+		result.Repositories.Should().BeEmpty();
+		result.IsAuthenticated.Should().BeFalse();
+		result.ErrorMessage.Should().Contain("GitHub:Owner");
+	}
+
+	[Fact]
+	public async Task GetRepositoriesAsync_OwnerNotConfigured_ReturnsFriendlyError()
+	{
+		// Arrange
+		var service = CreateService(new GitHubRepositoriesOptions { Owner = null },
+			new FakeGitHubRestClient((_, _) => throw new InvalidOperationException(
+				"GitHub should not be called when no owner is configured.")));
+
+		// Act
+		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
+
+		// Assert
+		result.Repositories.Should().BeEmpty();
+		result.IsAuthenticated.Should().BeFalse();
+		result.ErrorMessage.Should().Contain("GitHub:Owner");
+	}
+
+	[Fact]
+	public async Task GetRepositoriesAsync_OwnerIsWhitespaceOnly_ReturnsFriendlyError()
+	{
+		// Arrange
+		var service = CreateService(new GitHubRepositoriesOptions { Owner = "   " },
+			new FakeGitHubRestClient((_, _) => throw new InvalidOperationException(
+				"GitHub should not be called when no owner is configured.")));
+
+		// Act
+		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
+
+		// Assert
+		result.Repositories.Should().BeEmpty();
+		result.ErrorMessage.Should().Contain("GitHub:Owner");
+	}
+
+	[Fact]
+	public async Task GetRepositoriesAsync_ForksAndArchivedRepositories_AreExcluded()
+	{
+		// Arrange
+		var restClient = new FakeGitHubRestClient((path, _) =>
+		{
+			if (path.EndsWith("/repos?per_page=100&sort=updated", StringComparison.Ordinal))
+			{
+				return new List<GitHubRepositoryDto>
+				{
+					new() { Name = "kept", HtmlUrl = "https://github.com/octocat/kept" },
+					new() { Name = "a-fork", HtmlUrl = "https://github.com/octocat/a-fork", Fork = true },
+					new() { Name = "archived", HtmlUrl = "https://github.com/octocat/archived", Archived = true },
+				};
+			}
+
+			return new List<GitHubIssueDto>();
+		});
+
+		var service = CreateService(new GitHubRepositoriesOptions { Owner = "octocat" }, restClient);
+
+		// Act
+		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
+
+		// Assert
+		result.Repositories.Should().ContainSingle().Which.Name.Should().Be("kept");
 	}
 
 	[Fact]
@@ -47,9 +118,9 @@ public class GitHubRepositoriesServiceTests
 		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.True(result.IsAuthenticated);
-		Assert.Equal("test-token", capturedToken);
-		Assert.Single(result.Repositories);
+		result.IsAuthenticated.Should().BeTrue();
+		capturedToken.Should().Be("test-token");
+		result.Repositories.Should().ContainSingle();
 	}
 
 	[Fact]
@@ -67,8 +138,8 @@ public class GitHubRepositoriesServiceTests
 		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.False(result.IsAuthenticated);
-		Assert.Null(result.ErrorMessage);
+		result.IsAuthenticated.Should().BeFalse();
+		result.ErrorMessage.Should().BeNull();
 	}
 
 	[Fact]
@@ -76,21 +147,17 @@ public class GitHubRepositoriesServiceTests
 	{
 		// Arrange
 		object RepositoryList() =>
-			new List<GitHubRepositoryDto>
-			{
-				new() { Name = "repo-a", HtmlUrl = "https://github.com/octocat/repo-a" },
-			};
+			new List<GitHubRepositoryDto> { new() { Name = "repo-a", HtmlUrl = "https://github.com/octocat/repo-a" }, };
 
 		object IssuesList() =>
 			new List<GitHubIssueDto>
 			{
+				new() { Number = 1, Title = "A real issue", HtmlUrl = "https://github.com/octocat/repo-a/issues/1", },
 				new()
 				{
-					Number = 1, Title = "A real issue", HtmlUrl = "https://github.com/octocat/repo-a/issues/1",
-				},
-				new()
-				{
-					Number = 2, Title = "A pull request", HtmlUrl = "https://github.com/octocat/repo-a/pull/2",
+					Number = 2,
+					Title = "A pull request",
+					HtmlUrl = "https://github.com/octocat/repo-a/pull/2",
 					PullRequest = new { url = "https://api.github.com/repos/octocat/repo-a/pulls/2" },
 				},
 			};
@@ -106,11 +173,11 @@ public class GitHubRepositoriesServiceTests
 		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
-		var repository = Assert.Single(result.Repositories);
-		var issue = Assert.Single(repository.Issues);
-		Assert.Equal("A real issue", issue.Title);
-		var pullRequest = Assert.Single(repository.PullRequests);
-		Assert.Equal("A pull request", pullRequest.Title);
+		var repository = result.Repositories.Should().ContainSingle().Which;
+		var issue = repository.Issues.Should().ContainSingle().Which;
+		issue.Title.Should().Be("A real issue");
+		var pullRequest = repository.PullRequests.Should().ContainSingle().Which;
+		pullRequest.Title.Should().Be("A pull request");
 	}
 
 	[Fact]
@@ -124,8 +191,8 @@ public class GitHubRepositoriesServiceTests
 		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Empty(result.Repositories);
-		Assert.Contains("does-not-exist", result.ErrorMessage);
+		result.Repositories.Should().BeEmpty();
+		result.ErrorMessage.Should().Contain("does-not-exist");
 	}
 
 	[Fact]
@@ -156,11 +223,12 @@ public class GitHubRepositoriesServiceTests
 		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
-		Assert.Single(result.Repositories);
-		Assert.Null(result.ErrorMessage);
+		result.Repositories.Should().ContainSingle();
+		result.ErrorMessage.Should().BeNull();
 	}
 
-	private static GitHubRepositoriesService CreateService(GitHubRepositoriesOptions options, IGitHubRestClient restClient) =>
+	private static GitHubRepositoriesService CreateService(GitHubRepositoriesOptions options,
+		IGitHubRestClient restClient) =>
 		new(restClient, Options.Create(options));
 
 	private sealed class FakeGitHubRestClient(Func<string, string?, object?> responder) : IGitHubRestClient

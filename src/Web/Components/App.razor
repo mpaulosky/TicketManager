@@ -2,61 +2,61 @@
 <html lang="en">
 
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<base href="/" />
+	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<base href="/"/>
 	<title>Ticket Manager</title>
-	<ResourcePreloader />
-	<link rel="stylesheet" href="@Assets["css/app.css"]" />
-	<link rel="stylesheet" href="@Assets["Web.styles.css"]" />
-	<link rel="stylesheet" href="_content/PSC.Blazor.Components.MarkdownEditor/css/markdowneditor.css" />
-	<link rel="stylesheet" href="_content/PSC.Blazor.Components.MarkdownEditor/css/easymde.min.css" />
-	<ImportMap />
-	<link rel="icon" type="image/png" href="favicon.png" />
-	<HeadOutlet />
+	<ResourcePreloader/>
+	<link rel="stylesheet" href="@Assets["css/app.css"]"/>
+	<link rel="stylesheet" href="@Assets["Web.styles.css"]"/>
+	<link rel="stylesheet" href="_content/PSC.Blazor.Components.MarkdownEditor/css/markdowneditor.css"/>
+	<link rel="stylesheet" href="_content/PSC.Blazor.Components.MarkdownEditor/css/easymde.min.css"/>
+	<ImportMap/>
+	<link rel="icon" type="image/png" href="favicon.png"/>
+	<HeadOutlet/>
 </head>
 
 <body>
-	<Routes @rendermode="InteractiveServer" />
-	<ReconnectModal />
-	<script>
-			(() => {
-				const STORAGE_KEY = "tailwind-color-theme";
-				const root = document.documentElement;
-				const notifyThemeChange = (theme) => {
-					window.dispatchEvent(new CustomEvent("theme-change", { detail: { theme } }));
-				};
-				const getPreferredTheme = () => {
-					const savedTheme = localStorage.getItem(STORAGE_KEY);
-					if (savedTheme === "light" || savedTheme === "dark") {
-						return savedTheme;
-					}
-					return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-				};
-				const applyTheme = (theme) => {
-					const resolvedTheme = theme === "dark" || theme === "light" ? theme : getPreferredTheme();
-					root.dataset.theme = resolvedTheme;
-					root.style.colorScheme = resolvedTheme;
-					root.classList.toggle("dark", resolvedTheme === "dark");
-					localStorage.setItem(STORAGE_KEY, resolvedTheme);
-					notifyThemeChange(resolvedTheme);
-				};
-				applyTheme(getPreferredTheme());
-				window.applyTheme = applyTheme;
-				window.getTheme = () => document.documentElement.dataset.theme || "light";
+<Routes @rendermode="InteractiveServer"/>
+<ReconnectModal/>
+<script>
+	(() => {
+		const STORAGE_KEY = "tailwind-color-theme";
+		const root = document.documentElement;
+		const notifyThemeChange = (theme) => {
+			window.dispatchEvent(new CustomEvent("theme-change", {detail: {theme}}));
+		};
+		const getPreferredTheme = () => {
+			const savedTheme = localStorage.getItem(STORAGE_KEY);
+			if (savedTheme === "light" || savedTheme === "dark") {
+				return savedTheme;
+			}
+			return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+		};
+		const applyTheme = (theme) => {
+			const resolvedTheme = theme === "dark" || theme === "light" ? theme : getPreferredTheme();
+			root.dataset.theme = resolvedTheme;
+			root.style.colorScheme = resolvedTheme;
+			root.classList.toggle("dark", resolvedTheme === "dark");
+			localStorage.setItem(STORAGE_KEY, resolvedTheme);
+			notifyThemeChange(resolvedTheme);
+		};
+		applyTheme(getPreferredTheme());
+		window.applyTheme = applyTheme;
+		window.getTheme = () => document.documentElement.dataset.theme || "light";
 
-				window.getSelectedText = (selector) => {
-					const el = document.querySelector(selector);
-					if (!el || typeof el.selectionStart !== "number" || typeof el.selectionEnd !== "number") {
-						return "";
-					}
-					return el.value.substring(el.selectionStart, el.selectionEnd);
-				};
-			})();
-	</script>
-	<script src="_content/PSC.Blazor.Components.MarkdownEditor/js/easymde.min.js"></script>
-	<script src="_content/PSC.Blazor.Components.MarkdownEditor/js/markdownEditor.js"></script>
-	<script src="@Assets["_framework/blazor.web.js"]"></script>
+		window.getSelectedText = (selector) => {
+			const el = document.querySelector(selector);
+			if (!el || typeof el.selectionStart !== "number" || typeof el.selectionEnd !== "number") {
+				return "";
+			}
+			return el.value.substring(el.selectionStart, el.selectionEnd);
+		};
+	})();
+</script>
+<script src="_content/PSC.Blazor.Components.MarkdownEditor/js/easymde.min.js"></script>
+<script src="_content/PSC.Blazor.Components.MarkdownEditor/js/markdownEditor.js"></script>
+<script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
 
 </html>

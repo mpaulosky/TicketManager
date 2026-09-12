@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     ReconnectModalTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Web.Components.Layout;
 
 namespace Web.Tests.Bunit;
@@ -11,8 +20,8 @@ public class ReconnectModalTests : BunitContext
 		var cut = Render<ReconnectModal>();
 
 		// Assert
-		Assert.NotNull(cut.Find("#components-reconnect-modal"));
-		Assert.Contains("Rejoining the server...", cut.Markup);
-		Assert.Contains("Retry", cut.Markup);
+		cut.Find("#components-reconnect-modal").Should().NotBeNull();
+		cut.Markup.Should().Contain("Rejoining the server...");
+		cut.Markup.Should().Contain("Retry");
 	}
 }

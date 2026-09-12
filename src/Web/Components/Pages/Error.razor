@@ -14,7 +14,7 @@
 	{
 		<p class="text-sm text-(--app-text-muted)">
 			<strong>Request ID:</strong> <code
-			class="rounded bg-slate-100 px-2 py-1 font-mono text-sm text-slate-800">@_requestId</code>
+				class="rounded bg-slate-100 px-2 py-1 font-mono text-sm text-slate-800">@_requestId</code>
 		</p>
 	}
 
@@ -27,14 +27,14 @@
 		<p>
 			<strong class="text-(--app-text)">The Development environment shouldn't be enabled for deployed
 				applications.</strong>
-				It can result in displaying sensitive information from exceptions to end users. For local debugging, enable the
-				<strong class="text-(--app-text)">Development</strong> environment by setting the
-				<strong class="text-(--app-text)">ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong
+			It can result in displaying sensitive information from exceptions to end users. For local debugging, enable the
+			<strong class="text-(--app-text)">Development</strong> environment by setting the
+			<strong class="text-(--app-text)">ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong
 				class="text-(--app-text)">Development</strong>
-				and restarting the app.
-			</p>
-		</div>
+			and restarting the app.
+		</p>
 	</div>
+</div>
 
 @code {
 	[CascadingParameter] public HttpContext? HttpContext { get; set; }
@@ -46,4 +46,5 @@
 	{
 		_requestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
 	}
+
 }

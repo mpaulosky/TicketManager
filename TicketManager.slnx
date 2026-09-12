@@ -1,15 +1,15 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/AppHost/AppHost.csproj" />
-    <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
-    <Project Path="src/Web/Web.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/AppHost.Tests/AppHost.Tests.csproj" />
-    <Project Path="tests/Architecture.Tests/Architecture.Tests.csproj" />
-    <Project Path="tests/Web.Tests.Unit/Web.Tests.Unit.csproj" />
-    <Project Path="tests/Web.Tests.Bunit/Web.Tests.Bunit.csproj" />
-    <Project Path="tests/Web.Tests.Integration/Web.Tests.Integration.csproj" />
-    <Project Path="tests/Web.Tests.E2E/Web.Tests.E2E.csproj" />
-  </Folder>
+    <Folder Name="/src/">
+        <Project Path="src/AppHost/AppHost.csproj"/>
+        <Project Path="src/ServiceDefaults/ServiceDefaults.csproj"/>
+        <Project Path="src/Web/Web.csproj"/>
+    </Folder>
+    <Folder Name="/tests/">
+        <Project Path="tests/AppHost.Tests/AppHost.Tests.csproj"/>
+        <Project Path="tests/Architecture.Tests/Architecture.Tests.csproj"/>
+        <Project Path="tests/Web.Tests.Unit/Web.Tests.Unit.csproj"/>
+        <Project Path="tests/Web.Tests.Bunit/Web.Tests.Bunit.csproj"/>
+        <Project Path="tests/Web.Tests.Integration/Web.Tests.Integration.csproj"/>
+        <Project Path="tests/Web.Tests.E2E/Web.Tests.E2E.csproj"/>
+    </Folder>
 </Solution>

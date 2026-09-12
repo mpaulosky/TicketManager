@@ -1,7 +1,15 @@
-using System.Net;
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     AppHostTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  AppHost.Tests
+// =============================================
+
 using Microsoft.Extensions.Logging;
 
-namespace AppHost.Tests.Tests;
+namespace AppHost.Tests;
 
 public class AppHostTests
 {
@@ -35,10 +43,11 @@ public class AppHostTests
 
 		// Act
 		using var httpClient = app.CreateHttpClient("web");
-		await app.ResourceNotifications.WaitForResourceHealthyAsync("web", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+		await app.ResourceNotifications.WaitForResourceHealthyAsync("web", cancellationToken)
+			.WaitAsync(DefaultTimeout, cancellationToken);
 		using var response = await httpClient.GetAsync("/", cancellationToken);
 
 		// Assert
-		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+		response.StatusCode.Should().Be(HttpStatusCode.OK);
 	}
 }

@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     Program.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web
+// =============================================
+
 using Web.Components;
 using Web.Services;
 
@@ -7,19 +16,19 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+	.AddInteractiveServerComponents();
 
 // GitHub repository dashboard: bind configuration (owner/token) and fall back to the GITHUB_TOKEN
 // environment variable when no token is supplied via configuration/user-secrets.
 builder.Services
-    .AddOptions<GitHubRepositoriesOptions>()
-    .Bind(builder.Configuration.GetSection(GitHubRepositoriesOptions.SectionName));
+	.AddOptions<GitHubRepositoriesOptions>()
+	.Bind(builder.Configuration.GetSection(GitHubRepositoriesOptions.SectionName));
 builder.Services.PostConfigure<GitHubRepositoriesOptions>(options =>
 {
-    if (string.IsNullOrWhiteSpace(options.Token))
-    {
-        options.Token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
-    }
+	if (string.IsNullOrWhiteSpace(options.Token))
+	{
+		options.Token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+	}
 });
 
 builder.Services.AddHttpClient(GitHubRestClient.HttpClientName);
@@ -33,10 +42,11 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+	app.UseExceptionHandler("/Error", createScopeForErrors: true);
+	// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+	app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
@@ -44,7 +54,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+	.AddInteractiveServerRenderMode();
 
 app.MapDefaultEndpoints();
 

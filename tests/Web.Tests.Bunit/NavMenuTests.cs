@@ -1,3 +1,12 @@
+// ============================================
+// Copyright (c) 2026. All rights reserved.
+// File Name :     NavMenuTests.cs
+// Company :       mpaulosky
+// Author :        Teqslamer
+// Solution Name : TicketManager
+// Project Name :  Web.Tests.Bunit
+// =============================================
+
 using Web.Components.Layout;
 
 namespace Web.Tests.Bunit;
@@ -17,9 +26,9 @@ public class NavMenuTests : BunitContext
 		var cut = Render<NavMenu>();
 
 		// Assert
-		Assert.Contains("Ticket Manager", cut.Markup);
-		Assert.NotNull(cut.Find("a[href='/']"));
-		Assert.NotNull(cut.Find("a[href='/repositories']"));
+		cut.Markup.Should().Contain("Ticket Manager");
+		cut.Find("a[href='/']").Should().NotBeNull();
+		cut.Find("a[href='/repositories']").Should().NotBeNull();
 	}
 
 	[Fact]
@@ -30,7 +39,7 @@ public class NavMenuTests : BunitContext
 
 		// Assert
 		var toggle = cut.Find("button.theme-toggle");
-		Assert.Equal("Switch to dark theme", toggle.GetAttribute("aria-label"));
+		toggle.GetAttribute("aria-label").Should().Be("Switch to dark theme");
 	}
 
 	[Fact]
@@ -45,7 +54,7 @@ public class NavMenuTests : BunitContext
 
 		// Assert
 		toggle = cut.Find("button.theme-toggle");
-		Assert.Equal("Switch to light theme", toggle.GetAttribute("aria-label"));
-		Assert.Contains("☀️", toggle.TextContent);
+		toggle.GetAttribute("aria-label").Should().Be("Switch to light theme");
+		toggle.TextContent.Should().Contain("☀️");
 	}
 }
