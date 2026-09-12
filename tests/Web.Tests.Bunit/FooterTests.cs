@@ -8,8 +8,8 @@ public class FooterTests : BunitContext
 {
 	public FooterTests()
 	{
-		// Prevent the footer's best-effort GitHub metadata lookup from making real network calls.
-		Services.AddSingleton<IGitHubRestClient>(new NullGitHubRestClient());
+		// Prevent the footer's best-effort GitHub metadata lookup from making real network/process calls.
+		Services.AddSingleton<IGitHubMetadataProvider>(new NullGitHubMetadataProvider());
 	}
 
 	[Fact]
@@ -37,9 +37,9 @@ public class FooterTests : BunitContext
 		Assert.StartsWith("https://github.com/mpaulosky/TicketManager", commitLink.GetAttribute("href"));
 	}
 
-	private sealed class NullGitHubRestClient : IGitHubRestClient
+	private sealed class NullGitHubMetadataProvider : IGitHubMetadataProvider
 	{
-		public Task<T?> TryGetAsync<T>(string path, string? token = null,
-			CancellationToken cancellationToken = default) => Task.FromResult<T?>(default);
+		public Task<GitHubMetadata?> GetMetadataAsync(CancellationToken cancellationToken = default) =>
+			Task.FromResult<GitHubMetadata?>(null);
 	}
 }

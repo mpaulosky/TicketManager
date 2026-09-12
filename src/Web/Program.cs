@@ -24,6 +24,8 @@ builder.Services.PostConfigure<GitHubProjectsOptions>(options =>
 
 builder.Services.AddHttpClient(GitHubRestClient.HttpClientName);
 builder.Services.AddSingleton<IGitHubRestClient, GitHubRestClient>();
+builder.Services.AddSingleton<IGitCommandRunner, GitCommandRunner>();
+builder.Services.AddSingleton<IGitHubMetadataProvider, GitHubMetadataProvider>();
 builder.Services.AddScoped<IGitHubProjectsService, GitHubProjectsService>();
 
 var app = builder.Build();

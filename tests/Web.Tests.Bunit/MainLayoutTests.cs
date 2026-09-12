@@ -11,7 +11,7 @@ public class MainLayoutTests : BunitContext
 	{
 		JSInterop.Setup<string>("getTheme").SetResult("light");
 		JSInterop.SetupVoid("applyTheme", _ => true);
-		Services.AddSingleton<IGitHubRestClient>(new NullGitHubRestClient());
+		Services.AddSingleton<IGitHubMetadataProvider>(new NullGitHubMetadataProvider());
 	}
 
 	[Fact]
@@ -30,9 +30,9 @@ public class MainLayoutTests : BunitContext
 		Assert.NotNull(cut.Find("footer.app-footer"));
 	}
 
-	private sealed class NullGitHubRestClient : IGitHubRestClient
+	private sealed class NullGitHubMetadataProvider : IGitHubMetadataProvider
 	{
-		public Task<T?> TryGetAsync<T>(string path, string? token = null,
-			CancellationToken cancellationToken = default) => Task.FromResult<T?>(default);
+		public Task<GitHubMetadata?> GetMetadataAsync(CancellationToken cancellationToken = default) =>
+			Task.FromResult<GitHubMetadata?>(null);
 	}
 }
