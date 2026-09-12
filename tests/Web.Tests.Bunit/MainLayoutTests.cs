@@ -1,7 +1,7 @@
-using System.Net;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Web.Components.Layout;
+using Web.Services;
 
 namespace Web.Tests.Bunit;
 
@@ -11,7 +11,7 @@ public class MainLayoutTests : BunitContext
 	{
 		JSInterop.Setup<string>("getTheme").SetResult("light");
 		JSInterop.SetupVoid("applyTheme", _ => true);
-		Services.AddSingleton<IHttpClientFactory>(new NotFoundHttpClientFactory());
+		Services.AddSingleton<IGitHubRestClient>(new NullGitHubRestClient());
 	}
 
 	[Fact]
@@ -30,15 +30,9 @@ public class MainLayoutTests : BunitContext
 		Assert.NotNull(cut.Find("footer.app-footer"));
 	}
 
-	private sealed class NotFoundHttpClientFactory : IHttpClientFactory
+	private sealed class NullGitHubRestClient : IGitHubRestClient
 	{
-		public HttpClient CreateClient(string name) => new(new NotFoundHandler());
-	}
-
-	private sealed class NotFoundHandler : HttpMessageHandler
-	{
-		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
-			CancellationToken cancellationToken) =>
-			Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+		public Task<T?> TryGetAsync<T>(string path, string? token = null,
+			CancellationToken cancellationToken = default) => Task.FromResult<T?>(default);
 	}
 }

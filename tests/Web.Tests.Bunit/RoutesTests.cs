@@ -1,6 +1,6 @@
-using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Web.Components;
+using Web.Services;
 
 namespace Web.Tests.Bunit;
 
@@ -10,7 +10,7 @@ public class RoutesTests : BunitContext
 	{
 		JSInterop.Setup<string>("getTheme").SetResult("light");
 		JSInterop.SetupVoid("applyTheme", _ => true);
-		Services.AddSingleton<IHttpClientFactory>(new NotFoundHttpClientFactory());
+		Services.AddSingleton<IGitHubRestClient>(new NullGitHubRestClient());
 	}
 
 	[Fact]
@@ -41,15 +41,9 @@ public class RoutesTests : BunitContext
 		Assert.Contains("You are not authorized to access this resource.", cut.Markup);
 	}
 
-	private sealed class NotFoundHttpClientFactory : IHttpClientFactory
+	private sealed class NullGitHubRestClient : IGitHubRestClient
 	{
-		public HttpClient CreateClient(string name) => new(new NotFoundHandler());
-	}
-
-	private sealed class NotFoundHandler : HttpMessageHandler
-	{
-		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
-			CancellationToken cancellationToken) =>
-			Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+		public Task<T?> TryGetAsync<T>(string path, string? token = null,
+			CancellationToken cancellationToken = default) => Task.FromResult<T?>(default);
 	}
 }
