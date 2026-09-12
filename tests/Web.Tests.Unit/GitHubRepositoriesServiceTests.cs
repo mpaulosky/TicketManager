@@ -3,18 +3,18 @@ using Web.Services;
 
 namespace Web.Tests.Unit;
 
-public class GitHubProjectsServiceTests
+public class GitHubRepositoriesServiceTests
 {
 	[Fact]
-	public async Task GetProjectsAsync_NoOwnerConfigured_ReturnsFriendlyError()
+	public async Task GetRepositoriesAsync_NoOwnerConfigured_ReturnsFriendlyError()
 	{
 		// Arrange
-		var service = CreateService(new GitHubProjectsOptions { Owner = "" },
+		var service = CreateService(new GitHubRepositoriesOptions { Owner = "" },
 			new FakeGitHubRestClient((_, _) => throw new InvalidOperationException(
 				"GitHub should not be called when no owner is configured.")));
 
 		// Act
-		var result = await service.GetProjectsAsync(TestContext.Current.CancellationToken);
+		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		Assert.Empty(result.Repositories);
@@ -23,7 +23,7 @@ public class GitHubProjectsServiceTests
 	}
 
 	[Fact]
-	public async Task GetProjectsAsync_TokenConfigured_ReportsAuthenticatedAndPassesTokenThrough()
+	public async Task GetRepositoriesAsync_TokenConfigured_ReportsAuthenticatedAndPassesTokenThrough()
 	{
 		// Arrange
 		string? capturedToken = null;
@@ -41,10 +41,10 @@ public class GitHubProjectsServiceTests
 			return new List<GitHubIssueDto>();
 		});
 
-		var service = CreateService(new GitHubProjectsOptions { Owner = "octocat", Token = "test-token" }, restClient);
+		var service = CreateService(new GitHubRepositoriesOptions { Owner = "octocat", Token = "test-token" }, restClient);
 
 		// Act
-		var result = await service.GetProjectsAsync(TestContext.Current.CancellationToken);
+		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		Assert.True(result.IsAuthenticated);
@@ -53,7 +53,7 @@ public class GitHubProjectsServiceTests
 	}
 
 	[Fact]
-	public async Task GetProjectsAsync_NoToken_ReportsUnauthenticated()
+	public async Task GetRepositoriesAsync_NoToken_ReportsUnauthenticated()
 	{
 		// Arrange
 		var restClient = new FakeGitHubRestClient((path, _) =>
@@ -61,10 +61,10 @@ public class GitHubProjectsServiceTests
 				? new List<GitHubRepositoryDto>()
 				: new List<GitHubIssueDto>());
 
-		var service = CreateService(new GitHubProjectsOptions { Owner = "octocat" }, restClient);
+		var service = CreateService(new GitHubRepositoriesOptions { Owner = "octocat" }, restClient);
 
 		// Act
-		var result = await service.GetProjectsAsync(TestContext.Current.CancellationToken);
+		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		Assert.False(result.IsAuthenticated);
@@ -72,7 +72,7 @@ public class GitHubProjectsServiceTests
 	}
 
 	[Fact]
-	public async Task GetProjectsAsync_FiltersPullRequestsOutOfIssuesAndIntoPullRequests()
+	public async Task GetRepositoriesAsync_FiltersPullRequestsOutOfIssuesAndIntoPullRequests()
 	{
 		// Arrange
 		object RepositoryList() =>
@@ -100,10 +100,10 @@ public class GitHubProjectsServiceTests
 				? RepositoryList()
 				: IssuesList());
 
-		var service = CreateService(new GitHubProjectsOptions { Owner = "octocat" }, restClient);
+		var service = CreateService(new GitHubRepositoriesOptions { Owner = "octocat" }, restClient);
 
 		// Act
-		var result = await service.GetProjectsAsync(TestContext.Current.CancellationToken);
+		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		var repository = Assert.Single(result.Repositories);
@@ -114,14 +114,14 @@ public class GitHubProjectsServiceTests
 	}
 
 	[Fact]
-	public async Task GetProjectsAsync_OwnerNotFoundOnEitherSegment_ReturnsFriendlyError()
+	public async Task GetRepositoriesAsync_OwnerNotFoundOnEitherSegment_ReturnsFriendlyError()
 	{
 		// Arrange
 		var restClient = new FakeGitHubRestClient((_, _) => null);
-		var service = CreateService(new GitHubProjectsOptions { Owner = "does-not-exist" }, restClient);
+		var service = CreateService(new GitHubRepositoriesOptions { Owner = "does-not-exist" }, restClient);
 
 		// Act
-		var result = await service.GetProjectsAsync(TestContext.Current.CancellationToken);
+		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		Assert.Empty(result.Repositories);
@@ -129,7 +129,7 @@ public class GitHubProjectsServiceTests
 	}
 
 	[Fact]
-	public async Task GetProjectsAsync_PreferredSegmentFails_FallsBackToTheOtherSegment()
+	public async Task GetRepositoriesAsync_PreferredSegmentFails_FallsBackToTheOtherSegment()
 	{
 		// Arrange
 		var restClient = new FakeGitHubRestClient((path, _) =>
@@ -150,17 +150,17 @@ public class GitHubProjectsServiceTests
 			return new List<GitHubIssueDto>();
 		});
 
-		var service = CreateService(new GitHubProjectsOptions { Owner = "octocat", OwnerType = "User" }, restClient);
+		var service = CreateService(new GitHubRepositoriesOptions { Owner = "octocat", OwnerType = "User" }, restClient);
 
 		// Act
-		var result = await service.GetProjectsAsync(TestContext.Current.CancellationToken);
+		var result = await service.GetRepositoriesAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		Assert.Single(result.Repositories);
 		Assert.Null(result.ErrorMessage);
 	}
 
-	private static GitHubProjectsService CreateService(GitHubProjectsOptions options, IGitHubRestClient restClient) =>
+	private static GitHubRepositoriesService CreateService(GitHubRepositoriesOptions options, IGitHubRestClient restClient) =>
 		new(restClient, Options.Create(options));
 
 	private sealed class FakeGitHubRestClient(Func<string, string?, object?> responder) : IGitHubRestClient

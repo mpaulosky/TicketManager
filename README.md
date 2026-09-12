@@ -44,7 +44,7 @@ create/update/triage workflows are not yet implemented.
   launches the app's services for local development.
 - [src/ServiceDefaults](src/ServiceDefaults) — shared Aspire service-defaults
   (telemetry, health checks, resilience) referenced by other src projects.
-- [src/Web](src/Web) — the Blazor UI project (Home, GitHub Projects dashboard, and
+- [src/Web](src/Web) — the Blazor UI project (Home, GitHub Repositories dashboard, and
   About pages, styled with Tailwind CSS).
 - [tests/AppHost.Tests](tests/AppHost.Tests) — integration tests for the AppHost
   orchestration project.

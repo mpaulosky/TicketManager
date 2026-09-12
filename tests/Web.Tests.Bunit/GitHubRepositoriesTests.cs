@@ -4,13 +4,13 @@ using Web.Services;
 
 namespace Web.Tests.Bunit;
 
-public class GitHubProjectsTests : BunitContext
+public class GitHubRepositoriesTests : BunitContext
 {
 	[Fact]
-	public void GitHubProjects_Rendered_ShowsOneCardPerRepositoryWithIssuesAndPullRequests()
+	public void GitHubRepositories_Rendered_ShowsOneCardPerRepositoryWithIssuesAndPullRequests()
 	{
 		// Arrange
-		var result = new GitHubProjectsResult(
+		var result = new GitHubRepositoriesResult(
 			IsAuthenticated: true,
 			Repositories:
 			[
@@ -22,10 +22,10 @@ public class GitHubProjectsTests : BunitContext
 			],
 			ErrorMessage: null);
 
-		Services.AddSingleton<IGitHubProjectsService>(new FakeGitHubProjectsService(result));
+		Services.AddSingleton<IGitHubRepositoriesService>(new FakeGitHubRepositoriesService(result));
 
 		// Act
-		var cut = Render<GitHubProjects>();
+		var cut = Render<GitHubRepositories>();
 
 		// Assert
 		Assert.Equal("repo-a", cut.Find("[data-testid='repo-card'] h2").TextContent.Trim());
@@ -38,36 +38,36 @@ public class GitHubProjectsTests : BunitContext
 	}
 
 	[Fact]
-	public void GitHubProjects_NoTokenConfigured_ShowsUnauthenticatedBadge()
+	public void GitHubRepositories_NoTokenConfigured_ShowsUnauthenticatedBadge()
 	{
 		// Arrange
-		var result = GitHubProjectsResult.Empty(isAuthenticated: false);
-		Services.AddSingleton<IGitHubProjectsService>(new FakeGitHubProjectsService(result));
+		var result = GitHubRepositoriesResult.Empty(isAuthenticated: false);
+		Services.AddSingleton<IGitHubRepositoriesService>(new FakeGitHubRepositoriesService(result));
 
 		// Act
-		var cut = Render<GitHubProjects>();
+		var cut = Render<GitHubRepositories>();
 
 		// Assert
 		Assert.Contains("Unauthenticated", cut.Markup);
 	}
 
 	[Fact]
-	public void GitHubProjects_ErrorResult_ShowsFriendlyErrorMessage()
+	public void GitHubRepositories_ErrorResult_ShowsFriendlyErrorMessage()
 	{
 		// Arrange
-		var result = GitHubProjectsResult.Empty(isAuthenticated: false, errorMessage: "No GitHub owner is configured.");
-		Services.AddSingleton<IGitHubProjectsService>(new FakeGitHubProjectsService(result));
+		var result = GitHubRepositoriesResult.Empty(isAuthenticated: false, errorMessage: "No GitHub owner is configured.");
+		Services.AddSingleton<IGitHubRepositoriesService>(new FakeGitHubRepositoriesService(result));
 
 		// Act
-		var cut = Render<GitHubProjects>();
+		var cut = Render<GitHubRepositories>();
 
 		// Assert
 		Assert.Contains("No GitHub owner is configured.", cut.Markup);
 	}
 
-	private sealed class FakeGitHubProjectsService(GitHubProjectsResult result) : IGitHubProjectsService
+	private sealed class FakeGitHubRepositoriesService(GitHubRepositoriesResult result) : IGitHubRepositoriesService
 	{
-		public Task<GitHubProjectsResult> GetProjectsAsync(CancellationToken cancellationToken = default) =>
+		public Task<GitHubRepositoriesResult> GetRepositoriesAsync(CancellationToken cancellationToken = default) =>
 			Task.FromResult(result);
 	}
 }

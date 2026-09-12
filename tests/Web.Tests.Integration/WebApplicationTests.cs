@@ -66,13 +66,13 @@ public class WebApplicationTests : IClassFixture<WebApplicationFactory<Program>>
 	}
 
 	[Fact]
-	public async Task Get_ProjectsRoute_ReturnsOk()
+	public async Task Get_RepositoriesRoute_ReturnsOk()
 	{
 		// Arrange
 		using var client = _factory.CreateClient();
 
 		// Act
-		using var response = await client.GetAsync("/projects", TestContext.Current.CancellationToken);
+		using var response = await client.GetAsync("/repositories", TestContext.Current.CancellationToken);
 
 		// Assert
 		Assert.Equal(HttpStatusCode.OK, response.StatusCode);

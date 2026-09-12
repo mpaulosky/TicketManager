@@ -3,14 +3,14 @@ using System.Diagnostics.CodeAnalysis;
 namespace Web.Services;
 
 /// <summary>
-/// Configuration for the GitHub Projects dashboard.
+/// Configuration for the GitHub repository dashboard.
 /// Bound from the "GitHub" configuration section (appsettings, user-secrets, or environment variables).
 /// The <see cref="Token" /> should never be committed to source control; supply it via user-secrets
 /// (`dotnet user-secrets set GitHub:Token "..."`) or the GITHUB_TOKEN environment variable.
 /// </summary>
 [SuppressMessage("Design", "CA1515",
 	Justification = "Bound via IOptions and consumed by the Web project and its tests.")]
-public sealed class GitHubProjectsOptions
+public sealed class GitHubRepositoriesOptions
 {
 	public const string SectionName = "GitHub";
 

@@ -4,10 +4,10 @@ using Microsoft.Extensions.Options;
 namespace Web.Services;
 
 [SuppressMessage("Design", "CA1515",
-	Justification = "Injected into the GitHub Projects Razor page and consumed by Web tests.")]
-public interface IGitHubProjectsService
+	Justification = "Injected into the GitHub Repositories Razor page and consumed by Web tests.")]
+public interface IGitHubRepositoriesService
 {
-	Task<GitHubProjectsResult> GetProjectsAsync(CancellationToken cancellationToken = default);
+	Task<GitHubRepositoriesResult> GetRepositoriesAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -16,13 +16,13 @@ public interface IGitHubProjectsService
 /// split; the actual GitHub HTTP calls go through <see cref="IGitHubRestClient" />.
 /// </summary>
 [SuppressMessage("Design", "CA1515",
-	Justification = "Injected into the GitHub Projects Razor page and consumed by Web tests.")]
-public sealed class GitHubProjectsService : IGitHubProjectsService
+	Justification = "Injected into the GitHub Repositories Razor page and consumed by Web tests.")]
+public sealed class GitHubRepositoriesService : IGitHubRepositoriesService
 {
 	private readonly IGitHubRestClient _gitHubRestClient;
-	private readonly GitHubProjectsOptions _options;
+	private readonly GitHubRepositoriesOptions _options;
 
-	public GitHubProjectsService(IGitHubRestClient gitHubRestClient, IOptions<GitHubProjectsOptions> options)
+	public GitHubRepositoriesService(IGitHubRestClient gitHubRestClient, IOptions<GitHubRepositoriesOptions> options)
 	{
 		ArgumentNullException.ThrowIfNull(gitHubRestClient);
 		ArgumentNullException.ThrowIfNull(options);
@@ -31,32 +31,32 @@ public sealed class GitHubProjectsService : IGitHubProjectsService
 		_options = options.Value;
 	}
 
-	public async Task<GitHubProjectsResult> GetProjectsAsync(CancellationToken cancellationToken = default)
+	public async Task<GitHubRepositoriesResult> GetRepositoriesAsync(CancellationToken cancellationToken = default)
 	{
 		var owner = _options.Owner?.Trim();
 		var isAuthenticated = _options.HasToken;
 
 		if (string.IsNullOrWhiteSpace(owner))
 		{
-			return GitHubProjectsResult.Empty(isAuthenticated,
+			return GitHubRepositoriesResult.Empty(isAuthenticated,
 				"No GitHub owner is configured. Set the \"GitHub:Owner\" setting to a GitHub username or organization.");
 		}
 
-		var repositories = await GetRepositoriesAsync(owner, cancellationToken).ConfigureAwait(false);
+		var repositories = await FindRepositoriesAsync(owner, cancellationToken).ConfigureAwait(false);
 		if (repositories is null)
 		{
-			return GitHubProjectsResult.Empty(isAuthenticated,
+			return GitHubRepositoriesResult.Empty(isAuthenticated,
 				$"Could not find a GitHub user or organization named \"{owner}\".");
 		}
 
 		var statuses = await Task.WhenAll(repositories.Select(repo => GetRepositoryStatusAsync(owner, repo, cancellationToken)))
 			.ConfigureAwait(false);
 
-		return new GitHubProjectsResult(isAuthenticated, statuses.OrderBy(status => status.Name,
+		return new GitHubRepositoriesResult(isAuthenticated, statuses.OrderBy(status => status.Name,
 			StringComparer.OrdinalIgnoreCase).ToList(), null);
 	}
 
-	private async Task<IReadOnlyList<GitHubRepositoryDto>?> GetRepositoriesAsync(string owner,
+	private async Task<IReadOnlyList<GitHubRepositoryDto>?> FindRepositoriesAsync(string owner,
 		CancellationToken cancellationToken)
 	{
 		var preferredSegment = string.Equals(_options.OwnerType, "Org", StringComparison.OrdinalIgnoreCase)
