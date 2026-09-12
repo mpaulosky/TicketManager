@@ -10,29 +10,101 @@ namespace Web.Services;
 public sealed record GitHubMetadata(string ReleaseTag, string LastCommit);
 
 [SuppressMessage("Design", "CA1515",
+	Justification = "Injected into GitHubMetadataProvider and consumed by Web tests.")]
+public interface IGitCommandRunner
+{
+	Task<string?> RunAsync(string workingDirectory, params string[] arguments);
+}
+
+/// <summary>
+/// Runs the real <c>git</c> executable as a child process, used to discover the origin remote
+/// and the local release tag/commit when GitHub's API is unavailable or the repository has no
+/// releases yet.
+/// </summary>
+[SuppressMessage("Design", "CA1515",
+	Justification = "Injected into GitHubMetadataProvider and consumed by Web tests.")]
+public sealed class GitCommandRunner : IGitCommandRunner
+{
+	public async Task<string?> RunAsync(string workingDirectory, params string[] arguments)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
+		ArgumentNullException.ThrowIfNull(arguments);
+
+		var startInfo = new ProcessStartInfo("git")
+		{
+			WorkingDirectory = workingDirectory,
+			RedirectStandardOutput = true,
+			RedirectStandardError = true,
+			UseShellExecute = false,
+			CreateNoWindow = true,
+		};
+		foreach (var argument in arguments)
+		{
+			startInfo.ArgumentList.Add(argument);
+		}
+
+		using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Unable to start git.");
+		var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+		var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+		await process.WaitForExitAsync().ConfigureAwait(false);
+
+		if (process.ExitCode != 0)
+		{
+			throw new InvalidOperationException(error.Trim());
+		}
+
+		var trimmed = output.Trim();
+		return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+	}
+}
+
+[SuppressMessage("Design", "CA1515",
+	Justification =
+		"The metadata provider is intentionally consumed by the Blazor footer and its corresponding Web tests.")]
+public interface IGitHubMetadataProvider
+{
+	Task<GitHubMetadata?> GetMetadataAsync(CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Composes the local <c>git</c> checkout and the GitHub REST API to answer "what release and
+/// commit is running right now": the origin remote identifies the owner/repo, the GitHub API is
+/// tried first for the release tag and default-branch commit, and a local <c>git</c> lookup is
+/// the fallback when the API has nothing (e.g. no releases published yet, or offline).
+/// </summary>
+[SuppressMessage("Design", "CA1515",
 	Justification =
 		"The metadata provider is intentionally consumed by the Blazor footer and its corresponding Web tests.")]
 [SuppressMessage("Design", "CA1031:Do not catch general exception types",
 	Justification =
 		"These are best-effort git/GitHub API lookups used to enrich footer metadata; any failure should fall back silently rather than propagate.")]
-public static class GitHubMetadataProvider
+public sealed class GitHubMetadataProvider : IGitHubMetadataProvider
 {
-	public static async Task<GitHubMetadata?> GetMetadataAsync(IGitHubRestClient gitHubRestClient,
-		CancellationToken cancellationToken = default)
+	private readonly IGitHubRestClient _gitHubRestClient;
+	private readonly IGitCommandRunner _gitCommandRunner;
+
+	public GitHubMetadataProvider(IGitHubRestClient gitHubRestClient, IGitCommandRunner gitCommandRunner)
 	{
 		ArgumentNullException.ThrowIfNull(gitHubRestClient);
+		ArgumentNullException.ThrowIfNull(gitCommandRunner);
 
+		_gitHubRestClient = gitHubRestClient;
+		_gitCommandRunner = gitCommandRunner;
+	}
+
+	public async Task<GitHubMetadata?> GetMetadataAsync(CancellationToken cancellationToken = default)
+	{
 		var remoteUrl = await GetOriginUrlAsync().ConfigureAwait(false);
 		if (!TryParseGitHubRepository(remoteUrl, out var owner, out var repo))
 		{
 			return null;
 		}
 
-		var repoDetails = await GetRepositoryDetailsAsync(gitHubRestClient, owner, repo, cancellationToken).ConfigureAwait(false);
-		var releaseTag = await GetLatestReleaseTagAsync(gitHubRestClient, owner, repo, cancellationToken).ConfigureAwait(false)
+		var repoDetails = await GetRepositoryDetailsAsync(owner, repo, cancellationToken).ConfigureAwait(false);
+		var releaseTag = await GetLatestReleaseTagAsync(owner, repo, cancellationToken).ConfigureAwait(false)
 		                 ?? await GetLocalReleaseTagAsync().ConfigureAwait(false);
 		var defaultBranch = repoDetails?.DefaultBranch ?? "main";
-		var lastCommit = await GetLastCommitAsync(gitHubRestClient, owner, repo, defaultBranch, cancellationToken).ConfigureAwait(false)
+		var lastCommit = await GetLastCommitAsync(owner, repo, defaultBranch, cancellationToken).ConfigureAwait(false)
 		                 ?? await GetLocalLastCommitAsync().ConfigureAwait(false);
 
 		return new GitHubMetadata(
@@ -91,7 +163,7 @@ public static class GitHubMetadataProvider
 		return !string.IsNullOrWhiteSpace(owner) && !string.IsNullOrWhiteSpace(repo);
 	}
 
-	private static async Task<string?> GetOriginUrlAsync()
+	private async Task<string?> GetOriginUrlAsync()
 	{
 		var configuredRepositoryUrl = Environment.GetEnvironmentVariable("GITHUB_REPOSITORY_URL")
 		                              ?? Environment.GetEnvironmentVariable("REPOSITORY_URL");
@@ -106,49 +178,20 @@ public static class GitHubMetadataProvider
 			return $"https://github.com/{configuredRepository.Trim()}.git";
 		}
 
-		foreach (var candidate in GetCandidateDirectories())
+		var gitRoot = GetGitRootOrNull();
+		if (gitRoot is null)
 		{
-			var gitRoot = FindGitRoot(candidate);
-			if (gitRoot is null)
-			{
-				continue;
-			}
-
-			try
-			{
-				var startInfo = new ProcessStartInfo("git")
-				{
-					WorkingDirectory = gitRoot,
-					RedirectStandardOutput = true,
-					RedirectStandardError = true,
-					UseShellExecute = false,
-					CreateNoWindow = true,
-				};
-				startInfo.ArgumentList.Add("remote");
-				startInfo.ArgumentList.Add("get-url");
-				startInfo.ArgumentList.Add("origin");
-
-				using var process = Process.Start(startInfo);
-				if (process is null)
-				{
-					continue;
-				}
-
-				var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-				await process.WaitForExitAsync().ConfigureAwait(false);
-
-				if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output))
-				{
-					return output.Trim();
-				}
-			}
-			catch
-			{
-				// Ignore and continue searching other candidate directories.
-			}
+			return null;
 		}
 
-		return null;
+		try
+		{
+			return await _gitCommandRunner.RunAsync(gitRoot, "remote", "get-url", "origin").ConfigureAwait(false);
+		}
+		catch
+		{
+			return null;
+		}
 	}
 
 	private static HashSet<string> GetCandidateDirectories()
@@ -191,69 +234,6 @@ public static class GitHubMetadataProvider
 		return null;
 	}
 
-	private static Task<RepositoryDetails?> GetRepositoryDetailsAsync(IGitHubRestClient gitHubRestClient, string owner,
-		string repo, CancellationToken cancellationToken) =>
-		gitHubRestClient.TryGetAsync<RepositoryDetails>($"repos/{owner}/{repo}", cancellationToken: cancellationToken);
-
-	private static async Task<string?> GetLatestReleaseTagAsync(IGitHubRestClient gitHubRestClient, string owner,
-		string repo, CancellationToken cancellationToken)
-	{
-		var release = await gitHubRestClient
-			.TryGetAsync<GitHubRelease>($"repos/{owner}/{repo}/releases/latest", cancellationToken: cancellationToken)
-			.ConfigureAwait(false);
-
-		return release?.TagName;
-	}
-
-	private static async Task<string?> GetLastCommitAsync(IGitHubRestClient gitHubRestClient, string owner,
-		string repo, string defaultBranch, CancellationToken cancellationToken)
-	{
-		var commit = await gitHubRestClient
-			.TryGetAsync<GitHubCommit>($"repos/{owner}/{repo}/commits/{Uri.EscapeDataString(defaultBranch)}",
-				cancellationToken: cancellationToken)
-			.ConfigureAwait(false);
-
-		return commit?.Sha?[..7];
-	}
-
-	private static async Task<string?> GetLocalReleaseTagAsync()
-	{
-		var gitRoot = GetGitRootOrNull();
-		if (gitRoot is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			var tag = await RunGitAsync(gitRoot, "describe", "--tags", "--abbrev=0").ConfigureAwait(false);
-			return string.IsNullOrWhiteSpace(tag) ? null : tag;
-		}
-		catch
-		{
-			return null;
-		}
-	}
-
-	private static async Task<string?> GetLocalLastCommitAsync()
-	{
-		var gitRoot = GetGitRootOrNull();
-		if (gitRoot is null)
-		{
-			return null;
-		}
-
-		try
-		{
-			var sha = await RunGitAsync(gitRoot, "rev-parse", "--short", "HEAD").ConfigureAwait(false);
-			return string.IsNullOrWhiteSpace(sha) ? "unknown" : sha;
-		}
-		catch
-		{
-			return "unknown";
-		}
-	}
-
 	private static string? GetGitRootOrNull()
 	{
 		foreach (var candidate in GetCandidateDirectories())
@@ -268,46 +248,81 @@ public static class GitHubMetadataProvider
 		return null;
 	}
 
-	private static async Task<string?> RunGitAsync(string workingDirectory, params string[] arguments)
+	private Task<RepositoryDetails?> GetRepositoryDetailsAsync(string owner, string repo,
+		CancellationToken cancellationToken) =>
+		_gitHubRestClient.TryGetAsync<RepositoryDetails>($"repos/{owner}/{repo}", cancellationToken: cancellationToken);
+
+	private async Task<string?> GetLatestReleaseTagAsync(string owner, string repo,
+		CancellationToken cancellationToken)
 	{
-		var startInfo = new ProcessStartInfo("git")
-		{
-			WorkingDirectory = workingDirectory,
-			RedirectStandardOutput = true,
-			RedirectStandardError = true,
-			UseShellExecute = false,
-			CreateNoWindow = true,
-		};
-		foreach (var argument in arguments)
-		{
-			startInfo.ArgumentList.Add(argument);
-		}
+		var release = await _gitHubRestClient
+			.TryGetAsync<GitHubRelease>($"repos/{owner}/{repo}/releases/latest", cancellationToken: cancellationToken)
+			.ConfigureAwait(false);
 
-		using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Unable to start git.");
-		var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-		var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-		await process.WaitForExitAsync().ConfigureAwait(false);
-
-		if (process.ExitCode != 0)
-		{
-			throw new InvalidOperationException(error.Trim());
-		}
-
-		var trimmed = output.Trim();
-		return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+		return release?.TagName;
 	}
 
-	private sealed class RepositoryDetails
+	private async Task<string?> GetLastCommitAsync(string owner, string repo, string defaultBranch,
+		CancellationToken cancellationToken)
+	{
+		var commit = await _gitHubRestClient
+			.TryGetAsync<GitHubCommit>($"repos/{owner}/{repo}/commits/{Uri.EscapeDataString(defaultBranch)}",
+				cancellationToken: cancellationToken)
+			.ConfigureAwait(false);
+
+		return commit?.Sha?[..7];
+	}
+
+	private async Task<string?> GetLocalReleaseTagAsync()
+	{
+		var gitRoot = GetGitRootOrNull();
+		if (gitRoot is null)
+		{
+			return null;
+		}
+
+		try
+		{
+			var tag = await _gitCommandRunner.RunAsync(gitRoot, "describe", "--tags", "--abbrev=0")
+				.ConfigureAwait(false);
+			return string.IsNullOrWhiteSpace(tag) ? null : tag;
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
+	private async Task<string?> GetLocalLastCommitAsync()
+	{
+		var gitRoot = GetGitRootOrNull();
+		if (gitRoot is null)
+		{
+			return null;
+		}
+
+		try
+		{
+			var sha = await _gitCommandRunner.RunAsync(gitRoot, "rev-parse", "--short", "HEAD").ConfigureAwait(false);
+			return string.IsNullOrWhiteSpace(sha) ? "unknown" : sha;
+		}
+		catch
+		{
+			return "unknown";
+		}
+	}
+
+	internal sealed class RepositoryDetails
 	{
 		[JsonPropertyName("default_branch")] public string DefaultBranch { get; set; } = string.Empty;
 	}
 
-	private sealed class GitHubRelease
+	internal sealed class GitHubRelease
 	{
 		[JsonPropertyName("tag_name")] public string TagName { get; set; } = string.Empty;
 	}
 
-	private sealed class GitHubCommit
+	internal sealed class GitHubCommit
 	{
 		public string? Sha { get; set; }
 	}
