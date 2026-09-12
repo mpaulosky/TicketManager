@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace Web.Services;
 
 [SuppressMessage("Design", "CA1515",
-	Justification = "Injected into GitHubProjectsService and GitHubMetadataProvider, and consumed by Web tests.")]
+	Justification = "Injected into GitHubRepositoriesService and GitHubMetadataProvider, and consumed by Web tests.")]
 public interface IGitHubRestClient
 {
 	Task<T?> TryGetAsync<T>(string path, string? token = null, CancellationToken cancellationToken = default);
@@ -18,13 +18,13 @@ public interface IGitHubRestClient
 /// throwing, logging a warning so a quiet dashboard is still diagnosable.
 /// </summary>
 [SuppressMessage("Design", "CA1515",
-	Justification = "Injected into GitHubProjectsService and GitHubMetadataProvider, and consumed by Web tests.")]
+	Justification = "Injected into GitHubRepositoriesService and GitHubMetadataProvider, and consumed by Web tests.")]
 [SuppressMessage("Design", "CA1031:Do not catch general exception types",
 	Justification =
 		"Every caller of this client treats a failed GitHub lookup as best-effort; degrade to null instead of throwing.")]
 public sealed class GitHubRestClient : IGitHubRestClient
 {
-	public const string HttpClientName = "GitHubProjects";
+	public const string HttpClientName = "GitHubRepositories";
 	public const string ApiBaseUrl = "https://api.github.com";
 
 	private const string AcceptHeader = "application/vnd.github+json";

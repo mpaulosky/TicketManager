@@ -9,12 +9,12 @@ builder.AddServiceDefaults();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// GitHub Projects dashboard: bind configuration (owner/token) and fall back to the GITHUB_TOKEN
+// GitHub repository dashboard: bind configuration (owner/token) and fall back to the GITHUB_TOKEN
 // environment variable when no token is supplied via configuration/user-secrets.
 builder.Services
-    .AddOptions<GitHubProjectsOptions>()
-    .Bind(builder.Configuration.GetSection(GitHubProjectsOptions.SectionName));
-builder.Services.PostConfigure<GitHubProjectsOptions>(options =>
+    .AddOptions<GitHubRepositoriesOptions>()
+    .Bind(builder.Configuration.GetSection(GitHubRepositoriesOptions.SectionName));
+builder.Services.PostConfigure<GitHubRepositoriesOptions>(options =>
 {
     if (string.IsNullOrWhiteSpace(options.Token))
     {
@@ -26,7 +26,7 @@ builder.Services.AddHttpClient(GitHubRestClient.HttpClientName);
 builder.Services.AddSingleton<IGitHubRestClient, GitHubRestClient>();
 builder.Services.AddSingleton<IGitCommandRunner, GitCommandRunner>();
 builder.Services.AddSingleton<IGitHubMetadataProvider, GitHubMetadataProvider>();
-builder.Services.AddScoped<IGitHubProjectsService, GitHubProjectsService>();
+builder.Services.AddScoped<IGitHubRepositoriesService, GitHubRepositoriesService>();
 
 var app = builder.Build();
 

@@ -2,13 +2,13 @@ using Web.Services;
 
 namespace Web.Tests.Unit;
 
-public class GitHubProjectsResultTests
+public class GitHubRepositoriesResultTests
 {
 	[Fact]
 	public void Empty_NoErrorMessage_ReturnsResultWithNoRepositoriesAndNullError()
 	{
 		// Act
-		var result = GitHubProjectsResult.Empty(isAuthenticated: true);
+		var result = GitHubRepositoriesResult.Empty(isAuthenticated: true);
 
 		// Assert
 		Assert.True(result.IsAuthenticated);
@@ -20,7 +20,7 @@ public class GitHubProjectsResultTests
 	public void Empty_WithErrorMessage_ReturnsResultCarryingTheErrorMessage()
 	{
 		// Act
-		var result = GitHubProjectsResult.Empty(isAuthenticated: false, errorMessage: "boom");
+		var result = GitHubRepositoriesResult.Empty(isAuthenticated: false, errorMessage: "boom");
 
 		// Assert
 		Assert.False(result.IsAuthenticated);

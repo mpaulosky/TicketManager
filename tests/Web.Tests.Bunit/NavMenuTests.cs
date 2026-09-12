@@ -19,7 +19,7 @@ public class NavMenuTests : BunitContext
 		// Assert
 		Assert.Contains("Ticket Manager", cut.Markup);
 		Assert.NotNull(cut.Find("a[href='/']"));
-		Assert.NotNull(cut.Find("a[href='/projects']"));
+		Assert.NotNull(cut.Find("a[href='/repositories']"));
 	}
 
 	[Fact]

@@ -7,14 +7,14 @@ namespace Web.Services;
 /// A single open issue or pull request, ready for display/linking in the UI.
 /// </summary>
 [SuppressMessage("Design", "CA1515",
-	Justification = "Consumed by the GitHub Projects Razor page and its component tests.")]
+	Justification = "Consumed by the GitHub Repositories Razor page and its component tests.")]
 public sealed record GitHubIssueSummary(int Number, string Title, string Url);
 
 /// <summary>
 /// The open issues and pull requests for a single repository.
 /// </summary>
 [SuppressMessage("Design", "CA1515",
-	Justification = "Consumed by the GitHub Projects Razor page and its component tests.")]
+	Justification = "Consumed by the GitHub Repositories Razor page and its component tests.")]
 public sealed record GitHubRepositoryStatus(
 	string Name,
 	string Url,
@@ -22,17 +22,17 @@ public sealed record GitHubRepositoryStatus(
 	IReadOnlyList<GitHubIssueSummary> PullRequests);
 
 /// <summary>
-/// The overall result of loading the GitHub Projects dashboard, including any degraded-mode or error
+/// The overall result of loading the GitHub repository dashboard, including any degraded-mode or error
 /// state so the UI can render a friendly message instead of failing outright.
 /// </summary>
 [SuppressMessage("Design", "CA1515",
-	Justification = "Consumed by the GitHub Projects Razor page and its component tests.")]
-public sealed record GitHubProjectsResult(
+	Justification = "Consumed by the GitHub Repositories Razor page and its component tests.")]
+public sealed record GitHubRepositoriesResult(
 	bool IsAuthenticated,
 	IReadOnlyList<GitHubRepositoryStatus> Repositories,
 	string? ErrorMessage)
 {
-	public static GitHubProjectsResult Empty(bool isAuthenticated, string? errorMessage = null) =>
+	public static GitHubRepositoriesResult Empty(bool isAuthenticated, string? errorMessage = null) =>
 		new(isAuthenticated, [], errorMessage);
 }
 
