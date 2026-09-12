@@ -1,7 +1,7 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.4.6">
+<Project Sdk="Aspire.AppHost.Sdk/13.5.3">
 
 	<ItemGroup>
-		<ProjectReference Include="..\Web\Web.csproj"/>
+		<ProjectReference Include="..\Web\Web.csproj" />
 	</ItemGroup>
 
 	<PropertyGroup>
@@ -10,6 +10,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<UserSecretsId>7b675bac-c812-490a-8b28-566ac6cd74ee</UserSecretsId>
+		<AspireUseCliBundle>true</AspireUseCliBundle>
 	</PropertyGroup>
 
 </Project>
