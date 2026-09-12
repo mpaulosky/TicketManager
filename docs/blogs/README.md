@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-12 | [chore(tests): adopt FluentAssertions and close coverage gaps](2026-09-12-pr-42-chore-tests-adopt-fluentassertions-and-close-coverage-gaps.md) | release,automation |
 | 2026-09-12 | [refactor(web): rename GitHub Projects dashboard to GitHub Repositories](2026-09-12-pr-40-refactor-web-rename-github-projects-dashboard-to-github-repositories.md) | release,automation |
 | 2026-09-12 | [refactor(web): deepen GitHubMetadataProvider with an injectable git seam](2026-09-12-pr-38-refactor-web-deepen-githubmetadataprovider-with-an-injectable-git-seam.md) | release,automation |
 | 2026-09-12 | [refactor(web): extract IGitHubRestClient to deduplicate GitHub API access](2026-09-12-pr-36-refactor-web-extract-igithubrestclient-to-deduplicate-github-api-access.md) | release,automation |
