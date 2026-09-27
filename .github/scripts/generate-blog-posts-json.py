@@ -10,7 +10,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BLOGS_DIR = REPO_ROOT / 'docs' / 'blogs'
 OUTPUT_PATH = REPO_ROOT / 'docs' / 'data' / 'blog-posts.json'
 FILE_NAME_PATTERN = re.compile(
-    r'^(?P<date>\d{4}-\d{2}-\d{2})-(?P<sequence>\d{2})-(?P<slug>.+)\.md$'
+    # Hand-written posts use a two-digit sequence (2026-09-09-01-slug.md);
+    # release blogs use the PR number (2026-09-12-pr-44-slug.md).
+    r'^(?P<date>\d{4}-\d{2}-\d{2})-(?:(?P<sequence>\d{2})|pr-(?P<pr>\d+))-(?P<slug>.+)\.md$'
 )
 FRONT_MATTER_PATTERN = re.compile(r'^---\r?\n(.*?)\r?\n---(?:\r?\n|$)', re.DOTALL)
 FRONT_MATTER_LINE_PATTERN = re.compile(r'^(?P<key>[A-Za-z0-9_]+):\s*(?P<value>.*)$')
@@ -116,7 +118,7 @@ def build_post(markdown_path: Path) -> dict[str, object]:
         'summary': summary,
         'date': match.group('date'),
         'slug': match.group('slug'),
-        'sequence': int(match.group('sequence')),
+        'sequence': int(match.group('sequence') or match.group('pr')),
         'url': (
             'https://github.com/mpaulosky/TicketManager/blob/main/'
             f'docs/blogs/{markdown_path.name}'
@@ -128,7 +130,11 @@ def main() -> None:
     if not BLOGS_DIR.is_dir():
         raise FileNotFoundError(f'Blogs directory not found: {BLOGS_DIR}')
 
-    posts = [build_post(path) for path in BLOGS_DIR.glob('*.md')]
+    posts = [
+        build_post(path)
+        for path in BLOGS_DIR.glob('*.md')
+        if path.name != 'README.md'
+    ]
     posts.sort(
         key=lambda post: (post['date'], post['sequence'], post['fileName']),
         reverse=True,

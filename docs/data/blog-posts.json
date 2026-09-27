@@ -1,6 +1,159 @@
 {
-  "generatedAt": "2026-09-09T16:47:24.277555Z",
+  "generatedAt": "2026-09-27T20:31:34.661768Z",
   "posts": [
+    {
+      "fileName": "2026-09-14-pr-51-rename-squad-lint-workflows-to-drop-squad-prefix.md",
+      "title": "Rename squad-lint workflows to drop squad- prefix",
+      "summary": "Release notes seed for v0.0.27 from PR #51.",
+      "date": "2026-09-14",
+      "slug": "rename-squad-lint-workflows-to-drop-squad-prefix",
+      "sequence": 51,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-14-pr-51-rename-squad-lint-workflows-to-drop-squad-prefix.md"
+    },
+    {
+      "fileName": "2026-09-14-pr-49-bump-outdated-codeql-yamllint-and-paths-filter-action-pins.md",
+      "title": "Bump outdated CodeQL, yamllint, and paths-filter action pins",
+      "summary": "Release notes seed for v0.0.26 from PR #49.",
+      "date": "2026-09-14",
+      "slug": "bump-outdated-codeql-yamllint-and-paths-filter-action-pins",
+      "sequence": 49,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-14-pr-49-bump-outdated-codeql-yamllint-and-paths-filter-action-pins.md"
+    },
+    {
+      "fileName": "2026-09-12-pr-46-fix-apphost-revert-aspireuseclibundle-to-avoid-breaking-ci.md",
+      "title": "fix(apphost): revert AspireUseCliBundle to avoid breaking CI",
+      "summary": "Release notes seed for v0.0.25 from PR #46.",
+      "date": "2026-09-12",
+      "slug": "fix-apphost-revert-aspireuseclibundle-to-avoid-breaking-ci",
+      "sequence": 46,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-12-pr-46-fix-apphost-revert-aspireuseclibundle-to-avoid-breaking-ci.md"
+    },
+    {
+      "fileName": "2026-09-12-pr-44-chore-deps-update-aspire-apphost-sdk-to-13-5-3.md",
+      "title": "chore(deps): update Aspire.AppHost.Sdk to 13.5.3",
+      "summary": "Release notes seed for v0.0.24 from PR #44.",
+      "date": "2026-09-12",
+      "slug": "chore-deps-update-aspire-apphost-sdk-to-13-5-3",
+      "sequence": 44,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-12-pr-44-chore-deps-update-aspire-apphost-sdk-to-13-5-3.md"
+    },
+    {
+      "fileName": "2026-09-12-pr-42-chore-tests-adopt-fluentassertions-and-close-coverage-gaps.md",
+      "title": "chore(tests): adopt FluentAssertions and close coverage gaps",
+      "summary": "Release notes seed for v0.0.23 from PR #42.",
+      "date": "2026-09-12",
+      "slug": "chore-tests-adopt-fluentassertions-and-close-coverage-gaps",
+      "sequence": 42,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-12-pr-42-chore-tests-adopt-fluentassertions-and-close-coverage-gaps.md"
+    },
+    {
+      "fileName": "2026-09-12-pr-40-refactor-web-rename-github-projects-dashboard-to-github-repositories.md",
+      "title": "refactor(web): rename GitHub Projects dashboard to GitHub Repositories",
+      "summary": "Release notes seed for v0.0.22 from PR #40.",
+      "date": "2026-09-12",
+      "slug": "refactor-web-rename-github-projects-dashboard-to-github-repositories",
+      "sequence": 40,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-12-pr-40-refactor-web-rename-github-projects-dashboard-to-github-repositories.md"
+    },
+    {
+      "fileName": "2026-09-12-pr-38-refactor-web-deepen-githubmetadataprovider-with-an-injectable-git-seam.md",
+      "title": "refactor(web): deepen GitHubMetadataProvider with an injectable git seam",
+      "summary": "Release notes seed for v0.0.21 from PR #38.",
+      "date": "2026-09-12",
+      "slug": "refactor-web-deepen-githubmetadataprovider-with-an-injectable-git-seam",
+      "sequence": 38,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-12-pr-38-refactor-web-deepen-githubmetadataprovider-with-an-injectable-git-seam.md"
+    },
+    {
+      "fileName": "2026-09-12-pr-36-refactor-web-extract-igithubrestclient-to-deduplicate-github-api-access.md",
+      "title": "refactor(web): extract IGitHubRestClient to deduplicate GitHub API access",
+      "summary": "Release notes seed for v0.0.20 from PR #36.",
+      "date": "2026-09-12",
+      "slug": "refactor-web-extract-igithubrestclient-to-deduplicate-github-api-access",
+      "sequence": 36,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-12-pr-36-refactor-web-extract-igithubrestclient-to-deduplicate-github-api-access.md"
+    },
+    {
+      "fileName": "2026-09-11-pr-34-feat-web-add-about-page.md",
+      "title": "feat(web): add About page",
+      "summary": "Release notes seed for v0.0.19 from PR #34.",
+      "date": "2026-09-11",
+      "slug": "feat-web-add-about-page",
+      "sequence": 34,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-11-pr-34-feat-web-add-about-page.md"
+    },
+    {
+      "fileName": "2026-09-11-pr-32-docs-prompts-add-readme-drift-check-to-review-changes-workflow.md",
+      "title": "docs(prompts): add README drift check to review-changes workflow",
+      "summary": "Release notes seed for v0.0.18 from PR #32.",
+      "date": "2026-09-11",
+      "slug": "docs-prompts-add-readme-drift-check-to-review-changes-workflow",
+      "sequence": 32,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-11-pr-32-docs-prompts-add-readme-drift-check-to-review-changes-workflow.md"
+    },
+    {
+      "fileName": "2026-09-11-pr-30-fix-ci-surface-release-docs-failures-instead-of-swallowing-them.md",
+      "title": "fix(ci): surface release-docs failures instead of swallowing them",
+      "summary": "Release notes seed for v0.0.17 from PR #30.",
+      "date": "2026-09-11",
+      "slug": "fix-ci-surface-release-docs-failures-instead-of-swallowing-them",
+      "sequence": 30,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-11-pr-30-fix-ci-surface-release-docs-failures-instead-of-swallowing-them.md"
+    },
+    {
+      "fileName": "2026-09-11-pr-28-docs-blogs-recover-stranded-release-notes-posts-for-prs-19-20-22-23.md",
+      "title": "docs(blogs): recover stranded release-notes posts for PRs #19, #20, #22, #23",
+      "summary": "Release notes seed for v0.0.16 from PR #28.",
+      "date": "2026-09-11",
+      "slug": "docs-blogs-recover-stranded-release-notes-posts-for-prs-19-20-22-23",
+      "sequence": 28,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-11-pr-28-docs-blogs-recover-stranded-release-notes-posts-for-prs-19-20-22-23.md"
+    },
+    {
+      "fileName": "2026-09-11-pr-26-chore-docs-retest-release-pipeline-after-release-pr-pat-fix.md",
+      "title": "chore(docs): retest release pipeline after RELEASE_PR_PAT fix",
+      "summary": "Release notes seed for v0.0.15 from PR #26.",
+      "date": "2026-09-11",
+      "slug": "chore-docs-retest-release-pipeline-after-release-pr-pat-fix",
+      "sequence": 26,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-11-pr-26-chore-docs-retest-release-pipeline-after-release-pr-pat-fix.md"
+    },
+    {
+      "fileName": "2026-09-11-pr-23-test-web-add-coverage-for-untested-blazor-pages-and-services.md",
+      "title": "test(web): add coverage for untested Blazor pages and services",
+      "summary": "Release notes seed for v0.0.13 from PR #23.",
+      "date": "2026-09-11",
+      "slug": "test-web-add-coverage-for-untested-blazor-pages-and-services",
+      "sequence": 23,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-11-pr-23-test-web-add-coverage-for-untested-blazor-pages-and-services.md"
+    },
+    {
+      "fileName": "2026-09-11-pr-22-feat-web-add-github-projects-dashboard-page.md",
+      "title": "feat(web): add GitHub Projects dashboard page",
+      "summary": "Release notes seed for v0.0.12 from PR #22.",
+      "date": "2026-09-11",
+      "slug": "feat-web-add-github-projects-dashboard-page",
+      "sequence": 22,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-11-pr-22-feat-web-add-github-projects-dashboard-page.md"
+    },
+    {
+      "fileName": "2026-09-11-pr-20-fix-web-correct-app-css-asset-path-and-render-mode.md",
+      "title": "fix(web): correct app.css asset path and render mode",
+      "summary": "Release notes seed for v0.0.11 from PR #20.",
+      "date": "2026-09-11",
+      "slug": "fix-web-correct-app-css-asset-path-and-render-mode",
+      "sequence": 20,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-11-pr-20-fix-web-correct-app-css-asset-path-and-render-mode.md"
+    },
+    {
+      "fileName": "2026-09-11-pr-19-feat-web-migrate-bootstrap-layout-to-tailwind-and-rebrand-shell.md",
+      "title": "feat(web): migrate Bootstrap layout to Tailwind and rebrand shell",
+      "summary": "Release notes seed for v0.0.10 from PR #19.",
+      "date": "2026-09-11",
+      "slug": "feat-web-migrate-bootstrap-layout-to-tailwind-and-rebrand-shell",
+      "sequence": 19,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-11-pr-19-feat-web-migrate-bootstrap-layout-to-tailwind-and-rebrand-shell.md"
+    },
     {
       "fileName": "2026-09-09-08-scoping-the-http-launch-profile-fix.md",
       "title": "Scoping the HTTP Launch-Profile Fix to AppHost.Tests Only",
