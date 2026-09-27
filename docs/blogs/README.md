@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-27 | [Fix blog-posts.json generator for pr-NN release blog filenames](2026-09-27-pr-54-fix-blog-posts-json-generator-for-pr-nn-release-blog-filenames.md) | release,automation |
 | 2026-09-14 | [Rename squad-lint workflows to drop squad- prefix](2026-09-14-pr-51-rename-squad-lint-workflows-to-drop-squad-prefix.md) | release,automation |
 | 2026-09-14 | [Bump outdated CodeQL, yamllint, and paths-filter action pins](2026-09-14-pr-49-bump-outdated-codeql-yamllint-and-paths-filter-action-pins.md) | release,automation |
 | 2026-09-12 | [fix(apphost): revert AspireUseCliBundle to avoid breaking CI](2026-09-12-pr-46-fix-apphost-revert-aspireuseclibundle-to-avoid-breaking-ci.md) | release,automation |
