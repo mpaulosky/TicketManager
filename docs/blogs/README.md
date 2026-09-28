@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-28 | [chore(web): Regenerate app.css with Tailwind 4.3.3](2026-09-28-pr-89-chore-web-regenerate-app-css-with-tailwind-4-3-3.md) | release,automation |
 | 2026-09-28 | [ci: Remove the unused squad branch cleanup, keeping the auto-merge logic](2026-09-28-pr-86-ci-remove-the-unused-squad-branch-cleanup-keeping-the-auto-merge-logic.md) | release,automation |
 | 2026-09-28 | [ci: Let README sync PRs run their required checks](2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md) | release,automation |
 | 2026-09-28 | [ci: Run the test suite on Dependabot PRs](2026-09-28-pr-80-ci-run-the-test-suite-on-dependabot-prs.md) | release,automation |
