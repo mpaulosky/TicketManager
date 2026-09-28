@@ -7,7 +7,7 @@ name: PR Auto-Merge
     branches: [main]
   status:
   check_suite:
-    types: [completed, requested, rerequested]
+    types: [completed]
 
 permissions:
   contents: write
@@ -18,10 +18,20 @@ jobs:
     name: Enable auto-merge for same-repo PRs
     runs-on: ubuntu-latest
     steps:
+      # Only for scripts/squad/automerge-decision.mjs, the tested decision logic.
+      - name: Checkout decision module
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/squad
+
       - name: Enable auto-merge (squash)
         uses: actions/github-script@v9
         with:
           script: |
+            const { decideAutoMerge } = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/squad/automerge-decision.mjs`
+            );
             const { owner, repo } = context.repo;
             const pullRequestPayload = context.payload.pull_request;
             const statusPayload = context.payload.status;
@@ -85,24 +95,6 @@ jobs:
               return;
             }
 
-            const pull = pullRequestPayload ??
-              await github.rest.pulls.get({ owner, repo, pull_number: pullNumber }).then((result) => result.data);
-
-            if (pull.merged_at || pull.state !== "open") {
-              core.info(
-                `Skipping PR #${pullNumber}: ` +
-                `state=${pull.state}, merged_at=${pull.merged_at ?? "null"}.`
-              );
-              return;
-            }
-
-            if (pull.draft || pull.head?.repo?.full_name !== `${owner}/${repo}`) {
-              core.info(
-                `Skipping PR #${pullNumber}: draft or not a same-repo branch.`
-              );
-              return;
-            }
-
             const status = await github.graphql(
               `query AutoMergeStatus(
                  $owner: String!,
@@ -115,11 +107,13 @@ jobs:
                      number
                      state
                      merged
+                     isDraft
+                     isCrossRepository
+                     headRefOid
                      mergeable
                      mergeStateStatus
                      autoMergeRequest {
                        enabledAt
-                       mergeMethod
                      }
                    }
                  }
@@ -128,29 +122,42 @@ jobs:
             );
 
             const currentPr = status.repository.pullRequest;
-            if (!currentPr || currentPr.state !== "OPEN" || currentPr.merged) {
-              core.info(
-                `Skipping PR #${pullNumber}: already closed or merged.`
-              );
+            if (!currentPr) {
+              core.info(`Skipping PR #${pullNumber}: not found.`);
               return;
             }
 
-            if (currentPr.autoMergeRequest) {
-              core.info(
-                `Auto-merge already enabled on PR #${pullNumber}; ` +
-                `no action needed.`
-              );
+            // Arm auto-merge as early as possible and let the main ruleset's
+            // required checks decide when the PR is ready (see #239).
+            const decision = decideAutoMerge({
+              state: currentPr.state,
+              merged: currentPr.merged,
+              isDraft: currentPr.isDraft,
+              isSameRepo: !currentPr.isCrossRepository,
+              mergeable: currentPr.mergeable,
+              mergeStateStatus: currentPr.mergeStateStatus,
+              autoMergeEnabled: currentPr.autoMergeRequest !== null,
+            });
+
+            // Merges only the head commit that was checked, never a newer one.
+            const mergeNow = async () => {
+              await github.rest.pulls.merge({
+                owner,
+                repo,
+                pull_number: pullNumber,
+                merge_method: "squash",
+                sha: currentPr.headRefOid,
+              });
+              core.info(`Merged PR #${pullNumber} (it already met every requirement).`);
+            };
+
+            if (decision.action === "skip") {
+              core.info(`Skipping PR #${pullNumber}: ${decision.reason}.`);
               return;
             }
 
-            const isReadyForAutoMerge =
-              currentPr.mergeable === "MERGEABLE" && currentPr.mergeStateStatus === "CLEAN";
-
-            if (!isReadyForAutoMerge) {
-              core.info(
-                `Skipping PR #${pullNumber}: mergeable=${String(currentPr.mergeable)} ` +
-                `mergeStateStatus=${currentPr.mergeStateStatus ?? "unknown"}.`
-              );
+            if (decision.action === "merge") {
+              await mergeNow();
               return;
             }
 
@@ -163,10 +170,6 @@ jobs:
                    }) {
                      pullRequest {
                        number
-                       autoMergeRequest {
-                         mergeMethod
-                         enabledAt
-                       }
                      }
                    }
                  }`,
@@ -180,13 +183,19 @@ jobs:
                 .join("\n")
                 .toLowerCase();
 
+              // The PR became CLEAN between the query and the mutation.
+              if (combinedMessage.includes("clean status")) {
+                await mergeNow();
+                return;
+              }
+
+              // Not armable yet (e.g. mergeability still being computed); a
+              // later status or check_suite event will try again.
               if (
                 combinedMessage.includes("already merged") ||
                 combinedMessage.includes("already enabled") ||
-                combinedMessage.includes("clean status") ||
                 combinedMessage.includes("unstable status") ||
                 combinedMessage.includes("mergeable") ||
-                combinedMessage.includes("required status") ||
                 combinedMessage.includes("not mergeable")
               ) {
                 core.warning(
@@ -198,4 +207,4 @@ jobs:
               throw error;
             }
 
-            core.info(`Auto-merge enabled on PR #${pullNumber}`);
+            core.info(`Auto-merge armed on PR #${pullNumber} (${decision.reason}).`);
