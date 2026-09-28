@@ -83,11 +83,11 @@ rollout history of workflow-standard and major changes by release.
 <!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-28 | [ci: Add nightly squad branch and worktree cleanup](docs/blogs/2026-09-28-pr-59-ci-add-nightly-squad-branch-and-worktree-cleanup.md) | release,automation |
 | 2026-09-28 | [fix(web): Find the git root from a linked worktree](docs/blogs/2026-09-28-pr-57-fix-web-find-the-git-root-from-a-linked-worktree.md) | release,automation |
 | 2026-09-27 | [Fix blog-posts.json generator for pr-NN release blog filenames](docs/blogs/2026-09-27-pr-54-fix-blog-posts-json-generator-for-pr-nn-release-blog-filenames.md) | release,automation |
 | 2026-09-14 | [Rename squad-lint workflows to drop squad- prefix](docs/blogs/2026-09-14-pr-51-rename-squad-lint-workflows-to-drop-squad-prefix.md) | release,automation |
 | 2026-09-14 | [Bump outdated CodeQL, yamllint, and paths-filter action pins](docs/blogs/2026-09-14-pr-49-bump-outdated-codeql-yamllint-and-paths-filter-action-pins.md) | release,automation |
-| 2026-09-12 | [fix(apphost): revert AspireUseCliBundle to avoid breaking CI](docs/blogs/2026-09-12-pr-46-fix-apphost-revert-aspireuseclibundle-to-avoid-breaking-ci.md) | release,automation |
 <!-- BLOG_END -->
 
 ## Quick start
@@ -144,11 +144,11 @@ notes) and then:
 - updates this README latest-blog block (`<!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-28 | [ci: Add nightly squad branch and worktree cleanup](docs/blogs/2026-09-28-pr-59-ci-add-nightly-squad-branch-and-worktree-cleanup.md) | release,automation |
 | 2026-09-28 | [fix(web): Find the git root from a linked worktree](docs/blogs/2026-09-28-pr-57-fix-web-find-the-git-root-from-a-linked-worktree.md) | release,automation |
 | 2026-09-27 | [Fix blog-posts.json generator for pr-NN release blog filenames](docs/blogs/2026-09-27-pr-54-fix-blog-posts-json-generator-for-pr-nn-release-blog-filenames.md) | release,automation |
 | 2026-09-14 | [Rename squad-lint workflows to drop squad- prefix](docs/blogs/2026-09-14-pr-51-rename-squad-lint-workflows-to-drop-squad-prefix.md) | release,automation |
 | 2026-09-14 | [Bump outdated CodeQL, yamllint, and paths-filter action pins](docs/blogs/2026-09-14-pr-49-bump-outdated-codeql-yamllint-and-paths-filter-action-pins.md) | release,automation |
-| 2026-09-12 | [fix(apphost): revert AspireUseCliBundle to avoid breaking CI](docs/blogs/2026-09-12-pr-46-fix-apphost-revert-aspireuseclibundle-to-avoid-breaking-ci.md) | release,automation |
 <!-- BLOG_END -->`)
   from `docs/blogs/README.md` (top 5 rows),
 - updates [docs/index.html](docs/index.html) latest blog links from the same rows.
