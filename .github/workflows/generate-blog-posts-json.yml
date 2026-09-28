@@ -33,7 +33,11 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # A PAT, not GITHUB_TOKEN: GitHub starts no workflows for a push made
+          # with GITHUB_TOKEN, so the PR's required checks would never report and
+          # it could never merge. Falls back to GITHUB_TOKEN if the secret isn't
+          # set, in which case someone has to push to the branch to start CI.
+          token: ${{ secrets.RELEASE_PR_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Prepare generated blog posts JSON
         id: prepare_generate_blog_posts_json
@@ -66,7 +70,8 @@ jobs:
           fi
 
           git add docs/data/blog-posts.json
-          git commit -m "docs: regenerate blog-posts.json [skip ci]"
+          # No [skip ci]: main's required checks must run on this commit.
+          git commit -m "docs: regenerate blog-posts.json"
           git push --force-with-lease origin HEAD
           echo "committed=true" >> "$GITHUB_OUTPUT"
 
@@ -74,6 +79,9 @@ jobs:
         if: steps.commit_generate_blog_posts_json.outputs.committed == 'true'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9
         with:
+          # Open the PR as the PAT's user, like the push above, so its workflows
+          # run without an "Approve and run" gate.
+          github-token: ${{ secrets.RELEASE_PR_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const { owner, repo } = context.repo;
             const mainBranch = process.env.MAIN_BRANCH;
@@ -88,10 +96,24 @@ jobs:
               per_page: 1
             });
 
+            // [skip-release]: release.yml must not write a release blog for
+            // this PR, or that blog would trigger this workflow again.
+            const title =
+              'docs: regenerate docs/data/blog-posts.json [skip-release]';
+
             if (openPrs.data.length > 0) {
-              core.info(
-                `Existing blog posts JSON PR found: #${openPrs.data[0].number}`
-              );
+              const existing = openPrs.data[0];
+              core.info(`Existing blog posts JSON PR found: #${existing.number}`);
+              // A PR opened before the title carried the marker would still
+              // get a release blog, so add it.
+              if (!existing.title.includes('[skip-release]')) {
+                await github.rest.pulls.update({
+                  owner,
+                  repo,
+                  pull_number: existing.number,
+                  title
+                });
+              }
               return;
             }
 
@@ -100,7 +122,7 @@ jobs:
               repo,
               base: mainBranch,
               head: 'automation/generate-blog-posts-json',
-              title: 'docs: regenerate docs/data/blog-posts.json',
+              title,
               body: [
                 'Automated blog post catalog regeneration PR for protected main.',
                 '',
