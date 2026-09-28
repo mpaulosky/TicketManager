@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-28 | [ci: Let blog-posts.json PRs merge, and point Dependabot at the repo root](2026-09-28-pr-73-ci-let-blog-posts-json-prs-merge-and-point-dependabot-at-the-repo-root.md) | release,automation |
 | 2026-09-28 | [docs: regenerate docs/data/blog-posts.json](2026-09-28-pr-56-docs-regenerate-docs-data-blog-posts-json.md) | release,automation |
 | 2026-09-28 | [ci: Lint workflows and shell scripts before push and in CI](2026-09-28-pr-69-ci-lint-workflows-and-shell-scripts-before-push-and-in-ci.md) | release,automation |
 | 2026-09-28 | [fix(ci): Let the release workflow open its docs-failure tracker](2026-09-28-pr-67-fix-ci-let-the-release-workflow-open-its-docs-failure-tracker.md) | release,automation |
