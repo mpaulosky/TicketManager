@@ -1,6 +1,78 @@
 {
-  "generatedAt": "2026-09-27T20:31:34.661768Z",
+  "generatedAt": "2026-09-28T17:11:46.877182Z",
   "posts": [
+    {
+      "fileName": "2026-09-28-pr-69-ci-lint-workflows-and-shell-scripts-before-push-and-in-ci.md",
+      "title": "ci: Lint workflows and shell scripts before push and in CI",
+      "summary": "Release notes seed for v0.0.35 from PR #69.",
+      "date": "2026-09-28",
+      "slug": "ci-lint-workflows-and-shell-scripts-before-push-and-in-ci",
+      "sequence": 69,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-69-ci-lint-workflows-and-shell-scripts-before-push-and-in-ci.md"
+    },
+    {
+      "fileName": "2026-09-28-pr-67-fix-ci-let-the-release-workflow-open-its-docs-failure-tracker.md",
+      "title": "fix(ci): Let the release workflow open its docs-failure tracker",
+      "summary": "Release notes seed for v0.0.34 from PR #67.",
+      "date": "2026-09-28",
+      "slug": "fix-ci-let-the-release-workflow-open-its-docs-failure-tracker",
+      "sequence": 67,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-67-fix-ci-let-the-release-workflow-open-its-docs-failure-tracker.md"
+    },
+    {
+      "fileName": "2026-09-28-pr-64-fix-ci-merge-as-a-user-and-handle-unstable-prs-in-auto-merge.md",
+      "title": "fix(ci): Merge as a user and handle UNSTABLE PRs in auto-merge",
+      "summary": "Release notes seed for v0.0.33 from PR #64.",
+      "date": "2026-09-28",
+      "slug": "fix-ci-merge-as-a-user-and-handle-unstable-prs-in-auto-merge",
+      "sequence": 64,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-64-fix-ci-merge-as-a-user-and-handle-unstable-prs-in-auto-merge.md"
+    },
+    {
+      "fileName": "2026-09-28-pr-63-fix-ci-arm-auto-merge-when-a-pr-opens.md",
+      "title": "fix(ci): Arm auto-merge when a PR opens",
+      "summary": "Release notes seed for v0.0.32 from PR #63.",
+      "date": "2026-09-28",
+      "slug": "fix-ci-arm-auto-merge-when-a-pr-opens",
+      "sequence": 63,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-63-fix-ci-arm-auto-merge-when-a-pr-opens.md"
+    },
+    {
+      "fileName": "2026-09-28-pr-61-fix-scripts-keep-squad-cleanup-going-when-a-local-delete-is-refused.md",
+      "title": "fix(scripts): Keep squad cleanup going when a local delete is refused",
+      "summary": "Release notes seed for v0.0.31 from PR #61.",
+      "date": "2026-09-28",
+      "slug": "fix-scripts-keep-squad-cleanup-going-when-a-local-delete-is-refused",
+      "sequence": 61,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-61-fix-scripts-keep-squad-cleanup-going-when-a-local-delete-is-refused.md"
+    },
+    {
+      "fileName": "2026-09-28-pr-59-ci-add-nightly-squad-branch-and-worktree-cleanup.md",
+      "title": "ci: Add nightly squad branch and worktree cleanup",
+      "summary": "Release notes seed for v0.0.30 from PR #59.",
+      "date": "2026-09-28",
+      "slug": "ci-add-nightly-squad-branch-and-worktree-cleanup",
+      "sequence": 59,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-59-ci-add-nightly-squad-branch-and-worktree-cleanup.md"
+    },
+    {
+      "fileName": "2026-09-28-pr-57-fix-web-find-the-git-root-from-a-linked-worktree.md",
+      "title": "fix(web): Find the git root from a linked worktree",
+      "summary": "Release notes seed for v0.0.29 from PR #57.",
+      "date": "2026-09-28",
+      "slug": "fix-web-find-the-git-root-from-a-linked-worktree",
+      "sequence": 57,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-57-fix-web-find-the-git-root-from-a-linked-worktree.md"
+    },
+    {
+      "fileName": "2026-09-27-pr-54-fix-blog-posts-json-generator-for-pr-nn-release-blog-filenames.md",
+      "title": "Fix blog-posts.json generator for pr-NN release blog filenames",
+      "summary": "Release notes seed for v0.0.28 from PR #54.",
+      "date": "2026-09-27",
+      "slug": "fix-blog-posts-json-generator-for-pr-nn-release-blog-filenames",
+      "sequence": 54,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-27-pr-54-fix-blog-posts-json-generator-for-pr-nn-release-blog-filenames.md"
+    },
     {
       "fileName": "2026-09-14-pr-51-rename-squad-lint-workflows-to-drop-squad-prefix.md",
       "title": "Rename squad-lint workflows to drop squad- prefix",
