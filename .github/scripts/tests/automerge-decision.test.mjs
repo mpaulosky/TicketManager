@@ -1,5 +1,5 @@
-// Tests for scripts/squad/automerge-decision.mjs.
-// Usage: node --test scripts/squad/tests/
+// Tests for .github/scripts/automerge-decision.mjs.
+// Usage: node --test .github/scripts/tests/
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { decideAutoMerge } from "../automerge-decision.mjs";

@@ -18,12 +18,12 @@ jobs:
     name: Enable auto-merge for same-repo PRs
     runs-on: ubuntu-latest
     steps:
-      # Only for scripts/squad/automerge-decision.mjs, the tested decision logic.
+      # Only for .github/scripts/automerge-decision.mjs, the tested decision logic.
       - name: Checkout decision module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           persist-credentials: false
-          sparse-checkout: scripts/squad
+          sparse-checkout: .github/scripts
 
       - name: Enable auto-merge (squash)
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9
@@ -35,7 +35,7 @@ jobs:
           github-token: ${{ secrets.RELEASE_PR_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const { decideAutoMerge } = await import(
-              `${process.env.GITHUB_WORKSPACE}/scripts/squad/automerge-decision.mjs`
+              `${process.env.GITHUB_WORKSPACE}/.github/scripts/automerge-decision.mjs`
             );
             const { owner, repo } = context.repo;
             const pullRequestPayload = context.payload.pull_request;
