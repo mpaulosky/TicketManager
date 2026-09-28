@@ -539,3 +539,31 @@ jobs:
           else
             echo "✅ **Overall Status:** PASSED" >> $GITHUB_STEP_SUMMARY
           fi
+
+  # The single required check for tests on main (see #239). It always runs, so
+  # the check is always reported: a skipped job (e.g. tests for Dependabot PRs,
+  # which have no secrets) counts as passing, anything failed or cancelled
+  # fails the gate.
+  tests-passed:
+    if: ${{ always() }}
+    name: All Tests Passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - build
+      - discover-tests
+      - test
+    steps:
+      - name: Check build and test results
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          DISCOVER_RESULT: ${{ needs.discover-tests.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+        run: |
+          echo "build=$BUILD_RESULT discover-tests=$DISCOVER_RESULT test=$TEST_RESULT"
+          for result in "$BUILD_RESULT" "$DISCOVER_RESULT" "$TEST_RESULT"; do
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+              echo "::error::Build or tests did not pass."
+              exit 1
+            fi
+          done

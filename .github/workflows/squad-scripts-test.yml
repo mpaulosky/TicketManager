@@ -1,6 +1,7 @@
 ---
 name: Squad Scripts Test
-# Runs the shell tests for the squad scripts (branch/worktree cleanup).
+# Runs the tests for the squad scripts: branch/worktree cleanup (bash) and the
+# PR auto-merge decision logic (node).
 
 "on":
   pull_request:
@@ -8,6 +9,7 @@ name: Squad Scripts Test
       - "main"
     paths:
       - "scripts/squad/**"
+      - ".github/workflows/pr-automerge.yml"
       - ".github/workflows/squad-scripts-test.yml"
   workflow_dispatch:
 
@@ -22,3 +24,6 @@ jobs:
 
       - name: Run cleanup-squad-branches tests
         run: bash scripts/squad/tests/cleanup-squad-branches.test.sh
+
+      - name: Run automerge-decision tests
+        run: node --test 'scripts/squad/tests/*.test.mjs'
