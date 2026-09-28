@@ -55,7 +55,7 @@
   ```
 
 - For a focused .NET test, use `dotnet test --filter FullyQualifiedName~{Namespace}.{ClassName}.{MethodName}` or filter to the test class.
-- Before a push or PR-ready handoff, run the repository's full required validation. The local pre-push hook also checks branch naming, changed YAML/Markdown files, and every `.slnx` solution it discovers.
+- Before a push or PR-ready handoff, run the repository's full required validation. The local pre-push hook checks branch naming and refuses a dirty working tree, then runs `scripts/gate.sh`: it lints the changed Markdown, YAML, workflow (actionlint, zizmor) and shell (shellcheck) files, builds the solution, and runs every test project.
 - Report exactly which validation commands ran and whether they passed. Do not claim tests or builds that were not run.
 
 ## Documentation and automation

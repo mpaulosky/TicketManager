@@ -33,7 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
-        uses: actions/checkout@v7
+        # zizmor: ignore[artipacked] this job pushes with the checkout's credential.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           ref: main
           fetch-depth: 0
@@ -162,14 +163,14 @@ jobs:
 
       - name: Setup .NET
         if: steps.files.outputs.eligible == 'true' && steps.idempotency.outputs.already_released != 'true'
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68  # v6
         with:
           global-json-file: global.json
 
       - name: Install GitVersion
         if: steps.files.outputs.eligible == 'true' && steps.idempotency.outputs.already_released != 'true'
         continue-on-error: true
-        uses: gittools/actions/gitversion/setup@v4.7.0
+        uses: gittools/actions/gitversion/setup@7417b1089e2c7de93510f1901d656ddf60bb024f  # v4.7.0
         with:
           versionSpec: "6.x"
 
@@ -177,7 +178,7 @@ jobs:
         if: steps.files.outputs.eligible == 'true' && steps.idempotency.outputs.already_released != 'true'
         id: gitversion
         continue-on-error: true
-        uses: gittools/actions/gitversion/execute@v4.7.0
+        uses: gittools/actions/gitversion/execute@7417b1089e2c7de93510f1901d656ddf60bb024f  # v4.7.0
         with:
           configFilePath: GitVersion.yml
 
@@ -192,13 +193,13 @@ jobs:
           GV_MMP: ${{ steps.gitversion.outputs.majorMinorPatch }}
           GV_OUTCOME: ${{ steps.gitversion.outcome }}
         run: |
-          BUMP=patch
+          BUMP="patch"
           if echo "$LABELS_JSON" | jq -e '.[] | test("^(semver|release):major$")' >/dev/null; then
-            BUMP=major
+            BUMP="major"
           elif echo "$LABELS_JSON" | jq -e '.[] | test("^(semver|release):minor$")' >/dev/null; then
-            BUMP=minor
+            BUMP="minor"
           elif echo "$LABELS_JSON" | jq -e '.[] | test("^(semver|release):patch$")' >/dev/null; then
-            BUMP=patch
+            BUMP="patch"
           fi
 
           BASE_VERSION=""
