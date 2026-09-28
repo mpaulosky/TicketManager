@@ -16,6 +16,9 @@ updates:
       day: "sunday"
       time: "16:00"
     open-pull-requests-limit: 10
+    # Let a new release age a week before Dependabot proposes it.
+    cooldown:
+      default-days: 7
     labels:
       - "github-actions"
       - "dependencies"
@@ -35,6 +38,9 @@ updates:
       day: "sunday"
       time: "16:00"
     open-pull-requests-limit: 10
+    # Let a new release age a week before Dependabot proposes it.
+    cooldown:
+      default-days: 7
     labels:
       - "nuget"
       - "dependencies"
@@ -54,6 +60,9 @@ updates:
       day: "sunday"
       time: "16:00"
     open-pull-requests-limit: 10
+    # Let a new release age a week before Dependabot proposes it.
+    cooldown:
+      default-days: 7
     labels:
       - "dotnet-sdk"
       - "dependencies"

@@ -17,6 +17,7 @@ packages.config.lock.json
 coverage/
 *.coverage
 TestResults/
+.tmp-test-results/
 
 # IDE & Editor
 .idea/

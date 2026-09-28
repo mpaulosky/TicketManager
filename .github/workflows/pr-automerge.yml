@@ -20,13 +20,13 @@ jobs:
     steps:
       # Only for scripts/squad/automerge-decision.mjs, the tested decision logic.
       - name: Checkout decision module
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           persist-credentials: false
           sparse-checkout: scripts/squad
 
       - name: Enable auto-merge (squash)
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9
         with:
           # A merge made with GITHUB_TOKEN is attributed to github-actions,
           # and GitHub starts no workflows from it: the release workflow, its
