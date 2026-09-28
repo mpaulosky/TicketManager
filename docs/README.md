@@ -83,11 +83,11 @@ rollout history of workflow-standard and major changes by release.
 <!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-28 | [fix(ci): Merge as a user and handle UNSTABLE PRs in auto-merge](docs/blogs/2026-09-28-pr-64-fix-ci-merge-as-a-user-and-handle-unstable-prs-in-auto-merge.md) | release,automation |
 | 2026-09-28 | [fix(ci): Arm auto-merge when a PR opens](docs/blogs/2026-09-28-pr-63-fix-ci-arm-auto-merge-when-a-pr-opens.md) | release,automation |
 | 2026-09-28 | [fix(scripts): Keep squad cleanup going when a local delete is refused](docs/blogs/2026-09-28-pr-61-fix-scripts-keep-squad-cleanup-going-when-a-local-delete-is-refused.md) | release,automation |
 | 2026-09-28 | [ci: Add nightly squad branch and worktree cleanup](docs/blogs/2026-09-28-pr-59-ci-add-nightly-squad-branch-and-worktree-cleanup.md) | release,automation |
 | 2026-09-28 | [fix(web): Find the git root from a linked worktree](docs/blogs/2026-09-28-pr-57-fix-web-find-the-git-root-from-a-linked-worktree.md) | release,automation |
-| 2026-09-27 | [Fix blog-posts.json generator for pr-NN release blog filenames](docs/blogs/2026-09-27-pr-54-fix-blog-posts-json-generator-for-pr-nn-release-blog-filenames.md) | release,automation |
 <!-- BLOG_END -->
 
 ## Quick start
@@ -144,11 +144,11 @@ notes) and then:
 - updates this README latest-blog block (`<!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-28 | [fix(ci): Merge as a user and handle UNSTABLE PRs in auto-merge](docs/blogs/2026-09-28-pr-64-fix-ci-merge-as-a-user-and-handle-unstable-prs-in-auto-merge.md) | release,automation |
 | 2026-09-28 | [fix(ci): Arm auto-merge when a PR opens](docs/blogs/2026-09-28-pr-63-fix-ci-arm-auto-merge-when-a-pr-opens.md) | release,automation |
 | 2026-09-28 | [fix(scripts): Keep squad cleanup going when a local delete is refused](docs/blogs/2026-09-28-pr-61-fix-scripts-keep-squad-cleanup-going-when-a-local-delete-is-refused.md) | release,automation |
 | 2026-09-28 | [ci: Add nightly squad branch and worktree cleanup](docs/blogs/2026-09-28-pr-59-ci-add-nightly-squad-branch-and-worktree-cleanup.md) | release,automation |
 | 2026-09-28 | [fix(web): Find the git root from a linked worktree](docs/blogs/2026-09-28-pr-57-fix-web-find-the-git-root-from-a-linked-worktree.md) | release,automation |
-| 2026-09-27 | [Fix blog-posts.json generator for pr-NN release blog filenames](docs/blogs/2026-09-27-pr-54-fix-blog-posts-json-generator-for-pr-nn-release-blog-filenames.md) | release,automation |
 <!-- BLOG_END -->`)
   from `docs/blogs/README.md` (top 5 rows),
 - updates [docs/index.html](docs/index.html) latest blog links from the same rows.

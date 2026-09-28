@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-28 | [fix(ci): Merge as a user and handle UNSTABLE PRs in auto-merge](2026-09-28-pr-64-fix-ci-merge-as-a-user-and-handle-unstable-prs-in-auto-merge.md) | release,automation |
 | 2026-09-28 | [fix(ci): Arm auto-merge when a PR opens](2026-09-28-pr-63-fix-ci-arm-auto-merge-when-a-pr-opens.md) | release,automation |
 | 2026-09-28 | [fix(scripts): Keep squad cleanup going when a local delete is refused](2026-09-28-pr-61-fix-scripts-keep-squad-cleanup-going-when-a-local-delete-is-refused.md) | release,automation |
 | 2026-09-28 | [ci: Add nightly squad branch and worktree cleanup](2026-09-28-pr-59-ci-add-nightly-squad-branch-and-worktree-cleanup.md) | release,automation |
