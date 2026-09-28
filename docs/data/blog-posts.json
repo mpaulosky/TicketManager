@@ -1,6 +1,15 @@
 {
-  "generatedAt": "2026-09-28T18:35:12.522834Z",
+  "generatedAt": "2026-09-28T21:00:40.341612Z",
   "posts": [
+    {
+      "fileName": "2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md",
+      "title": "ci: Let README sync PRs run their required checks",
+      "summary": "Release notes seed for v0.0.40 from PR #83.",
+      "date": "2026-09-28",
+      "slug": "ci-let-readme-sync-prs-run-their-required-checks",
+      "sequence": 83,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md"
+    },
     {
       "fileName": "2026-09-28-pr-80-ci-run-the-test-suite-on-dependabot-prs.md",
       "title": "ci: Run the test suite on Dependabot PRs",
