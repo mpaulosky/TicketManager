@@ -50,7 +50,8 @@ jobs:
           fi
 
           mkdir -p docs
-          cp README.md docs/README.md
+          # Not a plain copy: relative links are rebased for docs/.
+          python3 .github/scripts/docs_readme.py README.md docs/README.md
 
           # git status (not git diff) so a new, still-untracked docs/README.md counts.
           if [ -z "$(git status --porcelain -- docs/README.md)" ]; then

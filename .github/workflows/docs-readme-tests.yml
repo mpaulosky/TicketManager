@@ -1,0 +1,28 @@
+---
+name: Docs README Tests
+# Runs the tests for .github/scripts/docs_readme.py, which writes
+# docs/README.md from README.md for the release and README sync workflows.
+
+"on":
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - ".github/scripts/docs_readme.py"
+      - ".github/scripts/tests/test_docs_readme.py"
+      - ".github/workflows/docs-readme-tests.yml"
+  workflow_dispatch:
+
+permissions: {contents: read}
+
+jobs:
+  test:
+    name: Test docs README link rewriting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+
+      - name: Run docs_readme tests
+        run: python3 -m unittest discover -s .github/scripts/tests -p 'test_docs_readme.py' -v

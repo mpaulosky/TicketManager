@@ -265,6 +265,7 @@ jobs:
           import html
           import os
           import re
+          import sys
           from pathlib import Path
 
           pr_number = os.environ["PR_NUMBER"].strip()
@@ -388,7 +389,11 @@ jobs:
           readme_path.write_text(readme, encoding="utf-8")
           docs_readme_path = Path("docs/README.md")
           docs_readme_path.parent.mkdir(parents=True, exist_ok=True)
-          docs_readme_path.write_text(readme, encoding="utf-8")
+          # The docs/ copy needs its relative links rebased: a link to
+          # docs/blogs/x.md from docs/README.md must read blogs/x.md.
+          sys.path.insert(0, ".github/scripts")
+          from docs_readme import rewrite_links
+          docs_readme_path.write_text(rewrite_links(readme), encoding="utf-8")
 
           docs_index_path = Path("docs/index.html")
           if docs_index_path.exists():
