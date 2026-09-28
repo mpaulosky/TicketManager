@@ -281,6 +281,52 @@ public class GitHubMetadataProviderTests
 		}
 	}
 
+	[Fact]
+	public void FindGitRoot_GitDirectoryInAncestor_ReturnsThatAncestor()
+	{
+		// Arrange
+		var root = Directory.CreateTempSubdirectory("git-root-");
+
+		try
+		{
+			Directory.CreateDirectory(Path.Combine(root.FullName, ".git"));
+			var nested = Directory.CreateDirectory(Path.Combine(root.FullName, "src", "Web"));
+
+			// Act
+			var result = GitHubMetadataProvider.FindGitRoot(nested.FullName);
+
+			// Assert
+			result.Should().Be(root.FullName);
+		}
+		finally
+		{
+			root.Delete(recursive: true);
+		}
+	}
+
+	[Fact]
+	public void FindGitRoot_LinkedWorktreeGitFileInAncestor_ReturnsThatAncestor()
+	{
+		// Arrange: a linked worktree's .git is a file pointing at the main repo.
+		var root = Directory.CreateTempSubdirectory("git-worktree-");
+
+		try
+		{
+			File.WriteAllText(Path.Combine(root.FullName, ".git"), "gitdir: /repo/.git/worktrees/feature\n");
+			var nested = Directory.CreateDirectory(Path.Combine(root.FullName, "src", "Web"));
+
+			// Act
+			var result = GitHubMetadataProvider.FindGitRoot(nested.FullName);
+
+			// Assert
+			result.Should().Be(root.FullName);
+		}
+		finally
+		{
+			root.Delete(recursive: true);
+		}
+	}
+
 	private sealed class FakeGitHubRestClient(Func<string, string?, object?> responder) : IGitHubRestClient
 	{
 		public Task<T?> TryGetAsync<T>(string path, string? token = null,
