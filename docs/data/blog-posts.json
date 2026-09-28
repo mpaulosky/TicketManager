@@ -1,6 +1,15 @@
 {
-  "generatedAt": "2026-09-28T18:16:26.779788Z",
+  "generatedAt": "2026-09-28T18:35:12.522834Z",
   "posts": [
+    {
+      "fileName": "2026-09-28-pr-80-ci-run-the-test-suite-on-dependabot-prs.md",
+      "title": "ci: Run the test suite on Dependabot PRs",
+      "summary": "Release notes seed for v0.0.39 from PR #80.",
+      "date": "2026-09-28",
+      "slug": "ci-run-the-test-suite-on-dependabot-prs",
+      "sequence": 80,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-80-ci-run-the-test-suite-on-dependabot-prs.md"
+    },
     {
       "fileName": "2026-09-28-pr-76-chore-deps-fix-dependabot-config.md",
       "title": "chore(deps): Fix Dependabot config",
