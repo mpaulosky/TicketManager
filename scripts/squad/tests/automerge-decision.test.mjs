@@ -20,8 +20,8 @@ test("arms auto-merge on a PR still waiting for required checks", () => {
   assert.equal(decideAutoMerge(pr({ mergeStateStatus: "BLOCKED" })).action, "enable");
 });
 
-test("arms auto-merge while optional checks are pending or failing", () => {
-  assert.equal(decideAutoMerge(pr({ mergeStateStatus: "UNSTABLE" })).action, "enable");
+test("merges directly when only optional checks are pending or failing, since GitHub refuses to arm it then", () => {
+  assert.equal(decideAutoMerge(pr({ mergeStateStatus: "UNSTABLE" })).action, "merge");
 });
 
 test("arms auto-merge on a PR that is behind main", () => {

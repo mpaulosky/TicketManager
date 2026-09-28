@@ -3,8 +3,11 @@
 // GitHub's native auto-merge is meant to be armed while a PR is still waiting
 // on its requirements: GitHub then merges it the moment the ruleset's required
 // checks pass. So arm it as early as possible, and let the ruleset decide what
-// "ready" means. The one exception is a PR that is already CLEAN: GitHub
-// refuses to arm auto-merge then ("clean status"), so it is merged directly.
+// "ready" means. The exception is a PR whose required checks have already
+// passed: GitHub refuses to arm auto-merge on a CLEAN ("clean status") or
+// UNSTABLE ("unstable status") PR, so it is merged directly. That is what an
+// armed auto-merge would do at that point anyway, since it only waits for
+// required checks.
 
 /**
  * @param {{
@@ -36,6 +39,9 @@ export function decideAutoMerge(pr) {
   }
   if (pr.mergeStateStatus === "CLEAN") {
     return { action: "merge", reason: "PR already meets every requirement" };
+  }
+  if (pr.mergeStateStatus === "UNSTABLE") {
+    return { action: "merge", reason: "required checks passed; only optional checks are pending or failing" };
   }
   return {
     action: "enable",
