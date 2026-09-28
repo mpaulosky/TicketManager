@@ -1,6 +1,15 @@
 {
-  "generatedAt": "2026-09-28T21:00:40.341612Z",
+  "generatedAt": "2026-09-28T21:11:17.805896Z",
   "posts": [
+    {
+      "fileName": "2026-09-28-pr-86-ci-remove-the-unused-squad-branch-cleanup-keeping-the-auto-merge-logic.md",
+      "title": "ci: Remove the unused squad branch cleanup, keeping the auto-merge logic",
+      "summary": "Release notes seed for v0.0.41 from PR #86.",
+      "date": "2026-09-28",
+      "slug": "ci-remove-the-unused-squad-branch-cleanup-keeping-the-auto-merge-logic",
+      "sequence": 86,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-86-ci-remove-the-unused-squad-branch-cleanup-keeping-the-auto-merge-logic.md"
+    },
     {
       "fileName": "2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md",
       "title": "ci: Let README sync PRs run their required checks",
