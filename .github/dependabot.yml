@@ -1,7 +1,6 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# Dependabot version updates. Every label used below must exist in the repo:
+# Dependabot doesn't create them, and silently leaves them off the PR.
+# https://docs.github.com/code-security/dependabot/working-with-dependabot/dependabot-options-reference
 ---
 
 version: 2
@@ -16,14 +15,13 @@ updates:
       day: "sunday"
       time: "16:00"
     open-pull-requests-limit: 10
-    # Let a new release age a week before Dependabot proposes it.
+    # Wait a week before proposing a new release, so a compromised or broken
+    # one is usually caught upstream before it reaches a PR here.
     cooldown:
       default-days: 7
     labels:
       - "github-actions"
       - "dependencies"
-    reviewers:
-      - "mpaulosky"
     groups:
       all-actions:
         patterns:
@@ -38,16 +36,15 @@ updates:
       day: "sunday"
       time: "16:00"
     open-pull-requests-limit: 10
-    # Let a new release age a week before Dependabot proposes it.
+    # Wait a week before proposing a new release, so a compromised or broken
+    # one is usually caught upstream before it reaches a PR here.
     cooldown:
       default-days: 7
     labels:
       - "nuget"
       - "dependencies"
-    reviewers:
-      - "mpaulosky"
     groups:
-      all-actions:
+      all-nuget:
         patterns:
           - "*"
 
@@ -60,15 +57,35 @@ updates:
       day: "sunday"
       time: "16:00"
     open-pull-requests-limit: 10
-    # Let a new release age a week before Dependabot proposes it.
+    # Wait a week before proposing a new release, so a compromised or broken
+    # one is usually caught upstream before it reaches a PR here.
     cooldown:
       default-days: 7
     labels:
       - "dotnet-sdk"
       - "dependencies"
-    reviewers:
-      - "mpaulosky"
     groups:
-      all-actions:
+      dotnet-sdk:
+        patterns:
+          - "*"
+
+  # Maintain the npm packages (Tailwind CLI)
+  - package-ecosystem: "npm"
+    directory: "/src/Web"
+    target-branch: "main"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "16:00"
+    open-pull-requests-limit: 10
+    # Wait a week before proposing a new release, so a compromised or broken
+    # one is usually caught upstream before it reaches a PR here.
+    cooldown:
+      default-days: 7
+    labels:
+      - "npm"
+      - "dependencies"
+    groups:
+      all-npm:
         patterns:
           - "*"
