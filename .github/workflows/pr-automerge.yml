@@ -28,6 +28,11 @@ jobs:
       - name: Enable auto-merge (squash)
         uses: actions/github-script@v9
         with:
+          # A merge made with GITHUB_TOKEN is attributed to github-actions,
+          # and GitHub starts no workflows from it: the release workflow, its
+          # release-blog PR and "Closes #N" all silently skip. Arming and
+          # merging with the PAT attributes the merge to a real user.
+          github-token: ${{ secrets.RELEASE_PR_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const { decideAutoMerge } = await import(
               `${process.env.GITHUB_WORKSPACE}/scripts/squad/automerge-decision.mjs`
@@ -183,8 +188,12 @@ jobs:
                 .join("\n")
                 .toLowerCase();
 
-              // The PR became CLEAN between the query and the mutation.
-              if (combinedMessage.includes("clean status")) {
+              // Required checks passed between the query and the mutation, so
+              // GitHub won't arm auto-merge; merge directly instead.
+              if (
+                combinedMessage.includes("clean status") ||
+                combinedMessage.includes("unstable status")
+              ) {
                 await mergeNow();
                 return;
               }
@@ -194,7 +203,6 @@ jobs:
               if (
                 combinedMessage.includes("already merged") ||
                 combinedMessage.includes("already enabled") ||
-                combinedMessage.includes("unstable status") ||
                 combinedMessage.includes("mergeable") ||
                 combinedMessage.includes("not mergeable")
               ) {
