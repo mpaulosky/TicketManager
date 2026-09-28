@@ -1,6 +1,15 @@
 {
-  "generatedAt": "2026-09-28T17:51:54.489526Z",
+  "generatedAt": "2026-09-28T18:16:26.779788Z",
   "posts": [
+    {
+      "fileName": "2026-09-28-pr-76-chore-deps-fix-dependabot-config.md",
+      "title": "chore(deps): Fix Dependabot config",
+      "summary": "Release notes seed for v0.0.38 from PR #76.",
+      "date": "2026-09-28",
+      "slug": "chore-deps-fix-dependabot-config",
+      "sequence": 76,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-76-chore-deps-fix-dependabot-config.md"
+    },
     {
       "fileName": "2026-09-28-pr-73-ci-let-blog-posts-json-prs-merge-and-point-dependabot-at-the-repo-root.md",
       "title": "ci: Let blog-posts.json PRs merge, and point Dependabot at the repo root",
