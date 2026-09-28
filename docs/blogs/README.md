@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-28 | [ci: Let README sync PRs run their required checks](2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md) | release,automation |
 | 2026-09-28 | [ci: Run the test suite on Dependabot PRs](2026-09-28-pr-80-ci-run-the-test-suite-on-dependabot-prs.md) | release,automation |
 | 2026-09-28 | [chore(deps): Fix Dependabot config](2026-09-28-pr-76-chore-deps-fix-dependabot-config.md) | release,automation |
 | 2026-09-28 | [ci: Let blog-posts.json PRs merge, and point Dependabot at the repo root](2026-09-28-pr-73-ci-let-blog-posts-json-prs-merge-and-point-dependabot-at-the-repo-root.md) | release,automation |
