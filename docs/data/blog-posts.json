@@ -1,6 +1,15 @@
 {
-  "generatedAt": "2026-09-28T21:11:17.805896Z",
+  "generatedAt": "2026-09-28T21:24:37.681174Z",
   "posts": [
+    {
+      "fileName": "2026-09-28-pr-89-chore-web-regenerate-app-css-with-tailwind-4-3-3.md",
+      "title": "chore(web): Regenerate app.css with Tailwind 4.3.3",
+      "summary": "Release notes seed for v0.0.42 from PR #89.",
+      "date": "2026-09-28",
+      "slug": "chore-web-regenerate-app-css-with-tailwind-4-3-3",
+      "sequence": 89,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-89-chore-web-regenerate-app-css-with-tailwind-4-3-3.md"
+    },
     {
       "fileName": "2026-09-28-pr-86-ci-remove-the-unused-squad-branch-cleanup-keeping-the-auto-merge-logic.md",
       "title": "ci: Remove the unused squad branch cleanup, keeping the auto-merge logic",
