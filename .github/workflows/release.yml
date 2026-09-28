@@ -17,6 +17,8 @@ permissions:
   contents: write
   pull-requests: write
   actions: write
+  # Opens or comments on the "Release docs generation is failing" tracker.
+  issues: write
 
 concurrency:
   group: release-${{ github.event.pull_request.number || inputs.pr_number }}
