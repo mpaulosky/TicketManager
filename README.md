@@ -83,11 +83,11 @@ rollout history of workflow-standard and major changes by release.
 <!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-28 | [ci: Remove the unused squad branch cleanup, keeping the auto-merge logic](docs/blogs/2026-09-28-pr-86-ci-remove-the-unused-squad-branch-cleanup-keeping-the-auto-merge-logic.md) | release,automation |
 | 2026-09-28 | [ci: Let README sync PRs run their required checks](docs/blogs/2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md) | release,automation |
 | 2026-09-28 | [ci: Run the test suite on Dependabot PRs](docs/blogs/2026-09-28-pr-80-ci-run-the-test-suite-on-dependabot-prs.md) | release,automation |
 | 2026-09-28 | [chore(deps): Fix Dependabot config](docs/blogs/2026-09-28-pr-76-chore-deps-fix-dependabot-config.md) | release,automation |
 | 2026-09-28 | [ci: Let blog-posts.json PRs merge, and point Dependabot at the repo root](docs/blogs/2026-09-28-pr-73-ci-let-blog-posts-json-prs-merge-and-point-dependabot-at-the-repo-root.md) | release,automation |
-| 2026-09-28 | [docs: regenerate docs/data/blog-posts.json](docs/blogs/2026-09-28-pr-56-docs-regenerate-docs-data-blog-posts-json.md) | release,automation |
 <!-- BLOG_END -->
 
 ## Quick start
@@ -144,11 +144,11 @@ notes) and then:
 - updates this README latest-blog block (`<!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-28 | [ci: Remove the unused squad branch cleanup, keeping the auto-merge logic](docs/blogs/2026-09-28-pr-86-ci-remove-the-unused-squad-branch-cleanup-keeping-the-auto-merge-logic.md) | release,automation |
 | 2026-09-28 | [ci: Let README sync PRs run their required checks](docs/blogs/2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md) | release,automation |
 | 2026-09-28 | [ci: Run the test suite on Dependabot PRs](docs/blogs/2026-09-28-pr-80-ci-run-the-test-suite-on-dependabot-prs.md) | release,automation |
 | 2026-09-28 | [chore(deps): Fix Dependabot config](docs/blogs/2026-09-28-pr-76-chore-deps-fix-dependabot-config.md) | release,automation |
 | 2026-09-28 | [ci: Let blog-posts.json PRs merge, and point Dependabot at the repo root](docs/blogs/2026-09-28-pr-73-ci-let-blog-posts-json-prs-merge-and-point-dependabot-at-the-repo-root.md) | release,automation |
-| 2026-09-28 | [docs: regenerate docs/data/blog-posts.json](docs/blogs/2026-09-28-pr-56-docs-regenerate-docs-data-blog-posts-json.md) | release,automation |
 <!-- BLOG_END -->`)
   from `docs/blogs/README.md` (top 5 rows),
 - updates [docs/index.html](docs/index.html) latest blog links from the same rows.
