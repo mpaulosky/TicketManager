@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-09-29 | [build: write a single-document pnpm lockfile](2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md) | release,automation |
 | 2026-09-29 | [build: switch the web project from npm to pnpm](2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md) | release,automation |
 | 2026-09-28 | [chore(web): Stop committing the generated app.css](2026-09-28-pr-92-chore-web-stop-committing-the-generated-app-css.md) | release,automation |
 | 2026-09-28 | [chore(web): Regenerate app.css with Tailwind 4.3.3](2026-09-28-pr-89-chore-web-regenerate-app-css-with-tailwind-4-3-3.md) | release,automation |
