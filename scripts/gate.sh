@@ -73,7 +73,7 @@ if [[ ${#MD_FILES[@]} -gt 0 ]]; then
   elif command -v markdownlint-cli2 &>/dev/null; then
     markdownlint-cli2 "${MD_FILES[@]}"
   else
-    npx --yes "markdownlint-cli2@${MARKDOWNLINT_CLI2_VERSION}" "${MD_FILES[@]}"
+    pnpm dlx "markdownlint-cli2@${MARKDOWNLINT_CLI2_VERSION}" "${MD_FILES[@]}"
   fi
 fi
 

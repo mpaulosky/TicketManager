@@ -7,8 +7,8 @@
 		<BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
 		<TailwindWorkingDirectory Condition="'$(SolutionDir)' != ''">$(SolutionDir)</TailwindWorkingDirectory>
 		<TailwindWorkingDirectory Condition="'$(TailwindWorkingDirectory)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../..'))</TailwindWorkingDirectory>
-		<NpmCommand Condition="'$(NpmCommand)' == '' AND '$(OS)' == 'Windows_NT'">npm.cmd</NpmCommand>
-		<NpmCommand Condition="'$(NpmCommand)' == ''">npm</NpmCommand>
+		<PnpmCommand Condition="'$(PnpmCommand)' == '' AND '$(OS)' == 'Windows_NT'">pnpm.cmd</PnpmCommand>
+		<PnpmCommand Condition="'$(PnpmCommand)' == ''">pnpm</PnpmCommand>
 		<UserSecretsId>328dbbf5-3386-4e20-9909-26504bcd8520</UserSecretsId>
 	</PropertyGroup>
 
@@ -69,42 +69,42 @@
 	</Target>
 
 	<!--
-	Ensure that npm is available on the build machine.
+	Ensure that pnpm is available on the build machine.
 	If not, check if a pre-built app.css exists. If neither is true, fail the build.
 	-->
-	<Target Name="DetectNpm" BeforeTargets="EnsureNpmPackages;BuildTailwind" Condition="'$(CI)' != 'true' AND '$(CI)' != '1'">
-		<Exec Command="$(NpmCommand) --version" IgnoreExitCode="true">
-			<Output TaskParameter="ExitCode" PropertyName="NpmExitCode"/>
+	<Target Name="DetectPnpm" BeforeTargets="EnsurePnpmPackages;BuildTailwind" Condition="'$(CI)' != 'true' AND '$(CI)' != '1'">
+		<Exec Command="$(PnpmCommand) --version" IgnoreExitCode="true">
+			<Output TaskParameter="ExitCode" PropertyName="PnpmExitCode"/>
 		</Exec>
 		<PropertyGroup>
-			<NpmAvailable Condition="'$(NpmExitCode)' == '0'">true</NpmAvailable>
-			<NpmAvailable Condition="'$(NpmExitCode)' != '0'">false</NpmAvailable>
+			<PnpmAvailable Condition="'$(PnpmExitCode)' == '0'">true</PnpmAvailable>
+			<PnpmAvailable Condition="'$(PnpmExitCode)' != '0'">false</PnpmAvailable>
 		</PropertyGroup>
-		<Error Condition="'$(NpmAvailable)' != 'true' AND !Exists('$(MSBuildProjectDirectory)/wwwroot/css/app.css')" Text="npm was not found and no pre-built app.css exists. Install Node.js/npm and run 'cd src/Web &amp;&amp; npm ci' before building."/>
-		<Warning Condition="'$(NpmAvailable)' != 'true' AND Exists('$(MSBuildProjectDirectory)/wwwroot/css/app.css')" Text="npm was not found. Skipping Tailwind build and using the existing generated CSS at wwwroot/css/app.css."/>
+		<Error Condition="'$(PnpmAvailable)' != 'true' AND !Exists('$(MSBuildProjectDirectory)/wwwroot/css/app.css')" Text="pnpm was not found and no pre-built app.css exists. Install Node.js and pnpm (corepack enable) and run 'cd src/Web &amp;&amp; pnpm install --frozen-lockfile' before building."/>
+		<Warning Condition="'$(PnpmAvailable)' != 'true' AND Exists('$(MSBuildProjectDirectory)/wwwroot/css/app.css')" Text="pnpm was not found. Skipping Tailwind build and using the existing generated CSS at wwwroot/css/app.css."/>
 	</Target>
 
-	<!-- On a fresh machine, node_modules won't exist. Auto-run npm install before Tailwind builds. -->
-	<Target Name="EnsureNpmPackages" BeforeTargets="BuildTailwind" Condition="'$(CI)' != 'true' AND '$(CI)' != '1' AND '$(NpmAvailable)' == 'true' AND !Exists('$(MSBuildProjectDirectory)/node_modules')">
-		<Message Importance="high" Text="node_modules not found — running npm install..."/>
-		<Exec Command="$(NpmCommand) ci --ignore-scripts" WorkingDirectory="$(MSBuildProjectDirectory)"/>
+	<!-- On a fresh machine, node_modules won't exist. Auto-run pnpm install before Tailwind builds. -->
+	<Target Name="EnsurePnpmPackages" BeforeTargets="BuildTailwind" Condition="'$(CI)' != 'true' AND '$(CI)' != '1' AND '$(PnpmAvailable)' == 'true' AND !Exists('$(MSBuildProjectDirectory)/node_modules')">
+		<Message Importance="high" Text="node_modules not found — running pnpm install..."/>
+		<Exec Command="$(PnpmCommand) install --frozen-lockfile --ignore-scripts" WorkingDirectory="$(MSBuildProjectDirectory)"/>
 	</Target>
 
 	<!--
-		Only reinstall when package-lock.json actually changed since the last install (tracked via
+		Only reinstall when pnpm-lock.yaml actually changed since the last install (tracked via
 		the stamp file). Reinstalling unconditionally on every build deletes and rebuilds node_modules
-		out from under any concurrently running `npm run watch:css`, causing intermittent
+		out from under any concurrently running `pnpm run watch:css`, causing intermittent
 		"Can't resolve 'tailwindcss'" failures in the watcher.
 	-->
-	<Target Name="TailwindNpmCi" BeforeTargets="TailwindBuild" Condition="Exists('package.json')" Inputs="$(MSBuildProjectDirectory)/package-lock.json" Outputs="$(MSBuildProjectDirectory)/node_modules/.install-stamp">
-		<Exec Command="$(NpmCommand) ci --no-audit --no-fund" WorkingDirectory="$(MSBuildProjectDirectory)"/>
+	<Target Name="TailwindPnpmInstall" BeforeTargets="TailwindBuild" Condition="Exists('package.json')" Inputs="$(MSBuildProjectDirectory)/pnpm-lock.yaml" Outputs="$(MSBuildProjectDirectory)/node_modules/.install-stamp">
+		<Exec Command="$(PnpmCommand) install --frozen-lockfile" WorkingDirectory="$(MSBuildProjectDirectory)"/>
 		<Touch Files="$(MSBuildProjectDirectory)/node_modules/.install-stamp" AlwaysCreate="true"/>
 	</Target>
 
 	<!-- wwwroot/css/app.css is generated here and not committed, so a
 	     Tailwind bump can never leave a stale copy behind. -->
 	<Target Name="TailwindBuild" BeforeTargets="BeforeBuild">
-		<Exec Command="npm run build:css" WorkingDirectory="$(MSBuildProjectDirectory)" Condition="Exists('package.json')"/>
+		<Exec Command="$(PnpmCommand) run build:css" WorkingDirectory="$(MSBuildProjectDirectory)" Condition="Exists('package.json')"/>
 		<!-- wwwroot/** was globbed when the project loaded, before this file
 		     existed, so add it now or a clean build leaves it out of the static
 		     web assets manifest and @Assets["css/app.css"] can't serve it. -->
