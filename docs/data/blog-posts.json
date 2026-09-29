@@ -1,6 +1,15 @@
 {
-  "generatedAt": "2026-09-29T15:32:35.077720Z",
+  "generatedAt": "2026-09-29T16:24:49.823660Z",
   "posts": [
+    {
+      "fileName": "2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md",
+      "title": "build: write a single-document pnpm lockfile",
+      "summary": "Release notes seed for v0.0.45 from PR #98.",
+      "date": "2026-09-29",
+      "slug": "build-write-a-single-document-pnpm-lockfile",
+      "sequence": 98,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md"
+    },
     {
       "fileName": "2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md",
       "title": "build: switch the web project from npm to pnpm",
