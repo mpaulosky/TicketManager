@@ -51,7 +51,7 @@
   ```bash
   dotnet test Articles.slnx
   dotnet build Articles.slnx --configuration Release
-  npx --yes markdownlint-cli2 "**/*.md"
+  pnpm dlx markdownlint-cli2 "**/*.md"
   ```
 
 - For a focused .NET test, use `dotnet test --filter FullyQualifiedName~{Namespace}.{ClassName}.{MethodName}` or filter to the test class.

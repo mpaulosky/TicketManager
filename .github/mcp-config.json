@@ -2,16 +2,17 @@
 	"mcpServers": {
 		"mongodb": {
 			"type": "stdio",
-			"command": "npx",
+			"command": "pnpm",
 			"args": [
-				"-y",
+				"dlx",
 				"mongodb-mcp-server@latest"
 			]
 		},
 		"playwright": {
 			"type": "stdio",
-			"command": "npx",
+			"command": "pnpm",
 			"args": [
+				"dlx",
 				"@playwright/mcp@latest"
 			]
 		},
@@ -21,8 +22,9 @@
 		},
 		"context7": {
 			"type": "stdio",
-			"command": "npx",
+			"command": "pnpm",
 			"args": [
+				"dlx",
 				"@upstash/context7-mcp@1.0.31"
 			],
 			"env": {
@@ -31,17 +33,17 @@
 		},
 		"sequential-thinking": {
 			"type": "stdio",
-			"command": "npx",
+			"command": "pnpm",
 			"args": [
-				"-y",
+				"dlx",
 				"@modelcontextprotocol/server-sequential-thinking"
 			]
 		},
 		"github": {
 			"type": "stdio",
-			"command": "npx",
+			"command": "pnpm",
 			"args": [
-				"-y",
+				"dlx",
 				"@anthropic/github-mcp-server"
 			],
 			"env": {
