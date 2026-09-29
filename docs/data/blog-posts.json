@@ -1,6 +1,15 @@
 {
-  "generatedAt": "2026-09-28T23:22:14.897735Z",
+  "generatedAt": "2026-09-29T15:32:35.077720Z",
   "posts": [
+    {
+      "fileName": "2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md",
+      "title": "build: switch the web project from npm to pnpm",
+      "summary": "Release notes seed for v0.0.44 from PR #95.",
+      "date": "2026-09-29",
+      "slug": "build-switch-the-web-project-from-npm-to-pnpm",
+      "sequence": 95,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md"
+    },
     {
       "fileName": "2026-09-28-pr-92-chore-web-stop-committing-the-generated-app-css.md",
       "title": "chore(web): Stop committing the generated app.css",
