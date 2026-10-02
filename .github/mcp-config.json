@@ -20,17 +20,6 @@
 			"type": "http",
 			"url": "https://learn.microsoft.com/api/mcp"
 		},
-		"context7": {
-			"type": "stdio",
-			"command": "pnpm",
-			"args": [
-				"dlx",
-				"@upstash/context7-mcp@1.0.31"
-			],
-			"env": {
-				"CONTEXT7_API_KEY": "${ctx7sk-6c71628a-1b6d-4e3f-82d9-53ef22794411}"
-			}
-		},
 		"sequential-thinking": {
 			"type": "stdio",
 			"command": "pnpm",
