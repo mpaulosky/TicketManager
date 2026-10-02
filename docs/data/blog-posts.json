@@ -1,6 +1,15 @@
 {
-  "generatedAt": "2026-09-29T16:24:49.823660Z",
+  "generatedAt": "2026-10-02T15:53:33.603894Z",
   "posts": [
+    {
+      "fileName": "2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md",
+      "title": "chore: drop context7 MCP server that embedded a literal API key",
+      "summary": "Release notes seed for v0.0.46 from PR #101.",
+      "date": "2026-10-02",
+      "slug": "chore-drop-context7-mcp-server-that-embedded-a-literal-api-key",
+      "sequence": 101,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md"
+    },
     {
       "fileName": "2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md",
       "title": "build: write a single-document pnpm lockfile",
