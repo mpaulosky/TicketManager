@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-10-02 | [fix(docs): Rebase README links in the docs/ copy](2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md) | release,automation |
 | 2026-10-02 | [chore: drop context7 MCP server that embedded a literal API key](2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md) | release,automation |
 | 2026-09-29 | [build: write a single-document pnpm lockfile](2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md) | release,automation |
 | 2026-09-29 | [build: switch the web project from npm to pnpm](2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md) | release,automation |
