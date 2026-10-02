@@ -1,6 +1,15 @@
 {
-  "generatedAt": "2026-10-02T15:53:33.603894Z",
+  "generatedAt": "2026-10-02T16:10:55.639377Z",
   "posts": [
+    {
+      "fileName": "2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md",
+      "title": "fix(docs): Rebase README links in the docs/ copy",
+      "summary": "Release notes seed for v0.0.47 from PR #104.",
+      "date": "2026-10-02",
+      "slug": "fix-docs-rebase-readme-links-in-the-docs-copy",
+      "sequence": 104,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md"
+    },
     {
       "fileName": "2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md",
       "title": "chore: drop context7 MCP server that embedded a literal API key",
