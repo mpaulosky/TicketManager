@@ -83,11 +83,11 @@ rollout history of workflow-standard and major changes by release.
 <!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-10-04 | [chore: Remove what's left of squad](blogs/2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md) | release,automation |
 | 2026-10-02 | [fix(docs): Rebase README links in the docs/ copy](blogs/2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md) | release,automation |
 | 2026-10-02 | [chore: drop context7 MCP server that embedded a literal API key](blogs/2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md) | release,automation |
 | 2026-09-29 | [build: write a single-document pnpm lockfile](blogs/2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md) | release,automation |
 | 2026-09-29 | [build: switch the web project from npm to pnpm](blogs/2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md) | release,automation |
-| 2026-09-28 | [chore(web): Stop committing the generated app.css](blogs/2026-09-28-pr-92-chore-web-stop-committing-the-generated-app-css.md) | release,automation |
 <!-- BLOG_END -->
 
 ## Quick start
@@ -144,11 +144,11 @@ notes) and then:
 - updates this README latest-blog block (`<!-- BLOG_START -->
 | Date | Title | Tags |
 |------|-------|------|
+| 2026-10-04 | [chore: Remove what's left of squad](blogs/2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md) | release,automation |
 | 2026-10-02 | [fix(docs): Rebase README links in the docs/ copy](blogs/2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md) | release,automation |
 | 2026-10-02 | [chore: drop context7 MCP server that embedded a literal API key](blogs/2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md) | release,automation |
 | 2026-09-29 | [build: write a single-document pnpm lockfile](blogs/2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md) | release,automation |
 | 2026-09-29 | [build: switch the web project from npm to pnpm](blogs/2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md) | release,automation |
-| 2026-09-28 | [chore(web): Stop committing the generated app.css](blogs/2026-09-28-pr-92-chore-web-stop-committing-the-generated-app-css.md) | release,automation |
 <!-- BLOG_END -->`)
   from `docs/blogs/README.md` (top 5 rows),
 - updates [docs/index.html](index.html) latest blog links from the same rows.
