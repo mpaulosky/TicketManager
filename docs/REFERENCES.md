@@ -8,7 +8,7 @@
 - [Blazor Web App](https://learn.microsoft.com/aspnet/core/blazor/) – Interactive server-side rendering UI framework
 - [Tailwind CSS](https://tailwindcss.com/) – Styling, built with the Tailwind CLI through pnpm (`src/Web/package.json`)
 - [GitHub REST API](https://docs.github.com/rest) – The system of record for projects and issues
-- [Auth0](https://auth0.com/docs) – Optional sign-in
+- [Auth0](https://auth0.com/docs) – Planned sign-in (not implemented yet)
 - [OpenTelemetry](https://opentelemetry.io/docs/languages/dotnet/) – Tracing and metrics via the Aspire service defaults
 
 ## Testing Tools

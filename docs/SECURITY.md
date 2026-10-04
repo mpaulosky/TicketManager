@@ -18,7 +18,8 @@ TicketManager implements the following security measures:
 
 ### Authentication & Authorization
 
-- **Auth0 sign-in** - Login is enabled only when `Auth0:Domain`, `Auth0:ClientId` and `Auth0:ClientSecret` are all configured
+- **Auth0 sign-in (planned)** - Not implemented yet: the app registers no authentication handler or login endpoint, so every page is public.
+  The `Auth0:Domain`, `Auth0:ClientId` and `Auth0:ClientSecret` settings are read only to decide whether to redirect to `/Account/Login`
 - **GitHub token** - GitHub API access uses a token from configuration or user secrets, falling back to the `GITHUB_TOKEN` environment variable
 
 ### Data Protection
