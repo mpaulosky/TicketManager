@@ -29,7 +29,6 @@
 
 ## Blazor and UI
 
-- Follow the Blazor-specific guidance in `.github/instructions/blazor.instructions.md` for Razor components, code-behind, and component CSS.
 - Use Tailwind CSS v4 and the existing CSS-first styles under `src/Web/Styles/` for UI changes.
 - Reuse existing components, tokens, and accessibility patterns before introducing new UI primitives.
 - Keep user-facing states complete, including loading, empty, validation, error, and authorization states where applicable.
