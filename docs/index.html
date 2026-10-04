@@ -388,9 +388,7 @@
     }
 
     .spotlight-card .label,
-    .list-card .label,
-    .release-item .label,
-    .post-item .label {
+    .list-card .label {
       display: inline-flex;
       align-items: center;
       gap: 0.45rem;
@@ -404,9 +402,6 @@
 
     .spotlight-card p,
     .list-card p,
-    .release-summary,
-    .post-summary,
-    .state-card p,
     footer p {
       margin: 0.55rem 0 0;
       color: var(--text-muted);
@@ -425,76 +420,92 @@
       align-items: start;
     }
 
-    .state-card {
-      padding: 1.25rem;
-      border-radius: 18px;
-      border: 1px dashed var(--border-strong);
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .table-wrap table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    .table-wrap th,
+    .table-wrap td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-wrap th {
+      color: var(--text-soft);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
       background: rgba(96, 165, 250, 0.08);
     }
 
-    .state-card strong {
-      display: block;
-      font-size: 1rem;
+    .table-wrap tbody tr:last-child td {
+      border-bottom: 0;
     }
 
-    .release-list,
-    .post-list {
+    .table-wrap a,
+    .post-title a,
+    .post-source a {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .post-grid {
       list-style: none;
       margin: 0;
       padding: 0;
       display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 1rem;
     }
 
-    .release-item,
-    .post-item {
+    .post-card {
       padding: 1.2rem;
-      border-radius: 20px;
+      border-radius: var(--radius-md);
       border: 1px solid var(--border);
       background: rgba(255, 255, 255, 0.03);
-      display: grid;
-      gap: 0.75rem;
     }
 
-    .release-top,
-    .post-top {
+    .post-meta {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 0.85rem;
       flex-wrap: wrap;
+      gap: 0.6rem;
+      margin: 0 0 0.6rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
     }
 
-    .release-top h3,
-    .post-top h3 {
-      font-size: 1.08rem;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.35rem 0.65rem;
+    .post-tag {
+      padding: 0.1rem 0.55rem;
       border-radius: 999px;
       background: rgba(99, 102, 241, 0.14);
       border: 1px solid rgba(99, 102, 241, 0.16);
       color: var(--text-soft);
       font-size: 0.82rem;
       font-weight: 700;
-      white-space: nowrap;
     }
 
-    .meta-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.7rem;
+    .post-title {
+      font-size: 1.08rem;
+    }
+
+    .post-excerpt,
+    .post-empty {
+      margin: 0.55rem 0 0;
       color: var(--text-muted);
-      font-size: 0.92rem;
     }
 
-    .meta-row span {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
+    .post-source {
+      margin: 0.8rem 0 0;
+      font-size: 0.9rem;
     }
 
     .footer {
@@ -639,7 +650,7 @@
             </div>
             <div class="mini-card">
               <strong>Release-aware</strong>
-              <span>GitHub Releases are pulled live on the page for an always-current snapshot.</span>
+              <span>Each release adds itself and its blog post to this page.</span>
             </div>
           </div>
         </aside>
@@ -682,15 +693,87 @@
         <div class="section-heading">
           <div>
             <h2 id="releases-title">Latest releases</h2>
-            <p>Published releases are fetched from GitHub at runtime so this page stays current without a separate build step.</p>
+            <p>The newest releases, written into this page by the release workflow each time one is published.</p>
           </div>
           <a class="button" href="https://github.com/mpaulosky/TicketManager/releases">Open all releases</a>
         </div>
-        <div id="releases-content" aria-live="polite">
-          <div class="state-card" role="status">
-            <strong>Loading releases…</strong>
-            <p>Fetching the latest release notes from GitHub.</p>
+        <div id="releases-content">
+          <!-- RELEASES_HTML_START -->
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Version</th>
+                  <th>Date</th>
+                  <th>Title</th>
+                  <th>Blog post</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.48">v0.0.48</a></td>
+                  <td>2026-10-04</td>
+                  <td>chore: Remove what&#x27;s left of squad</td>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md">Post</a></td>
+                </tr>
+                <tr>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.47">v0.0.47</a></td>
+                  <td>2026-10-02</td>
+                  <td>fix(docs): Rebase README links in the docs/ copy</td>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md">Post</a></td>
+                </tr>
+                <tr>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.46">v0.0.46</a></td>
+                  <td>2026-10-02</td>
+                  <td>chore: drop context7 MCP server that embedded a literal API key</td>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md">Post</a></td>
+                </tr>
+                <tr>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.45">v0.0.45</a></td>
+                  <td>2026-09-29</td>
+                  <td>build: write a single-document pnpm lockfile</td>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md">Post</a></td>
+                </tr>
+                <tr>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.44">v0.0.44</a></td>
+                  <td>2026-09-29</td>
+                  <td>build: switch the web project from npm to pnpm</td>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md">Post</a></td>
+                </tr>
+                <tr>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.43">v0.0.43</a></td>
+                  <td>2026-09-28</td>
+                  <td>chore(web): Stop committing the generated app.css</td>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-92-chore-web-stop-committing-the-generated-app-css.md">Post</a></td>
+                </tr>
+                <tr>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.42">v0.0.42</a></td>
+                  <td>2026-09-28</td>
+                  <td>chore(web): Regenerate app.css with Tailwind 4.3.3</td>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-89-chore-web-regenerate-app-css-with-tailwind-4-3-3.md">Post</a></td>
+                </tr>
+                <tr>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.41">v0.0.41</a></td>
+                  <td>2026-09-28</td>
+                  <td>ci: Remove the unused squad branch cleanup, keeping the auto-merge logic</td>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-86-ci-remove-the-unused-squad-branch-cleanup-keeping-the-auto-merge-logic.md">Post</a></td>
+                </tr>
+                <tr>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.40">v0.0.40</a></td>
+                  <td>2026-09-28</td>
+                  <td>ci: Let README sync PRs run their required checks</td>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md">Post</a></td>
+                </tr>
+                <tr>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.39">v0.0.39</a></td>
+                  <td>2026-09-28</td>
+                  <td>ci: Run the test suite on Dependabot PRs</td>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-80-ci-run-the-test-suite-on-dependabot-prs.md">Post</a></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
+          <!-- RELEASES_HTML_END -->
         </div>
       </div>
     </section>
@@ -700,15 +783,95 @@
         <div class="section-heading">
           <div>
             <h2 id="posts-title">Latest posts</h2>
-            <p>The site reads a checked-in JSON catalog derived from every markdown post under <code>docs/blogs/</code>, sorts by dated filename and sequence, then highlights the newest five.</p>
+            <p>The newest release posts from <code>docs/blogs/</code>, written into this page by the release workflow.</p>
           </div>
           <a class="button" href="https://github.com/mpaulosky/TicketManager/tree/main/docs/blogs">Browse all posts</a>
         </div>
-        <div id="posts-content" aria-live="polite">
-          <div class="state-card" role="status">
-            <strong>Loading posts…</strong>
-            <p>Preparing the latest engineering notes from the static post catalog.</p>
-          </div>
+        <div id="posts-content">
+          <!-- BLOGS_HTML_START -->
+          <ul class="post-grid">
+            <li class="post-card">
+              <article>
+                <p class="post-meta"><time datetime="2026-10-04">4 Oct 2026</time><span class="post-tag">v0.0.48</span></p>
+                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md">chore: Remove what&#x27;s left of squad</a></h3>
+                <p class="post-excerpt">Removes what&#x27;s left of the squad framework so TicketManager can be Standardized on the repo-ci-baseline Template next. apply.sh --dry-run lists squad as a Conflict.</p>
+                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/108">PR #108</a></p>
+              </article>
+            </li>
+            <li class="post-card">
+              <article>
+                <p class="post-meta"><time datetime="2026-10-02">2 Oct 2026</time><span class="post-tag">v0.0.47</span></p>
+                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md">fix(docs): Rebase README links in the docs/ copy</a></h3>
+                <p class="post-excerpt">docs/README.md is the root README copied into docs/, and both the release workflow and the README sync copied it verbatim. Relative links written from the root (docs/blogs/x.md, LICENSE) then…</p>
+                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/104">PR #104</a></p>
+              </article>
+            </li>
+            <li class="post-card">
+              <article>
+                <p class="post-meta"><time datetime="2026-10-02">2 Oct 2026</time><span class="post-tag">v0.0.46</span></p>
+                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md">chore: drop context7 MCP server that embedded a literal API key</a></h3>
+                <p class="post-excerpt">The context7 entry in .github/mcp-config.json put a real Context7 API key inside the ${...} env placeholder, so the key was committed in plain text instead of being read from the environment.</p>
+                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/101">PR #101</a></p>
+              </article>
+            </li>
+            <li class="post-card">
+              <article>
+                <p class="post-meta"><time datetime="2026-09-29">29 Sep 2026</time><span class="post-tag">v0.0.45</span></p>
+                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md">build: write a single-document pnpm lockfile</a></h3>
+                <p class="post-excerpt">Requested by Matthew · project thread</p>
+                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/98">PR #98</a></p>
+              </article>
+            </li>
+            <li class="post-card">
+              <article>
+                <p class="post-meta"><time datetime="2026-09-29">29 Sep 2026</time><span class="post-tag">v0.0.44</span></p>
+                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md">build: switch the web project from npm to pnpm</a></h3>
+                <p class="post-excerpt">Requested by Matthew · project thread</p>
+                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/95">PR #95</a></p>
+              </article>
+            </li>
+            <li class="post-card">
+              <article>
+                <p class="post-meta"><time datetime="2026-09-28">28 Sep 2026</time><span class="post-tag">v0.0.43</span></p>
+                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-92-chore-web-stop-committing-the-generated-app-css.md">chore(web): Stop committing the generated app.css</a></h3>
+                <p class="post-excerpt">Every Tailwind bump from Dependabot left the committed src/Web/wwwroot/css/app.css stale. The lockfile moved on, but the CSS in git was still the old build (#89 fixed the latest case by hand). Each…</p>
+                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/92">PR #92</a></p>
+              </article>
+            </li>
+            <li class="post-card">
+              <article>
+                <p class="post-meta"><time datetime="2026-09-28">28 Sep 2026</time><span class="post-tag">v0.0.42</span></p>
+                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-89-chore-web-regenerate-app-css-with-tailwind-4-3-3.md">chore(web): Regenerate app.css with Tailwind 4.3.3</a></h3>
+                <p class="post-excerpt">Dependabot&#x27;s npm update (#78) raised Tailwind to 4.3.3, but the committed src/Web/wwwroot/css/app.css was still the 4.2.1 build. Every local build regenerated it, which left the working tree dirty…</p>
+                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/89">PR #89</a></p>
+              </article>
+            </li>
+            <li class="post-card">
+              <article>
+                <p class="post-meta"><time datetime="2026-09-28">28 Sep 2026</time><span class="post-tag">v0.0.41</span></p>
+                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-86-ci-remove-the-unused-squad-branch-cleanup-keeping-the-auto-merge-logic.md">ci: Remove the unused squad branch cleanup, keeping the auto-merge logic</a></h3>
+                <p class="post-excerpt">TicketManager doesn&#x27;t use Squad, so its nightly branch cleanup (squad-branch-worktree-cleanup.yml and scripts/squad/cleanup-squad-branches.sh) goes, as it did in atelier-store, IssueManager and…</p>
+                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/86">PR #86</a></p>
+              </article>
+            </li>
+            <li class="post-card">
+              <article>
+                <p class="post-meta"><time datetime="2026-09-28">28 Sep 2026</time><span class="post-tag">v0.0.40</span></p>
+                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md">ci: Let README sync PRs run their required checks</a></h3>
+                <p class="post-excerpt">README sync PRs could never merge. sync-readme.yml committed with the skip-CI marker in the message, and GitHub skips every workflow when the head commit carries it. So main&#x27;s required checks never…</p>
+                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/83">PR #83</a></p>
+              </article>
+            </li>
+            <li class="post-card">
+              <article>
+                <p class="post-meta"><time datetime="2026-09-28">28 Sep 2026</time><span class="post-tag">v0.0.39</span></p>
+                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-80-ci-run-the-test-suite-on-dependabot-prs.md">ci: Run the test suite on Dependabot PRs</a></h3>
+                <p class="post-excerpt">ci.yml skipped test discovery, every test job, coverage and the report job whenever Dependabot opened the PR. GitHub counts a skipped check as passing, so the required &quot;All Tests Passed&quot; check went…</p>
+                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/80">PR #80</a></p>
+              </article>
+            </li>
+          </ul>
+          <!-- BLOGS_HTML_END -->
         </div>
       </div>
     </section>
@@ -761,220 +924,5 @@
     </div>
   </footer>
 
-  <script>
-    const releasesEndpoint = 'https://api.github.com/repos/mpaulosky/TicketManager/releases';
-    const releasesPageUrl = 'https://github.com/mpaulosky/TicketManager/releases';
-    const blogPostsDataUrl = './data/blog-posts.json';
-
-    const releasesContent = document.getElementById('releases-content');
-    const postsContent = document.getElementById('posts-content');
-
-    function escapeHtml(value) {
-      return value
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-    }
-
-    function formatDate(value) {
-      if (!value) {
-        return 'Date unavailable';
-      }
-
-      const parsed = new Date(value);
-      if (Number.isNaN(parsed.getTime())) {
-        return value;
-      }
-
-      return new Intl.DateTimeFormat(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      }).format(parsed);
-    }
-
-    function excerpt(value, maxLength = 170) {
-      const plainText = (value || '')
-        .replace(/```[\s\S]*?```/g, ' ')
-        .replace(/`([^`]+)`/g, '$1')
-        .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-        .replace(/^#+\s+/gm, '')
-        .replace(/[>*_~|-]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      if (!plainText) {
-        return 'Open the release to read the full notes and change details.';
-      }
-
-      if (plainText.length <= maxLength) {
-        return plainText;
-      }
-
-      return `${plainText.slice(0, maxLength).trimEnd()}…`;
-    }
-
-    function parsePostKey(post) {
-      const match = /^(\d{4}-\d{2}-\d{2})-(\d+)-/.exec(post.fileName || '');
-      return {
-        date: match ? match[1] : (post.date || ''),
-        sequence: match ? Number.parseInt(match[2], 10) : Number(post.sequence || 0)
-      };
-    }
-
-    function renderState(target, title, message, linkHref, linkText) {
-      target.innerHTML = `
-        <div class="state-card" role="status">
-          <strong>${escapeHtml(title)}</strong>
-          <p>${escapeHtml(message)}</p>
-          <a class="card-link" href="${escapeHtml(linkHref)}">${escapeHtml(linkText)} <span aria-hidden="true">→</span></a>
-        </div>`;
-    }
-
-    async function loadReleases() {
-      try {
-        const response = await fetch(releasesEndpoint, {
-          headers: {
-            Accept: 'application/vnd.github+json'
-          }
-        });
-
-        if (!response.ok) {
-          const isRateLimited = response.status === 403 || response.status === 429;
-          throw new Error(isRateLimited ? 'GitHub rate limit reached.' : `GitHub request failed with status ${response.status}.`);
-        }
-
-        const releases = await response.json();
-        const items = Array.isArray(releases) ? releases.slice(0, 5) : [];
-
-        if (!items.length) {
-          renderState(
-            releasesContent,
-            'No releases published yet',
-            'TicketManager has not published any GitHub Releases yet. Check the repository for the latest code and release activity.',
-            releasesPageUrl,
-            'Visit the releases page'
-          );
-          return;
-        }
-
-        releasesContent.innerHTML = `
-          <ol class="release-list">
-            ${items.map((release) => {
-              const title = release.name || release.tag_name || 'Untitled release';
-              const summary = excerpt(release.body);
-              const publishedAt = formatDate(release.published_at || release.created_at);
-              const tag = release.tag_name || 'release';
-              const url = release.html_url || releasesPageUrl;
-              const typeLabel = release.prerelease ? 'Pre-release' : 'Release';
-
-              return `
-                <li class="release-item">
-                  <div class="release-top">
-                    <div>
-                      <span class="label">${escapeHtml(typeLabel)}</span>
-                      <h3>${escapeHtml(title)}</h3>
-                    </div>
-                    <span class="pill">${escapeHtml(tag)}</span>
-                  </div>
-                  <div class="meta-row">
-                    <span>Published ${escapeHtml(publishedAt)}</span>
-                  </div>
-                  <p class="release-summary">${escapeHtml(summary)}</p>
-                  <a class="card-link" href="${escapeHtml(url)}">View release notes <span aria-hidden="true">→</span></a>
-                </li>`;
-            }).join('')}
-          </ol>`;
-      } catch (error) {
-        const message = error instanceof Error
-          ? error.message
-          : 'Unable to reach GitHub right now.';
-        renderState(
-          releasesContent,
-          'Releases are temporarily unavailable',
-          `We could not load GitHub Releases just now. ${message} You can still open the repository release page directly.`,
-          releasesPageUrl,
-          'Open releases on GitHub'
-        );
-      }
-    }
-
-    async function loadPosts() {
-      try {
-        const response = await fetch(blogPostsDataUrl, {
-          headers: {
-            Accept: 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Post catalog request failed with status ${response.status}.`);
-        }
-
-        const payload = await response.json();
-        const posts = Array.isArray(payload.posts) ? payload.posts.slice() : [];
-
-        posts.sort((left, right) => {
-          const leftKey = parsePostKey(left);
-          const rightKey = parsePostKey(right);
-
-          if (leftKey.date !== rightKey.date) {
-            return rightKey.date.localeCompare(leftKey.date);
-          }
-
-          return rightKey.sequence - leftKey.sequence;
-        });
-
-        const latestPosts = posts.slice(0, 5);
-
-        if (!latestPosts.length) {
-          renderState(
-            postsContent,
-            'No posts found',
-            'The blog catalog is empty right now. Visit the repository to browse the docs directory directly.',
-            'https://github.com/mpaulosky/TicketManager/tree/main/docs/blogs',
-            'Browse docs on GitHub'
-          );
-          return;
-        }
-
-        postsContent.innerHTML = `
-          <ol class="post-list">
-            ${latestPosts.map((post) => `
-              <li class="post-item">
-                <div class="post-top">
-                  <div>
-                    <span class="label">Engineering note</span>
-                    <h3>${escapeHtml(post.title || post.slug || post.fileName || 'Untitled post')}</h3>
-                  </div>
-                  <span class="pill">#${escapeHtml(String(post.sequence ?? '—'))}</span>
-                </div>
-                <div class="meta-row">
-                  <span>Published ${escapeHtml(formatDate(post.date))}</span>
-                  <span>${escapeHtml(post.fileName || 'Unknown file')}</span>
-                </div>
-                <p class="post-summary">${escapeHtml(excerpt(post.summary, 190))}</p>
-                <a class="card-link" href="${escapeHtml(post.url || '#')}">Read on GitHub <span aria-hidden="true">→</span></a>
-              </li>`).join('')}
-          </ol>`;
-      } catch (error) {
-        const message = error instanceof Error
-          ? error.message
-          : 'Unable to read the post catalog.';
-        renderState(
-          postsContent,
-          'Latest posts are unavailable',
-          `We could not load the static post catalog. ${message} You can still browse the markdown posts directly on GitHub.`,
-          'https://github.com/mpaulosky/TicketManager/tree/main/docs/blogs',
-          'Open blog archive on GitHub'
-        );
-      }
-    }
-
-    loadReleases();
-    loadPosts();
-  </script>
 </body>
 </html>
