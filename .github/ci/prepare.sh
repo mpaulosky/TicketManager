@@ -21,11 +21,12 @@ test_name="${2:-}"
 # Building src/Web runs the Tailwind CSS build through pnpm, and every test
 # project builds it too. Under CI the csproj skips its own `pnpm install`, so
 # install here. Corepack provides the pnpm version pinned by "packageManager"
-# in src/Web/package.json.
+# in src/Web/package.json. The csproj's TailwindPnpmInstall target still
+# runs under CI unless its stamp is newer than pnpm-lock.yaml, so touch it.
 install_pnpm_packages() {
   export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
   corepack enable
-  (cd src/Web && pnpm install --frozen-lockfile)
+  (cd src/Web && pnpm install --frozen-lockfile && touch node_modules/.install-stamp)
 }
 
 case "$job" in
