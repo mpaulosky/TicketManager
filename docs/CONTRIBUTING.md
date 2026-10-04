@@ -2,7 +2,9 @@
 
 Thank you for taking the time to consider contributing to our project.
 
-The following is a set of guidelines for contributing to the project. These are mostly guidelines, not rules, and can be changed in the future. Please submit your suggestions with a pull-request to this document.
+The following is a set of guidelines for contributing to the project. These are
+mostly guidelines, not rules, and can be changed in the future. Please submit
+your suggestions with a pull-request to this document.
 
 ## Table of Contents
 
@@ -24,7 +26,9 @@ Below are guidelines to help you get started. If you have suggestions, please su
 
 ## Code of Conduct
 
-We have adopted a code of conduct from the Contributor Covenant. Contributors to this project are expected to adhere to this code. Please report unwanted behavior to [Project Maintainer](mailto:matthew.paulosky@outlook.com)
+We have adopted a code of conduct from the Contributor Covenant. Contributors to
+this project are expected to adhere to this code. Please report unwanted
+behavior to [Project Maintainer](mailto:matthew.paulosky@outlook.com)
 
 ## Quick Start
 
@@ -64,7 +68,12 @@ This project is a Blazor web application, orchestrated with .NET Aspire, for man
 
 ### Project Folder Structure
 
-This project is designed to be built and run primarily with Visual Studio, JetBrains Rider or Visual Studio Code. The folders are configured so that they will support editing and working in other editors and on other operating systems. We encourage you to develop with these other environments, because we would like to be able to support developers who use those tools as well. The folders are configured as follows:
+This project is designed to be built and run primarily with Visual Studio,
+JetBrains Rider or Visual Studio Code. The folders are configured so that they
+will support editing and working in other editors and on other operating
+systems. We encourage you to develop with these other environments, because we
+would like to be able to support developers who use those tools as well. The
+folders are configured as follows:
 
 ```bash
 docs/                                   -- Documentation, architecture, release blog posts
@@ -166,7 +175,10 @@ pwsh tests/Web.Tests.E2E/bin/Release/net10.0/playwright.ps1 install chromium
 (On a machine without PowerShell, install it first, or run the equivalent `playwright install chromium` via the
 Playwright CLI.) CI installs browsers automatically as part of the pipeline.
 
-Any code that is written to support a component or new functionality are required to be accompanied with unit tests at the time the pull request is submitted. Pull requests without unit tests will be delayed and asked for unit tests to prove their functionality.
+Any code that is written to support a component or new functionality are
+required to be accompanied with unit tests at the time the pull request is
+submitted. Pull requests without unit tests will be delayed and asked for unit
+tests to prove their functionality.
 
 ### Review Process
 
