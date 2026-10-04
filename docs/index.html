@@ -711,6 +711,12 @@
               </thead>
               <tbody>
                 <tr>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.49">v0.0.49</a></td>
+                  <td>2026-10-04</td>
+                  <td>chore: standardize on the repo-ci-baseline Template</td>
+                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-111-chore-standardize-on-the-repo-ci-baseline-template.md">Post</a></td>
+                </tr>
+                <tr>
                   <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.48">v0.0.48</a></td>
                   <td>2026-10-04</td>
                   <td>chore: Remove what&#x27;s left of squad</td>
@@ -764,12 +770,6 @@
                   <td>ci: Let README sync PRs run their required checks</td>
                   <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md">Post</a></td>
                 </tr>
-                <tr>
-                  <td><a href="https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.39">v0.0.39</a></td>
-                  <td>2026-09-28</td>
-                  <td>ci: Run the test suite on Dependabot PRs</td>
-                  <td><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-80-ci-run-the-test-suite-on-dependabot-prs.md">Post</a></td>
-                </tr>
               </tbody>
             </table>
           </div>
@@ -790,6 +790,14 @@
         <div id="posts-content">
           <!-- BLOGS_HTML_START -->
           <ul class="post-grid">
+            <li class="post-card">
+              <article>
+                <p class="post-meta"><time datetime="2026-10-04">4 Oct 2026</time><span class="post-tag">v0.0.49</span></p>
+                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-111-chore-standardize-on-the-repo-ci-baseline-template.md">chore: standardize on the repo-ci-baseline Template</a></h3>
+                <p class="post-excerpt">This PR brings TicketManager onto the shared CI, release and hook Baseline. It Applies the repo-ci-baseline Template from dotfiles, then adapts the repo to it.</p>
+                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/111">PR #111</a></p>
+              </article>
+            </li>
             <li class="post-card">
               <article>
                 <p class="post-meta"><time datetime="2026-10-04">4 Oct 2026</time><span class="post-tag">v0.0.48</span></p>
@@ -860,14 +868,6 @@
                 <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md">ci: Let README sync PRs run their required checks</a></h3>
                 <p class="post-excerpt">README sync PRs could never merge. sync-readme.yml committed with the skip-CI marker in the message, and GitHub skips every workflow when the head commit carries it. So main&#x27;s required checks never…</p>
                 <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/83">PR #83</a></p>
-              </article>
-            </li>
-            <li class="post-card">
-              <article>
-                <p class="post-meta"><time datetime="2026-09-28">28 Sep 2026</time><span class="post-tag">v0.0.39</span></p>
-                <h3 class="post-title"><a href="https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-80-ci-run-the-test-suite-on-dependabot-prs.md">ci: Run the test suite on Dependabot PRs</a></h3>
-                <p class="post-excerpt">ci.yml skipped test discovery, every test job, coverage and the report job whenever Dependabot opened the PR. GitHub counts a skipped check as passing, so the required &quot;All Tests Passed&quot; check went…</p>
-                <p class="post-source"><a href="https://github.com/mpaulosky/TicketManager/pull/80">PR #80</a></p>
               </article>
             </li>
           </ul>

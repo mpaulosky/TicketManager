@@ -80,16 +80,6 @@ rollout history of workflow-standard and major changes by release.
 
 ### Latest blogs (top 5, generated)
 
-<!-- BLOG_START -->
-| Date | Title | Tags |
-| ------ | ------- | ------ |
-| 2026-10-04 | [chore: Remove what's left of squad](docs/blogs/2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md) | release,automation |
-| 2026-10-02 | [fix(docs): Rebase README links in the docs/ copy](docs/blogs/2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md) | release,automation |
-| 2026-10-02 | [chore: drop context7 MCP server that embedded a literal API key](docs/blogs/2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md) | release,automation |
-| 2026-09-29 | [build: write a single-document pnpm lockfile](docs/blogs/2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md) | release,automation |
-| 2026-09-29 | [build: switch the web project from npm to pnpm](docs/blogs/2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md) | release,automation |
-<!-- BLOG_END -->
-
 ## Quick start
 
 ### For adopters (using this standard in another repo)
@@ -141,16 +131,28 @@ notes) and then:
   releases,
 - generates a release-review post and rebuilds
   [docs/blogs/README.md](docs/blogs/README.md),
-- updates this README latest-blog block (`<!-- BLOG_START -->
-| Date | Title | Tags |
-|------|-------|------|
-| 2026-10-04 | [chore: Remove what's left of squad](docs/blogs/2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md) | release,automation |
-| 2026-10-02 | [fix(docs): Rebase README links in the docs/ copy](docs/blogs/2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md) | release,automation |
-| 2026-10-02 | [chore: drop context7 MCP server that embedded a literal API key](docs/blogs/2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md) | release,automation |
-| 2026-09-29 | [build: write a single-document pnpm lockfile](docs/blogs/2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md) | release,automation |
-| 2026-09-29 | [build: switch the web project from npm to pnpm](docs/blogs/2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md) | release,automation |
-
-<!-- BLOG_END -->`)
+- updates this README latest-blog block (``)
   from `docs/blogs/README.md` (top 5 rows),
 
 - updates [docs/index.html](docs/index.html) latest blog links from the same rows.
+
+## Releases
+
+<!-- RELEASES_START -->
+
+| Version | Date | Title | Blog post |
+| ------- | ---- | ----- | --------- |
+| [v0.0.49](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.49) | 2026-10-04 | chore: standardize on the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-111-chore-standardize-on-the-repo-ci-baseline-template.md) |
+| [v0.0.48](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.48) | 2026-10-04 | chore: Remove what's left of squad | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md) |
+| [v0.0.47](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.47) | 2026-10-02 | fix(docs): Rebase README links in the docs/ copy | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md) |
+| [v0.0.46](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.46) | 2026-10-02 | chore: drop context7 MCP server that embedded a literal API key | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md) |
+| [v0.0.45](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.45) | 2026-09-29 | build: write a single-document pnpm lockfile | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md) |
+| [v0.0.44](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.44) | 2026-09-29 | build: switch the web project from npm to pnpm | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md) |
+| [v0.0.43](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.43) | 2026-09-28 | chore(web): Stop committing the generated app.css | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-92-chore-web-stop-committing-the-generated-app-css.md) |
+| [v0.0.42](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.42) | 2026-09-28 | chore(web): Regenerate app.css with Tailwind 4.3.3 | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-89-chore-web-regenerate-app-css-with-tailwind-4-3-3.md) |
+| [v0.0.41](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.41) | 2026-09-28 | ci: Remove the unused squad branch cleanup, keeping the auto-merge logic | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-86-ci-remove-the-unused-squad-branch-cleanup-keeping-the-auto-merge-logic.md) |
+| [v0.0.40](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.40) | 2026-09-28 | ci: Let README sync PRs run their required checks | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-83-ci-let-readme-sync-prs-run-their-required-checks.md) |
+
+<!-- RELEASES_END -->
+
+[All releases →](https://github.com/mpaulosky/TicketManager/releases)

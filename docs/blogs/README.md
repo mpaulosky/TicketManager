@@ -3,7 +3,8 @@
 This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
-|------|-------|------|
+| ---- | ----- | ---- |
+| 2026-10-04 | [chore: standardize on the repo-ci-baseline Template](2026-10-04-pr-111-chore-standardize-on-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-10-04 | [chore: Remove what's left of squad](2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md) | release,automation |
 | 2026-10-02 | [fix(docs): Rebase README links in the docs/ copy](2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md) | release,automation |
 | 2026-10-02 | [chore: drop context7 MCP server that embedded a literal API key](2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md) | release,automation |
@@ -33,6 +34,7 @@ This directory contains concise release-review posts for merged PR releases.
 | 2026-09-12 | [refactor(web): rename GitHub Projects dashboard to GitHub Repositories](2026-09-12-pr-40-refactor-web-rename-github-projects-dashboard-to-github-repositories.md) | release,automation |
 | 2026-09-12 | [refactor(web): deepen GitHubMetadataProvider with an injectable git seam](2026-09-12-pr-38-refactor-web-deepen-githubmetadataprovider-with-an-injectable-git-seam.md) | release,automation |
 | 2026-09-12 | [refactor(web): extract IGitHubRestClient to deduplicate GitHub API access](2026-09-12-pr-36-refactor-web-extract-igithubrestclient-to-deduplicate-github-api-access.md) | release,automation |
+| 2026-09-11 | [chore(docs): add trivial test doc to exercise release pipeline](2026-09-11-pr-24-chore-docs-add-trivial-test-doc-to-exercise-release-pipeline.md) | release,automation |
 | 2026-09-11 | [feat(web): add About page](2026-09-11-pr-34-feat-web-add-about-page.md) | release,automation |
 | 2026-09-11 | [docs(prompts): add README drift check to review-changes workflow](2026-09-11-pr-32-docs-prompts-add-readme-drift-check-to-review-changes-workflow.md) | release,automation |
 | 2026-09-11 | [fix(ci): surface release-docs failures instead of swallowing them](2026-09-11-pr-30-fix-ci-surface-release-docs-failures-instead-of-swallowing-them.md) | release,automation |
@@ -42,3 +44,12 @@ This directory contains concise release-review posts for merged PR releases.
 | 2026-09-11 | [feat(web): add GitHub Projects dashboard page](2026-09-11-pr-22-feat-web-add-github-projects-dashboard-page.md) | release,automation |
 | 2026-09-11 | [fix(web): correct app.css asset path and render mode](2026-09-11-pr-20-fix-web-correct-app-css-asset-path-and-render-mode.md) | release,automation |
 | 2026-09-11 | [feat(web): migrate Bootstrap layout to Tailwind and rebrand shell](2026-09-11-pr-19-feat-web-migrate-bootstrap-layout-to-tailwind-and-rebrand-shell.md) | release,automation |
+| 2026-09-09 | [feat(web): replace Bootstrap with Tailwind CSS](2026-09-09-pr-18-feat-web-replace-bootstrap-with-tailwind-css.md) | release,automation |
+| 2026-09-09 | [docs: add project landing page, blog archive, and README refresh](2026-09-09-pr-16-docs-add-project-landing-page-blog-archive-and-readme-refresh.md) | release,automation |
+| 2026-09-09 | [Scope the AppHost http launch-profile fix to AppHost.Tests only](2026-09-09-pr-14-scope-the-apphost-http-launch-profile-fix-to-apphost-tests-only.md) | release,automation |
+| 2026-09-09 | [Scaffold Web.Tests.E2E and fix CI's hardcoded artifact path](2026-09-09-pr-11-scaffold-web-tests-e2e-and-fix-ci-s-hardcoded-artifact-path.md) | release,automation |
+| 2026-09-09 | [Fix AppHost.Tests failing in CI: untrusted HTTPS dev cert](2026-09-09-pr-13-fix-apphost-tests-failing-in-ci-untrusted-https-dev-cert.md) | release,automation |
+| 2026-09-09 | [Scaffold Web.Tests.Unit, Web.Tests.Bunit, and Web.Tests.Integration](2026-09-09-pr-10-scaffold-web-tests-unit-web-tests-bunit-and-web-tests-integration.md) | release,automation |
+| 2026-09-09 | [Scaffold AppHost.Tests and Architecture.Tests](2026-09-09-pr-9-scaffold-apphost-tests-and-architecture-tests.md) | release,automation |
+| 2026-09-09 | [Scaffold src/ projects: AppHost, ServiceDefaults, Web](2026-09-09-pr-8-scaffold-src-projects-apphost-servicedefaults-web.md) | release,automation |
+| 2026-09-09 | [Add project README, central package management, and Squad agent config](2026-09-09-pr-1-add-project-readme-central-package-management-and-squad-agent-config.md) | release,automation |
