@@ -498,8 +498,6 @@ jobs:
 
           dispatch_failed=0
           for workflow in \
-            "squad-lint-markdown.yml" \
-            "squad-lint-yaml.yml" \
             "codeql-analysis.yml"; do
             echo "Dispatching validation workflow: $workflow -> $BRANCH"
             if ! gh workflow run "$workflow" --ref "$BRANCH"; then

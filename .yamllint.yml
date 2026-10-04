@@ -1,7 +1,5 @@
 ---
 extends: default
-ignore: |
-  .squad/
 rules:
   line-length:
     max: 200

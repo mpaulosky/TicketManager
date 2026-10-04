@@ -24,7 +24,7 @@ fi
 # The same exclusions as the Lint Markdown workflow's globs.
 mapfile -t MD_FILES < <(grep -E '\.md$' <<< "$CHANGED" \
   | grep -Ev '(^|/)(node_modules|bin|obj)/|^\.copilot/|^\.github/(agents|skills)/|^\.github/copilot-instructions\.md$' || true)
-mapfile -t YAML_FILES < <(grep -E '\.ya?ml$' <<< "$CHANGED" | grep -Ev '^\.squad/' || true)
+mapfile -t YAML_FILES < <(grep -E '\.ya?ml$' <<< "$CHANGED" || true)
 mapfile -t WORKFLOW_FILES < <(grep -E '^\.github/(workflows/[^/]+\.ya?ml|dependabot\.ya?ml|actionlint\.ya?ml|zizmor\.ya?ml)$' <<< "$CHANGED" || true)
 # Shell scripts, plus extensionless scripts and git hooks.
 mapfile -t SHELL_FILES < <(grep -E '\.sh$|^scripts/[^/.]+$|^\.github/hooks/((pre|post)-[a-z-]+|(prepare-)?commit-msg)$' <<< "$CHANGED" || true)
