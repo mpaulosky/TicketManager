@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 | ---- | ----- | ---- |
+| 2026-10-04 | [chore: Re-apply the repo-ci-baseline Template](2026-10-04-pr-113-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-10-04 | [chore: standardize on the repo-ci-baseline Template](2026-10-04-pr-111-chore-standardize-on-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-10-04 | [chore: Remove what's left of squad](2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md) | release,automation |
 | 2026-10-02 | [fix(docs): Rebase README links in the docs/ copy](2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md) | release,automation |
