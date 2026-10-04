@@ -1,6 +1,15 @@
 {
-  "generatedAt": "2026-10-02T16:10:55.639377Z",
+  "generatedAt": "2026-10-04T17:46:37.732601Z",
   "posts": [
+    {
+      "fileName": "2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md",
+      "title": "chore: Remove what's left of squad",
+      "summary": "Release notes seed for v0.0.48 from PR #108.",
+      "date": "2026-10-04",
+      "slug": "chore-remove-what-s-left-of-squad",
+      "sequence": 108,
+      "url": "https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md"
+    },
     {
       "fileName": "2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md",
       "title": "fix(docs): Rebase README links in the docs/ copy",
