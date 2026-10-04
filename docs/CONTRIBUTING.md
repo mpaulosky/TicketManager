@@ -29,16 +29,30 @@ We have adopted a code of conduct from the Contributor Covenant. Contributors to
 ## Quick Start
 
 1. Fork the repository and clone your fork.
-2. Create a branch from `develop` (use a descriptive name, e.g. `feature/123-add-search`).
-3. Make your changes, following the code style and guidelines below.
-4. Add or update tests as needed.
-5. Commit with clear messages (see below).
-6. Push your branch and open a Pull Request to `develop`.
-7. Ensure all checks pass and respond to review feedback.
+2. Run `git config core.hooksPath .github/hooks` once, so the repo's pre-commit and pre-push hooks run.
+3. Create a branch from `main`, named by the branch standard below.
+4. Make your changes, following the code style and guidelines below.
+5. Add or update tests as needed.
+6. Commit with clear messages (see below).
+7. Push your branch and open a Pull Request to `main`.
+8. Ensure all checks pass and respond to review feedback.
+
+### Branch names
+
+The pre-push hook refuses any other name:
+
+| Branch | Use |
+| --- | --- |
+| `feature/{issue}-{slug}` | New behaviour |
+| `fix/{issue}-{slug}` | A bug fix |
+| `hotfix/{issue}-{slug}` | An urgent fix |
+| `chore/{slug}` | Work without an issue |
+
+`{slug}` is lowercase letters and digits in words joined by `-`, such as `feature/123-add-search`.
 
 ## What should I know before I get started
 
-This project is a project to build a [describe your solution, e.g., web application] with [technology stack, e.g., .NET, Blazor, MongoDB].
+This project is a Blazor web application, orchestrated with .NET Aspire, for managing GitHub Issues through GitHub Projects. See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ### Code Style & Commit Messages
 
@@ -50,54 +64,43 @@ This project is a project to build a [describe your solution, e.g., web applicat
 
 ### Project Folder Structure
 
-This project is designed to be built and run primarily with [your preferred IDEs/editors]. The folders are configured so that they will support editing and working in other editors and on other operating systems. We encourage you to develop with these other environments, because we would like to be able to support developers who use those tools as well. The folders are configured as follows:
+This project is designed to be built and run primarily with Visual Studio, JetBrains Rider or Visual Studio Code. The folders are configured so that they will support editing and working in other editors and on other operating systems. We encourage you to develop with these other environments, because we would like to be able to support developers who use those tools as well. The folders are configured as follows:
 
 ```bash
-docs/                                   -- Documentation and guides
+docs/                                   -- Documentation, architecture, release blog posts
 
 src/                                    -- Source code
-  Api/                                  -- API project
-    Properties/                         -- API project properties
-    bin/                                -- Build output
-    obj/                                -- Build objects
-    appsettings.json                    -- API configuration
-    appsettings.Development.json        -- API development config
-  Shared/                               -- Domain models, interfaces, and shared code
-    bin/                                -- Build output
-    obj/                                -- Build objects
-  Web/                                  -- UI project
+  AppHost/                              -- .NET Aspire orchestration host
+  ServiceDefaults/                      -- Shared Aspire service defaults (telemetry, health, resilience)
+  Web/                                  -- Blazor UI project
     Components/                         -- Blazor components
       Layout/                           -- Layout components
       Pages/                            -- Page components
-      _Imports.razor                    -- Razor imports
-      App.razor                         -- App root component
-      Routes.razor                      -- Route definitions
-    Properties/                         -- Web project properties
+      Shared/                           -- Shared components
+    Security/                           -- Auth0 configuration helpers
+    Services/                           -- GitHub API clients and services
     wwwroot/                            -- Static web assets (CSS, JS, etc.)
-    bin/                                -- Build output
-    obj/                                -- Build objects
-    appsettings.json                    -- Web configuration
-    appsettings.Development.json        -- Web development config
+    package.json                        -- Tailwind CSS build (pnpm)
 
-tests/                                  -- Unit and Integration tests
-  Api.Tests.Integration/                -- API integration tests
-  Api.Tests.Unit/                       -- API unit tests
+tests/                                  -- Test projects
+  AppHost.Tests/                        -- Aspire AppHost tests
   Architecture.Tests/                   -- Architecture and design rules tests
-  Shared.Tests.Unit/                    -- Shared library unit tests
+  Web.Tests.Bunit/                      -- Blazor component tests
+  Web.Tests.E2E/                        -- Playwright end-to-end tests
   Web.Tests.Integration/                -- Web integration tests
-  Web.Tests.Unit/                       -- Web/UI unit tests
+  Web.Tests.Unit/                       -- Web unit tests
 
- [SolutionName].slnx                    -- Solution file
+TicketManager.slnx                      -- Solution file
 codecov.yml                             -- Code coverage configuration
 Directory.Packages.props                -- Central NuGet package management
 global.json                             -- Global SDK version
-LICENSE.txt                             -- License
+LICENSE                                 -- License
 README.md                               -- Project overview
 ```
 
 See the main [README.md](../README.md) for more details.
 
-All official versions of the project are built and delivered with [your CI/CD system, e.g., GitHub Actions] and linked in the main README.md and [releases tab in your repository].
+All official versions of the project are built and delivered with GitHub Actions and linked in the main README.md and the [Releases tab](https://github.com/mpaulosky/TicketManager/releases).
 
 ### Design Decisions
 
@@ -130,7 +133,7 @@ This means one of several types of contributions:
 
 ### Create an Issue
 
-Create a [New Issue Here]( [your repository issues URL] ).
+Create a [New Issue Here](https://github.com/mpaulosky/TicketManager/issues/new/choose).
 
 1. If you are reporting a `Bug` that you have found. Be sure to add the `Bug` label so that we can triage and track it.
 1. If you are reporting an `Enhancement` that you think would improve the project. Be sure to add the `Enhancement`
@@ -140,12 +143,12 @@ Please provide as much detail as possible, including steps to reproduce, expecte
 
 ### Respond to an Issue
 
-[Fork the Repository to your account]( [your repository fork URL] ).
+[Fork the Repository to your account](https://github.com/mpaulosky/TicketManager/fork).
 
-1. Create a new Branch from the develop branch with a reference to the existing Issue number.
+1. Create a new Branch from `main` with a reference to the existing Issue number (`feature/{issue}-{slug}` or `fix/{issue}-{slug}`).
 1. Work on the issue.
-1. Create Unit, Integration tests for any code that require them. We use [your test frameworks, e.g., xUnit, bUnit] to test our code and components.
-1. When you are done Create a Pull Request from your branch to the develop branch.
+1. Create Unit, Integration tests for any code that require them. We use xUnit v3, bUnit and Playwright to test our code and components.
+1. When you are done Create a Pull Request from your branch to `main`.
 1. Submit the Pull Request.
 
 **Note:** Pull requests without unit tests will be delayed until tests are added. All new features and bug fixes must
@@ -170,7 +173,7 @@ Any code that is written to support a component or new functionality are require
 1. All PRs are reviewed by maintainers and may require changes before merging.
 2. Automated checks (build, tests, lint) must pass before review.
 3. Be responsive to feedback and update your PR as needed.
-4. Once approved, your PR will be merged into `develop`.
+4. Once approved, your PR will be merged into `main`.
 
 ### Write code
 
