@@ -62,6 +62,7 @@
   YAML, workflow (actionlint, zizmor) and shell (shellcheck) files, builds the
   solution, and runs every test project.
 - Report exactly which validation commands ran and whether they passed. Do not claim tests or builds that were not run.
+- The branch, worktree, commit, PR title and PR description rules are in [docs/PROCESS.md](../docs/PROCESS.md).
 
 ## Documentation and automation
 
