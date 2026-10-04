@@ -18,8 +18,18 @@ set -euo pipefail
 job="${1:?usage: prepare.sh build|test [test-name]}"
 test_name="${2:-}"
 
+# Building src/Web runs the Tailwind CSS build through pnpm, and every test
+# project builds it too. Under CI the csproj skips its own `pnpm install`, so
+# install here. Corepack provides the pnpm version pinned by "packageManager"
+# in src/Web/package.json.
+install_pnpm_packages() {
+  export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+  corepack enable
+  (cd src/Web && pnpm install --frozen-lockfile)
+}
+
 case "$job" in
-  build) ;;
-  test) : "$test_name" ;;
+  build) install_pnpm_packages ;;
+  test) : "$test_name"; install_pnpm_packages ;;
   *) echo "prepare.sh: unknown job '$job'" >&2; exit 2 ;;
 esac
