@@ -18,7 +18,7 @@
 - Prefer existing abstractions, project patterns, and shared configuration over new infrastructure.
 - Keep public APIs and class members documented with XML `/// <summary>` comments.
 
-## .NET and C#
+## .NET and C #
 
 - Target .NET 10 and use the repository's configured latest C# language version.
 - Nullable reference types, analyzers, code style enforcement, and warnings-as-errors are enabled by `Directory.Build.props`.

@@ -10,7 +10,7 @@ Manage GitHub issues using the `@modelcontextprotocol/server-github` MCP server.
 ## Available MCP Tools
 
 | Tool | Purpose |
-|------|---------|
+| ------ | --------- |
 | `mcp__github__create_issue` | Create new issues |
 | `mcp__github__update_issue` | Update existing issues |
 | `mcp__github__get_issue` | Fetch issue details |
@@ -60,7 +60,7 @@ milestone: milestone number (integer)
 Always use the templates in [references/templates.md](references/templates.md). Choose based on issue type:
 
 | User Request | Template |
-|--------------|----------|
+| -------------- | ---------- |
 | Bug, error, broken, not working | Bug Report |
 | Feature, enhancement, add, new | Feature Request |
 | Task, chore, refactor, update | Task |
@@ -115,7 +115,7 @@ State values: `open`, `closed`
 Use these standard labels when applicable:
 
 | Label | Use For |
-|-------|---------|
+| ------- | --------- |
 | `bug` | Something isn't working |
 | `enhancement` | New feature or improvement |
 | `documentation` | Documentation updates |
