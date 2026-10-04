@@ -2,53 +2,41 @@
 
 ## Supported Versions
 
-The following versions of AINotesApp are currently supported with security updates:
+The following versions of TicketManager are currently supported with security updates:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
-| < 0.1   | :x:                |
+| 0.0.x   | :white_check_mark: |
 
-**Note:** This is an early-stage project. Security updates will be provided for the latest 0.1.x release. Once the project reaches 1.0, we will maintain security support for the current major version and one previous major version.
+**Note:** This is an early-stage project.
+Security updates will be provided for the latest release only.
+Once the project reaches 1.0, we will maintain security support for the current major version and one previous major version.
 
 ## Security Features
 
-AINotesApp implements the following security measures:
+TicketManager implements the following security measures:
 
 ### Authentication & Authorization
 
-- **ASP.NET Core Identity** - User authentication and password management
-- **Per-user data isolation** - Users can only access their own notes
-- **Authorization checks** - All CQRS handlers verify user ownership
-- **Secure password storage** - Passwords are hashed using Identity's default algorithms
+- **Auth0 sign-in (planned)** - Not implemented yet: the app registers no authentication handler or login endpoint, so every page is public.
+  The `Auth0:Domain`, `Auth0:ClientId` and `Auth0:ClientSecret` settings are read only to decide whether to redirect to `/Account/Login`
+- **GitHub token** - GitHub API access uses a token from configuration or user secrets, falling back to the `GITHUB_TOKEN` environment variable
 
 ### Data Protection
 
-- **SQL injection protection** - Entity Framework Core parameterized queries
+- **No local data store** - GitHub is the system of record; the app keeps no database or copy of issue data
 - **XSS protection** - Blazor's automatic HTML encoding
 - **CSRF protection** - Built-in anti-forgery tokens
-- **HTTPS enforcement** - Recommended for production deployments
-
-### API Security
-
-- **OpenAI API key protection** - Stored in user secrets or environment variables
-- **Input validation** - All commands validate user input
-- **Error handling** - Sensitive information not exposed in error messages
-
-### Database Security
-
-- **User isolation** - Database queries filtered by UserId
-- **Migration safety** - Code-first migrations with version control
-- **Connection string security** - Stored in appsettings.json (excluded from source control for production)
+- **HTTPS enforcement** - HTTPS redirection everywhere, and HSTS outside Development
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in AINotesApp, please report it responsibly:
+If you discover a security vulnerability in TicketManager, please report it responsibly:
 
 ### How to Report
 
 **Email:** <matthew.paulosky@outlook.com>  
-**Subject:** [SECURITY] AINotesApp Vulnerability Report
+**Subject:** [SECURITY] TicketManager Vulnerability Report
 
 **Please do NOT open a public GitHub issue for security vulnerabilities.**
 
@@ -83,13 +71,13 @@ When reporting a security vulnerability, please include:
 
 Security updates will be published:
 
-- In the [GitHub Security Advisories](https://github.com/mpaulosky/AINotesApp/security/advisories)
+- In the [GitHub Security Advisories](https://github.com/mpaulosky/TicketManager/security/advisories)
 - In the project [CHANGELOG.md](../CHANGELOG.md) (if one exists)
 - In release notes for security-related releases
 
 ## Security Best Practices for Contributors
 
-When contributing to AINotesApp, please follow these security guidelines:
+When contributing to TicketManager, please follow these security guidelines:
 
 ### Code Review
 
@@ -101,7 +89,6 @@ When contributing to AINotesApp, please follow these security guidelines:
 
 - Add security-focused tests for authorization checks
 - Test boundary conditions and edge cases
-- Verify user isolation in integration tests
 
 ### Dependencies
 
@@ -118,23 +105,21 @@ When contributing to AINotesApp, please follow these security guidelines:
 
 ### Data Validation
 
-- Validate all user input in CQRS handlers
-- Use parameterized queries (Entity Framework Core does this automatically)
+- Validate all user input before it is sent to the GitHub API
 - Sanitize data before rendering in Blazor components (Blazor does this automatically)
 
 ## Known Security Considerations
 
 ### Current Limitations
 
-- **OpenAI API calls** - Notes content is sent to OpenAI for AI features (embeddings, summaries, tags)
-- **Local development** - Uses SQL Server Express with Trusted Connection
+- **GitHub token scope** - The app can do whatever its GitHub token allows, so give it only the scopes it needs
 - **No rate limiting** - Consider implementing rate limiting for production
 - **No audit logging** - User actions are not currently logged
 
 ### Recommendations for Production
 
 1. **Use HTTPS** - Enable HTTPS and HSTS
-2. **Secure connection strings** - Use Azure Key Vault or similar
+2. **Secure secrets** - Keep the GitHub token and Auth0 client secret in Azure Key Vault or similar
 3. **Enable logging** - Add security event logging
 4. **Rate limiting** - Implement API rate limiting
 5. **Regular updates** - Keep .NET and dependencies updated
@@ -145,9 +130,8 @@ When contributing to AINotesApp, please follow these security guidelines:
 
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [ASP.NET Core Security Best Practices](https://learn.microsoft.com/aspnet/core/security/)
-- [Entity Framework Core Security](https://learn.microsoft.com/ef/core/miscellaneous/security)
 - [Blazor Security](https://learn.microsoft.com/aspnet/core/blazor/security/)
 
 ---
 
-Thank you for helping keep AINotesApp secure!
+Thank you for helping keep TicketManager secure!

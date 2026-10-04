@@ -1,0 +1,2 @@
+# Local development settings stay local; they are where secrets tend to go.
+appsettings.Development.json

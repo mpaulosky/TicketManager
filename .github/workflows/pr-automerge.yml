@@ -1,218 +1,352 @@
 ---
 name: PR Auto-Merge
 
-"on":
-  pull_request:
-    types: [opened, ready_for_review, reopened, edited, synchronize]
+# Squash-merges a same-repo PR into main once it is ready: required checks
+# pass, Copilot has reviewed the PR's head commit, and every review thread is
+# resolved. The main ruleset asks Copilot to review each push but doesn't
+# require its review, so merging on green alone would usually land a PR
+# before that review arrives. Each trigger below is a moment one of those
+# conditions can become true; the job re-checks all of them every time.
+#
+# Copilot re-reviews every push and can find something new each time, so a
+# PR could chase its reviews forever. Once Copilot has reviewed
+# COPILOT_REVIEW_CAP distinct non-merge commits, the merge stops waiting for
+# its review of the head and stops counting its unresolved threads. Merges
+# from main don't count: the ruleset keeps branches up to date, so they would
+# use up the cap without a single fix. Threads anyone else opens still hold
+# the merge.
+#
+# A PR labelled sandcastle:needs-human (Sandcastle's hand-back to a person)
+# never merges while it carries the label, or when someone other than the
+# repository owner last removed it. A repo that never uses the label is
+# unaffected.
+#
+# zizmor flags pull_request_target and workflow_run as dangerous because they
+# run with write access on PR events. That is safe here: neither path checks
+# out or executes PR code, as the comments below explain.
+"on":  # zizmor: ignore[dangerous-triggers]
+  # pull_request_target, not pull_request: it runs this file as it is on
+  # main, so a PR can't edit the script that decides whether it merges or
+  # reach the PAT. The job never checks out PR code.
+  pull_request_target:
+    # unlabeled: the owner removing sandcastle:needs-human can make a PR ready.
+    types: [opened, ready_for_review, reopened, edited, synchronize, unlabeled]
     branches: [main]
-  status:
-  check_suite:
+  # GitHub sends no check_suite events for suites created by Actions, and
+  # every required check comes from one of these workflows, so their
+  # completion is the signal that the checks may have gone green.
+  workflow_run:
+    workflows: ["Build and Test Suite", "Lint Markdown", "Lint YAML", "Lint Actions", "CodeQL"]
     types: [completed]
+  # Resolving a review thread has no Actions trigger, and pull_request_review
+  # would run the PR's own copy of this file with write access, so a PR whose
+  # last blocker was a review or an open thread is picked up by this sweep.
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
 
 permissions:
   contents: write
+  # issues: read lets GITHUB_TOKEN list a PR's label events. The script reads
+  # them with GITHUB_TOKEN, not the PAT, so the PAT needs no Issues access.
+  issues: read
   pull-requests: write
 
 jobs:
-  enable-auto-merge:
-    name: Enable auto-merge for same-repo PRs
+  merge-when-ready:
+    name: Merge same-repo PRs when ready
+    # A manual sweep can merge every ready PR, so it runs only from main.
+    if: ${{ github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     steps:
-      # Only for .github/scripts/automerge-decision.mjs, the tested decision logic.
-      - name: Checkout decision module
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - name: Squash-merge when ready
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          HAS_RELEASE_PR_PAT: ${{ secrets.RELEASE_PR_PAT != '' }}
+          # Scoped by the permissions above; used only to read label events.
+          EVENTS_TOKEN: ${{ github.token }}
         with:
-          persist-credentials: false
-          sparse-checkout: .github/scripts
-
-      - name: Enable auto-merge (squash)
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9
-        with:
-          # A merge made with GITHUB_TOKEN is attributed to github-actions,
-          # and GitHub starts no workflows from it: the release workflow, its
-          # release-blog PR and "Closes #N" all silently skip. Arming and
-          # merging with the PAT attributes the merge to a real user.
+          # A merge made with GITHUB_TOKEN starts no workflows, so release.yml
+          # (on: pull_request closed) would never run for it. Merge with the
+          # PAT when it's set, the same fallback the release workflow uses.
+          # Every trigger runs main's copy of this file, never a PR's.
           github-token: ${{ secrets.RELEASE_PR_PAT || secrets.GITHUB_TOKEN }}
           script: |
-            const { decideAutoMerge } = await import(
-              `${process.env.GITHUB_WORKSPACE}/.github/scripts/automerge-decision.mjs`
-            );
             const { owner, repo } = context.repo;
-            const pullRequestPayload = context.payload.pull_request;
-            const statusPayload = context.payload.status;
-            const checkSuitePayload = context.payload.check_suite;
+            // github authenticates with the PAT when it's set, which may lack
+            // Issues access; label events are read with GITHUB_TOKEN instead.
+            const eventsClient = getOctokit(process.env.EVENTS_TOKEN);
 
-            let pullNumber;
-            if (pullRequestPayload) {
-              pullNumber = pullRequestPayload.number;
-            } else if (statusPayload) {
-              const associated = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                owner,
-                repo,
-                commit_sha: statusPayload.sha
-              });
+            // Sandcastle adds this label when it gives up on a PR and hands it
+            // back to a person, who removes it once the PR may merge again.
+            const NEEDS_HUMAN = "sandcastle:needs-human";
 
-              const matching = associated.data.find((pr) => {
-                return (
-                  pr.state === "open" &&
-                  !pr.merged_at &&
-                  !pr.draft &&
-                  pr.head?.repo?.full_name === `${owner}/${repo}`
-                );
-              });
+            // Review rounds after which Copilot no longer holds the merge.
+            const COPILOT_REVIEW_CAP = 3;
+            // GraphQL reports the bot's login without the "[bot]" suffix.
+            const COPILOT_LOGIN = "copilot-pull-request-reviewer";
 
-              if (!matching) {
-                core.info(
-                  `Skipping status update for ${statusPayload.sha}: no open PR is associated.`
-                );
-                return;
-              }
-
-              pullNumber = matching.number;
-            } else if (checkSuitePayload) {
-              const associated = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                owner,
-                repo,
-                commit_sha: checkSuitePayload.head_sha
-              });
-
-              const matching = associated.data.find((pr) => {
-                return (
-                  pr.state === "open" &&
-                  !pr.merged_at &&
-                  !pr.draft &&
-                  pr.head?.repo?.full_name === `${owner}/${repo}`
-                );
-              });
-
-              if (!matching) {
-                core.info(
-                  `Skipping check suite update for ${checkSuitePayload.head_sha}: no open PR is associated.`
-                );
-                return;
-              }
-
-              pullNumber = matching.number;
-            }
-
-            if (!pullNumber) {
-              core.info("No pull request number was resolved for this event.");
-              return;
-            }
-
-            const status = await github.graphql(
-              `query AutoMergeStatus(
-                 $owner: String!,
-                 $repo: String!,
-                 $number: Int!
-               ) {
-                 repository(owner: $owner, name: $repo) {
-                   pullRequest(number: $number) {
-                     id
-                     number
-                     state
-                     merged
-                     isDraft
-                     isCrossRepository
-                     headRefOid
-                     mergeable
-                     mergeStateStatus
-                     autoMergeRequest {
-                       enabledAt
-                     }
-                   }
-                 }
-               }`,
-              { owner, repo, number: pullNumber }
-            );
-
-            const currentPr = status.repository.pullRequest;
-            if (!currentPr) {
-              core.info(`Skipping PR #${pullNumber}: not found.`);
-              return;
-            }
-
-            // Arm auto-merge as early as possible and let the main ruleset's
-            // required checks decide when the PR is ready (see #239).
-            const decision = decideAutoMerge({
-              state: currentPr.state,
-              merged: currentPr.merged,
-              isDraft: currentPr.isDraft,
-              isSameRepo: !currentPr.isCrossRepository,
-              mergeable: currentPr.mergeable,
-              mergeStateStatus: currentPr.mergeStateStatus,
-              autoMergeEnabled: currentPr.autoMergeRequest !== null,
-            });
-
-            // Merges only the head commit that was checked, never a newer one.
-            const mergeNow = async () => {
-              await github.rest.pulls.merge({
-                owner,
-                repo,
-                pull_number: pullNumber,
-                merge_method: "squash",
-                sha: currentPr.headRefOid,
-              });
-              core.info(`Merged PR #${pullNumber} (it already met every requirement).`);
-            };
-
-            if (decision.action === "skip") {
-              core.info(`Skipping PR #${pullNumber}: ${decision.reason}.`);
-              return;
-            }
-
-            if (decision.action === "merge") {
-              await mergeNow();
-              return;
-            }
-
-            try {
-              await github.graphql(
-                `mutation EnableAutoMerge($pullRequestId: ID!) {
-                   enablePullRequestAutoMerge(input: {
-                     pullRequestId: $pullRequestId,
-                     mergeMethod: SQUASH
-                   }) {
-                     pullRequest {
-                       number
+            async function getPullRequestStatus(pullNumber) {
+              const status = await github.graphql(
+                `query MergeReadiness(
+                   $owner: String!,
+                   $repo: String!,
+                   $number: Int!
+                 ) {
+                   repository(owner: $owner, name: $repo) {
+                     pullRequest(number: $number) {
+                       state
+                       isDraft
+                       isCrossRepository
+                       baseRefName
+                       headRefOid
+                       mergeable
+                       mergeStateStatus
+                       autoMergeRequest {
+                         enabledAt
+                       }
+                       # Filtering by author keeps other reviews (each thread
+                       # reply counts as one) from pushing Copilot's off the
+                       # page. The filter takes the "[bot]" login; the nodes
+                       # themselves report it without the suffix. 100 is the
+                       # page limit; the cap would only be undercounted after
+                       # about 98 re-reviews of the same two commits.
+                       copilotReviews: reviews(last: 100, author: "copilot-pull-request-reviewer[bot]") {
+                         nodes {
+                           commit {
+                             oid
+                             parents { totalCount }
+                           }
+                         }
+                       }
+                       # The first comment's author is who opened the thread.
+                       reviewThreads(first: 100) {
+                         totalCount
+                         nodes {
+                           isResolved
+                           comments(first: 1) {
+                             nodes { author { login } }
+                           }
+                         }
+                       }
+                       labels(first: 100) {
+                         totalCount
+                         nodes { name }
+                       }
                      }
                    }
                  }`,
-                { pullRequestId: currentPr.id }
+                { owner, repo, number: pullNumber }
               );
-            } catch (error) {
-              const messages = Array.isArray(error?.errors)
-                ? error.errors.map((entry) => entry?.message || "")
-                : [];
-              const combinedMessage = [error?.message || "", ...messages]
-                .join("\n")
-                .toLowerCase();
 
-              // Required checks passed between the query and the mutation, so
-              // GitHub won't arm auto-merge; merge directly instead.
-              if (
-                combinedMessage.includes("clean status") ||
-                combinedMessage.includes("unstable status")
-              ) {
-                await mergeNow();
+              return status.repository.pullRequest;
+            }
+
+            async function isHandBackReadyToMerge(pullNumber, pr) {
+              if (!pr) {
+                core.info(`Skipping PR #${pullNumber}: it no longer exists.`);
+                return false;
+              }
+
+              // Past one page of labels the hand-back label could be missed,
+              // so leave the merge to a person.
+              if (pr.labels.totalCount > pr.labels.nodes.length) {
+                core.info(`Skipping PR #${pullNumber}: more labels than one page; merge it by hand.`);
+                return false;
+              }
+
+              if (pr.labels.nodes.some((label) => label.name === NEEDS_HUMAN)) {
+                core.info(`Skipping PR #${pullNumber}: labelled ${NEEDS_HUMAN}, so it waits for a person to remove the label.`);
+                return false;
+              }
+
+              // Someone with only triage access can remove the label too, and
+              // would get a merge in before Sandcastle puts it back. Trust a
+              // removal only from the repository owner. Events come oldest
+              // first, and every page is read, so the last change to this
+              // label is the latest one.
+              const events = await eventsClient.paginate(eventsClient.rest.issues.listEvents, {
+                owner,
+                repo,
+                issue_number: pullNumber,
+                per_page: 100
+              });
+              const lastChange = events.findLast((event) => {
+                return (event.event === "labeled" || event.event === "unlabeled") && event.label?.name === NEEDS_HUMAN;
+              });
+              // Added after the snapshot was taken: it holds the merge too.
+              if (lastChange?.event === "labeled") {
+                core.info(`Skipping PR #${pullNumber}: ${NEEDS_HUMAN} was just added, so it waits for a person to remove the label.`);
+                return false;
+              }
+              const remover = lastChange?.actor?.login;
+              if (lastChange && remover !== owner) {
+                core.info(
+                  `Skipping PR #${pullNumber}: ${NEEDS_HUMAN} was last removed by ` +
+                  `@${remover ?? "unknown"}, not the repository owner @${owner}; ` +
+                  "the owner has to re-add and remove it."
+                );
+                return false;
+              }
+
+              return true;
+            }
+
+            function isOpenSameRepoPr(pullNumber, pr) {
+              if (!pr || pr.state !== "OPEN" || pr.isDraft || pr.isCrossRepository || pr.baseRefName !== "main") {
+                core.info(`Skipping PR #${pullNumber}: not an open, non-draft, same-repo PR into main.`);
+                return false;
+              }
+              return true;
+            }
+
+            async function mergeIfReady(pullNumber) {
+              let pr = await getPullRequestStatus(pullNumber);
+              if (!isOpenSameRepoPr(pullNumber, pr) || !(await isHandBackReadyToMerge(pullNumber, pr))) {
                 return;
               }
 
-              // Not armable yet (e.g. mergeability still being computed); a
-              // later status or check_suite event will try again.
-              if (
-                combinedMessage.includes("already merged") ||
-                combinedMessage.includes("already enabled") ||
-                combinedMessage.includes("mergeable") ||
-                combinedMessage.includes("not mergeable")
-              ) {
-                core.warning(
-                  `Skipping PR #${pullNumber}: ${error.message || "Auto-merge is not ready yet."}`
+              // Reading the label events takes a while, so take a fresh
+              // snapshot and check the hand-back state again on it. Every
+              // check below reads this snapshot, so anything that changed
+              // meanwhile (a new label or thread, a new head, a failing
+              // check) counts, and the merge is pinned to its head.
+              pr = await getPullRequestStatus(pullNumber);
+              if (!isOpenSameRepoPr(pullNumber, pr) || !(await isHandBackReadyToMerge(pullNumber, pr))) {
+                return;
+              }
+
+              // release.yml and backfill-blog-posts.yml turn on auto-merge for
+              // their own docs PRs; GitHub finishes those, so leave them alone.
+              if (pr.autoMergeRequest) {
+                core.info(`Skipping PR #${pullNumber}: auto-merge is already enabled.`);
+                return;
+              }
+
+              // Copilot re-reviews every push, including merge-from-main
+              // commits, so its review has to cover the exact head, until it
+              // has reviewed COPILOT_REVIEW_CAP different non-merge commits.
+              const reviewed = pr.copilotReviews.nodes.map((review) => review.commit).filter(Boolean);
+              const reviewedCommits = new Set(reviewed.map((commit) => commit.oid));
+              const reviewRounds = new Set(
+                reviewed.filter((commit) => commit.parents?.totalCount === 1).map((commit) => commit.oid)
+              );
+              const capReached = reviewRounds.size >= COPILOT_REVIEW_CAP;
+              if (!capReached && !reviewedCommits.has(pr.headRefOid)) {
+                core.info(`Waiting on PR #${pullNumber}: no Copilot review of ${pr.headRefOid} yet.`);
+                return;
+              }
+
+              // Only the first 100 threads are fetched; past that, leave the
+              // merge to a person rather than miss an unresolved one.
+              if (pr.reviewThreads.totalCount > pr.reviewThreads.nodes.length) {
+                core.info(`Skipping PR #${pullNumber}: more review threads than one page; merge it by hand.`);
+                return;
+              }
+
+              // A thread with no known author (a deleted account) counts as a
+              // person's, so it keeps holding the merge.
+              const unresolved = pr.reviewThreads.nodes.filter((thread) => !thread.isResolved);
+              const unresolvedCopilot = unresolved.filter((thread) => {
+                return thread.comments?.nodes[0]?.author?.login === COPILOT_LOGIN;
+              }).length;
+              const blocking = capReached ? unresolved.length - unresolvedCopilot : unresolved.length;
+              if (blocking > 0) {
+                core.info(`Waiting on PR #${pullNumber}: ${blocking} unresolved review thread(s).`);
+                return;
+              }
+
+              // CLEAN means required checks passed and the branch is up to
+              // date with main. Anything else (pending or failing checks,
+              // BEHIND, conflicts, or UNKNOWN while GitHub computes it) waits
+              // for a later event.
+              if (pr.mergeable !== "MERGEABLE" || pr.mergeStateStatus !== "CLEAN") {
+                core.info(
+                  `Waiting on PR #${pullNumber}: mergeable=${String(pr.mergeable)} ` +
+                  `mergeStateStatus=${pr.mergeStateStatus ?? "unknown"}.`
                 );
                 return;
               }
 
-              throw error;
+              // Log only when the cap changed the outcome: without it, this PR
+              // would still be waiting on Copilot.
+              const headReviewed = reviewedCommits.has(pr.headRefOid);
+              if (capReached && (!headReviewed || unresolvedCopilot > 0)) {
+                const bypassed = [];
+                if (!headReviewed) {
+                  bypassed.push(`without a Copilot review of ${pr.headRefOid}`);
+                }
+                if (unresolvedCopilot > 0) {
+                  bypassed.push(`past ${unresolvedCopilot} unresolved Copilot thread(s)`);
+                }
+                core.info(
+                  `Copilot review cap (${COPILOT_REVIEW_CAP}) reached on PR #${pullNumber}: merging ` +
+                  `${bypassed.join(" and ")}.`
+                );
+              }
+
+              if (process.env.HAS_RELEASE_PR_PAT !== "true") {
+                core.warning(
+                  "RELEASE_PR_PAT is not set, so this merge uses GITHUB_TOKEN and release.yml will not run for it."
+                );
+              }
+
+              try {
+                // sha pins the merge to the commit that was checked above, so
+                // a push that lands in between makes the merge fail instead of
+                // merging unreviewed code.
+                await github.rest.pulls.merge({
+                  owner,
+                  repo,
+                  pull_number: pullNumber,
+                  sha: pr.headRefOid,
+                  merge_method: "squash"
+                });
+              } catch (error) {
+                // 405: not mergeable after all (e.g. a parallel run just
+                // merged it); 409: the head moved. A later event re-evaluates.
+                if (error.status === 405 || error.status === 409) {
+                  core.warning(`Not merging PR #${pullNumber}: ${error.message}`);
+                  return;
+                }
+                throw error;
+              }
+
+              core.info(`Squash-merged PR #${pullNumber} at ${pr.headRefOid}.`);
             }
 
-            core.info(`Auto-merge armed on PR #${pullNumber} (${decision.reason}).`);
+            // pull_request_target events carry the PR;
+            // workflow_run carries only a commit; schedule and
+            // workflow_dispatch sweep every open PR into main.
+            let pullNumbers = [];
+            const workflowRun = context.payload.workflow_run;
+            if (context.payload.pull_request) {
+              pullNumbers = [context.payload.pull_request.number];
+            } else if (workflowRun) {
+              const associated = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                owner,
+                repo,
+                commit_sha: workflowRun.head_sha
+              });
+              pullNumbers = associated.data
+                .filter((pr) => pr.state === "open" && pr.head?.sha === workflowRun.head_sha)
+                .map((pr) => pr.number);
+            } else {
+              const open = await github.paginate(github.rest.pulls.list, {
+                owner,
+                repo,
+                state: "open",
+                base: "main",
+                per_page: 100
+              });
+              pullNumbers = open.map((pr) => pr.number);
+            }
+
+            if (pullNumbers.length === 0) {
+              core.info("No open pull request to evaluate for this event.");
+              return;
+            }
+
+            for (const pullNumber of pullNumbers) {
+              await mergeIfReady(pullNumber);
+            }
