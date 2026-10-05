@@ -142,6 +142,7 @@ notes) and then:
 
 | Version | Date | Title | Blog post |
 | ------- | ---- | ----- | --------- |
+| [v0.0.55](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.55) | 2026-10-05 | chore: Re-apply the repo-ci-baseline Template for the release-post fixes | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-124-chore-re-apply-the-repo-ci-baseline-template-for-the-release-post-fixes.md) |
 | [v0.0.54](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.54) | 2026-10-05 | chore: Use pnpm instead of npx in the gate and hooks | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-121-chore-use-pnpm-instead-of-npx-in-the-gate-and-hooks.md) |
 | [v0.0.53](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.53) | 2026-10-05 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-120-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.52](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.52) | 2026-10-05 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-118-chore-re-apply-the-repo-ci-baseline-template.md) |
@@ -151,7 +152,6 @@ notes) and then:
 | [v0.0.48](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.48) | 2026-10-04 | chore: Remove what's left of squad | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md) |
 | [v0.0.47](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.47) | 2026-10-02 | fix(docs): Rebase README links in the docs/ copy | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-02-pr-104-fix-docs-rebase-readme-links-in-the-docs-copy.md) |
 | [v0.0.46](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.46) | 2026-10-02 | chore: drop context7 MCP server that embedded a literal API key | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-02-pr-101-chore-drop-context7-mcp-server-that-embedded-a-literal-api-key.md) |
-| [v0.0.45](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.45) | 2026-09-29 | build: write a single-document pnpm lockfile | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md) |
 
 <!-- RELEASES_END -->
 
