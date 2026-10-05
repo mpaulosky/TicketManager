@@ -142,6 +142,7 @@ notes) and then:
 
 | Version | Date | Title | Blog post |
 | ------- | ---- | ----- | --------- |
+| [v0.0.52](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.52) | 2026-10-05 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-118-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.51](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.51) | 2026-10-05 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-116-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.50](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.50) | 2026-10-04 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-113-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.49](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.49) | 2026-10-04 | chore: standardize on the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-111-chore-standardize-on-the-repo-ci-baseline-template.md) |
@@ -151,7 +152,6 @@ notes) and then:
 | [v0.0.45](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.45) | 2026-09-29 | build: write a single-document pnpm lockfile | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-29-pr-98-build-write-a-single-document-pnpm-lockfile.md) |
 | [v0.0.44](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.44) | 2026-09-29 | build: switch the web project from npm to pnpm | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-29-pr-95-build-switch-the-web-project-from-npm-to-pnpm.md) |
 | [v0.0.43](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.43) | 2026-09-28 | chore(web): Stop committing the generated app.css | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-92-chore-web-stop-committing-the-generated-app-css.md) |
-| [v0.0.42](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.42) | 2026-09-28 | chore(web): Regenerate app.css with Tailwind 4.3.3 | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-09-28-pr-89-chore-web-regenerate-app-css-with-tailwind-4-3-3.md) |
 
 <!-- RELEASES_END -->
 
