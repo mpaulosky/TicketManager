@@ -142,6 +142,7 @@ notes) and then:
 
 | Version | Date | Title | Blog post |
 | ------- | ---- | ----- | --------- |
+| [v0.0.58](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.58) | 2026-10-07 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-07-pr-131-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.57](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.57) | 2026-10-07 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-07-pr-129-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.56](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.56) | 2026-10-07 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-07-pr-126-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.55](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.55) | 2026-10-05 | chore: Re-apply the repo-ci-baseline Template for the release-post fixes | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-124-chore-re-apply-the-repo-ci-baseline-template-for-the-release-post-fixes.md) |
@@ -151,7 +152,6 @@ notes) and then:
 | [v0.0.51](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.51) | 2026-10-05 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-116-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.50](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.50) | 2026-10-04 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-113-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.49](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.49) | 2026-10-04 | chore: standardize on the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-111-chore-standardize-on-the-repo-ci-baseline-template.md) |
-| [v0.0.48](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.48) | 2026-10-04 | chore: Remove what's left of squad | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-04-pr-108-chore-remove-what-s-left-of-squad.md) |
 
 <!-- RELEASES_END -->
 
