@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 | ---- | ----- | ---- |
+| 2026-10-07 | [chore: Re-apply the repo-ci-baseline Template](2026-10-07-pr-126-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-10-05 | [chore: Re-apply the repo-ci-baseline Template for the release-post fixes](2026-10-05-pr-124-chore-re-apply-the-repo-ci-baseline-template-for-the-release-post-fixes.md) | release,automation |
 | 2026-10-05 | [chore: Use pnpm instead of npx in the gate and hooks](2026-10-05-pr-121-chore-use-pnpm-instead-of-npx-in-the-gate-and-hooks.md) | release,automation |
 | 2026-10-05 | [chore: Re-apply the repo-ci-baseline Template](2026-10-05-pr-120-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
