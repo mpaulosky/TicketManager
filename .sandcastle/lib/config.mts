@@ -19,6 +19,10 @@ export const CHECK_COMMENT_LINES = 100;
 // merged in before it's published. The host fetches it.
 export const BASE_BRANCH = "origin/main";
 
+// The planner's own branch. It reads and commits nothing, but runs in a
+// worktree on this branch so it never touches the checkout Sandcastle runs in.
+export const PLANNER_BRANCH = "chore/sandcastle-planner";
+
 // Hooks run inside the sandbox before the agent starts. pnpm, through
 // Corepack at the version package.json's "packageManager" pins, installs
 // exactly what pnpm-lock.yaml records, and fails rather than rewrite it. The

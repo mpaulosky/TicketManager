@@ -18,7 +18,9 @@
 //                     concurrently.
 //
 // Nothing is merged into a local branch and no issue is closed here: each
-// change reaches main through its PR and the checks in docs/PROCESS.md.
+// change reaches main through its PR and the checks in docs/PROCESS.md. No
+// agent runs in this checkout: each works in a worktree of its own, so
+// Sandcastle can be started from the primary checkout or any worktree.
 //
 // The sandbox gets no GitHub token. Agents read the issue from their prompt,
 // and every GitHub write (comments, pushes, PRs) is made by the host, in code.
@@ -34,7 +36,7 @@ import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { fetchMain, prepareBranches, withoutOpenPullRequests } from "./lib/branches.mts";
 import { buildIssue } from "./lib/build.mts";
-import { MAX_ITERATIONS, MODEL } from "./lib/config.mts";
+import { BASE_BRANCH, MAX_ITERATIONS, MODEL, PLANNER_BRANCH } from "./lib/config.mts";
 import { commentOnIssue, listSandcastleIssues, openPullRequestBranches, repoName } from "./lib/github.mts";
 import { picksFrom, planSchema } from "./lib/plan.mts";
 import { plannerPromptArgs } from "./lib/prompts.mts";
@@ -72,6 +74,9 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 
 	const plan = await sandcastle.run({
 		sandbox: docker(),
+		// A worktree of its own, not docker()'s default "head" strategy, which
+		// would mount this checkout and let the planner write to it.
+		branchStrategy: { type: "branch", branch: PLANNER_BRANCH, baseBranch: BASE_BRANCH },
 		name: "planner",
 		// Structured output requires maxIterations: 1.
 		maxIterations: 1,
