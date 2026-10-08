@@ -48,7 +48,9 @@ If you find improvements to make:
 
 1. Make the changes directly on this branch
 2. Run `scripts/gate.sh` (the lints, the build and the tests) to ensure nothing is broken
-3. Commit describing the refinements
+3. Commit describing the refinements, as `<type>(<scope>): <Summary>` per
+   `.github/instructions/git-commit-instructions.md`, with `Refs #<issue>` as the body's last line, where
+   `<issue>` is the number in the branch name
 
 If the code is already clean and well-structured, do nothing.
 

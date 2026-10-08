@@ -12,7 +12,9 @@ For each branch:
    works
 4. If tests fail, fix the issues before proceeding to the next branch
 
-After all branches are merged, make a single commit summarizing the merge.
+After all branches are merged, make a single commit summarizing the merge. Its message follows
+`.github/instructions/git-commit-instructions.md`: `<type>(<scope>): <Summary>`, imperative, capitalized, no closing
+period, with a `Refs #<ID>` line in the body for each merged issue. Never use `--no-verify`.
 
 # CLOSE ISSUES
 

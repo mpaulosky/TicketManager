@@ -40,15 +40,16 @@ pre-push hook and CI run: it builds the solution with `dotnet build` and runs ev
 
 # COMMIT
 
-Make a git commit. The commit message must:
+Make a git commit that follows `.github/instructions/git-commit-instructions.md`:
 
-1. Start with `RALPH:` prefix
-2. Include task completed + PRD reference
-3. Key decisions made
-4. Files changed
-5. Blockers or notes for next iteration
+1. A subject line `<type>(<scope>): <Summary>`, such as `fix(Web): Return an empty list when a ticket has no comments`:
+   imperative, capitalized, no closing period, 72 characters or fewer. The scope is the affected project or folder
+   (`Web`, `AppHost`, `Tests`, `ci`, `docs`)
+2. A body, wrapped at 72 characters, that gives the task completed and its PRD reference, the key decisions made, the
+   files changed, and any blockers or notes for the next iteration
+3. `Refs #{{TASK_ID}}` as the body's last line
 
-Keep it concise.
+Keep it concise. Never use `--no-verify`.
 
 # THE ISSUE
 
