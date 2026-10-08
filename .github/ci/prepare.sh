@@ -29,21 +29,33 @@ install_pnpm_packages() {
   (cd src/Web && pnpm install --frozen-lockfile && touch node_modules/.install-stamp)
 }
 
+# The tests rely on Node stripping the types from .mts files without a flag
+# (Node 22.18 or later) and on globs in `node --test` (Node 21). Fail with a
+# clear message on an older Node instead of a syntax error.
+require_node_22_18() {
+  if ! node -e 'const [a, b] = process.versions.node.split(".").map(Number); process.exit(a > 22 || (a === 22 && b >= 18) ? 0 : 1)'; then
+    echo "The Sandcastle tests need Node 22.18 or later; found $(node --version)." >&2
+    return 1
+  fi
+}
+
 # Sandcastle's orchestration code (.sandcastle/): type-check it and run its
-# tests. On a PR, only when it changes .sandcastle/ or the root package files,
-# as the local gate's .github/ci/gate-checks.sh does. On any other run (a push
-# to main, a manual run) or without an origin/main to compare with, always:
-# there HEAD is main, so the diff would always be empty. The tests run on the
-# runner's own Node, which strips the types itself.
+# tests. On a PR, only when it changes the paths the tests read (.sandcastle/,
+# scripts/check-branch-name.sh) or the root package files, as the local gate's
+# .github/ci/gate-checks.sh does (keep the two lists in step). On any other
+# run (a push to main, a manual run) or without an origin/main to compare
+# with, always: there HEAD is main, so the diff would always be empty. The
+# tests run on the runner's own Node, which strips the types itself.
 sandcastle_tests() {
   local base
   if [[ "${GITHUB_EVENT_NAME-}" == pull_request ]] \
     && base="$(git merge-base HEAD origin/main 2>/dev/null)" \
-    && git diff --quiet --no-renames "$base" HEAD -- .sandcastle package.json pnpm-lock.yaml pnpm-workspace.yaml; then
+    && git diff --quiet --no-renames "$base" HEAD -- .sandcastle package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc scripts/check-branch-name.sh; then
     echo "No Sandcastle or root package changes to test."
     return
   fi
   echo "Sandcastle type check and tests (node $(node --version))"
+  require_node_22_18
   pnpm install --frozen-lockfile
   pnpm run test:sandcastle
 }
