@@ -30,12 +30,15 @@ install_pnpm_packages() {
 }
 
 # Sandcastle's orchestration code (.sandcastle/): type-check it and run its
-# tests when the PR changes it or the root package files, as the local gate's
-# .github/ci/gate-checks.sh does. Without an origin/main to compare with, run
-# them. The tests run on the runner's own Node, which strips the types itself.
+# tests. On a PR, only when it changes .sandcastle/ or the root package files,
+# as the local gate's .github/ci/gate-checks.sh does. On any other run (a push
+# to main, a manual run) or without an origin/main to compare with, always:
+# there HEAD is main, so the diff would always be empty. The tests run on the
+# runner's own Node, which strips the types itself.
 sandcastle_tests() {
   local base
-  if base="$(git merge-base HEAD origin/main 2>/dev/null)" \
+  if [[ "${GITHUB_EVENT_NAME-}" == pull_request ]] \
+    && base="$(git merge-base HEAD origin/main 2>/dev/null)" \
     && git diff --quiet --no-renames "$base" HEAD -- .sandcastle package.json pnpm-lock.yaml pnpm-workspace.yaml; then
     echo "No Sandcastle or root package changes to test."
     return
