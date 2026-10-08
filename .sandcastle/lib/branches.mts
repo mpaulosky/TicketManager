@@ -6,6 +6,10 @@ import { execFileSync } from "node:child_process";
 
 const maxSlugLength = 50;
 
+// The issue-branch prefixes from docs/PROCESS.md. Sandcastle creates feature/
+// and fix/ branches; a hotfix/ branch someone made by hand is still reused.
+const issuePrefixes = ["feature", "fix", "hotfix"] as const;
+
 // The parts of an issue its branch name depends on.
 export type BranchIssue = { number: number; title: string; labels: string[] };
 
@@ -27,31 +31,31 @@ export function slugFor(title: string): string {
 	return boundary > 0 ? cut.slice(0, boundary) : slug.slice(0, maxSlugLength);
 }
 
-// Whether a branch belongs to the issue: feature/{n}-* or hotfix/{n}-*.
+// Whether a branch belongs to the issue: feature/{n}-*, fix/{n}-* or hotfix/{n}-*.
 export function isIssueBranch(branch: string, issueNumber: number): boolean {
-	return branch.startsWith(`feature/${issueNumber}-`) || branch.startsWith(`hotfix/${issueNumber}-`);
+	return issuePrefixes.some((prefix) => branch.startsWith(`${prefix}/${issueNumber}-`));
 }
 
-// The issue's branch: its existing feature/{n}-* or hotfix/{n}-* branch when
+// The issue's branch: its existing feature/, fix/ or hotfix/{n}-* branch when
 // there is one, even if the title or labels have changed since, so earlier
-// work is built on rather than redone. Otherwise hotfix/{n}-{slug} for a bug
-// and feature/{n}-{slug} for everything else.
+// work is built on rather than redone. Otherwise fix/{n}-{slug} for a bug and
+// feature/{n}-{slug} for everything else.
 export function branchFor(issue: BranchIssue, existingBranches: readonly string[]): string {
 	const existing = existingBranches
 		.filter((branch) => isIssueBranch(branch, issue.number))
 		.sort()[0];
 	if (existing) return existing;
 
-	const prefix = issue.labels.includes("bug") ? "hotfix" : "feature";
+	const prefix = issue.labels.includes("bug") ? "fix" : "feature";
 	return `${prefix}/${issue.number}-${slugFor(issue.title)}`;
 }
 
-// The local feature/* and hotfix/* branches. Sandcastle's branches live in
+// The local feature/*, fix/* and hotfix/* branches. Sandcastle's branches live in
 // this clone, so that's where an issue's earlier work is.
 export function localIssueBranches(): string[] {
 	return execFileSync(
 		"git",
-		["for-each-ref", "--format=%(refname:short)", "refs/heads/feature/", "refs/heads/hotfix/"],
+		["for-each-ref", "--format=%(refname:short)", ...issuePrefixes.map((prefix) => `refs/heads/${prefix}/`)],
 		{ encoding: "utf8" },
 	)
 		.split("\n")
