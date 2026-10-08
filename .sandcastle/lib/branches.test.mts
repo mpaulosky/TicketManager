@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { describe, it } from "node:test";
-import { branchFor, isIssueBranch, slugFor } from "./branches.mts";
+import { branchFor, isIssueBranch, parseHeads, prepareBranches, slugFor, withoutOpenPullRequests } from "./branches.mts";
 
 const issue = (number: number, title: string, labels: string[] = ["Sandcastle"]) => ({ number, title, labels });
 
@@ -87,5 +87,50 @@ describe("branchFor", () => {
 				assert.ok(passesBranchStandard(branch), `${branch} fails scripts/check-branch-name.sh`);
 			}
 		}
+	});
+});
+
+describe("withoutOpenPullRequests", () => {
+	it("holds back an issue whose branch has an open pull request", () => {
+		const { ready, inReview } = withoutOpenPullRequests([issue(4, "A"), issue(5, "B")], ["fix/5-b", "feature/40-other"]);
+		assert.deepEqual(ready.map((i) => i.number), [4]);
+		assert.deepEqual(inReview.map((i) => i.number), [5]);
+	});
+});
+
+describe("parseHeads", () => {
+	it("reads branch names from ls-remote output", () => {
+		assert.deepEqual(parseHeads("abc\trefs/heads/feature/4-a\ndef\trefs/heads/fix/5-b\n"), ["feature/4-a", "fix/5-b"]);
+	});
+});
+
+describe("prepareBranches", () => {
+	const branchGit = (remote: string[], local: string[], fetched: string[]) => ({
+		remoteIssueBranches: () => remote,
+		localIssueBranches: () => local,
+		fetch: (branch: string) => {
+			fetched.push(branch);
+		},
+	});
+
+	it("reuses a branch on origin and fetches it", () => {
+		const fetched: string[] = [];
+		const work = prepareBranches([issue(4, "Add search")], branchGit(["feature/4-search"], [], fetched));
+		assert.deepEqual(work.map((w) => w.branch), ["feature/4-search"]);
+		assert.deepEqual(fetched, ["feature/4-search"]);
+	});
+
+	it("reuses a local branch that was never pushed, without fetching", () => {
+		const fetched: string[] = [];
+		const work = prepareBranches([issue(4, "Renamed title")], branchGit([], ["feature/4-add-search"], fetched));
+		assert.deepEqual(work.map((w) => w.branch), ["feature/4-add-search"]);
+		assert.deepEqual(fetched, []);
+	});
+
+	it("names a new branch when the issue has none", () => {
+		const fetched: string[] = [];
+		const work = prepareBranches([issue(4, "Add search", ["bug"])], branchGit(["feature/40-x"], [], fetched));
+		assert.deepEqual(work.map((w) => w.branch), ["fix/4-add-search"]);
+		assert.deepEqual(fetched, []);
 	});
 });

@@ -1,8 +1,10 @@
 FROM node:22-bookworm
 
-# Install system dependencies. python3 runs the gate's test discovery
-# (.github/scripts/discover_tests.py); the lib* packages are what the .NET SDK
-# needs on Debian.
+# Install system dependencies. python3 runs the test discovery
+# .sandcastle/check.sh shares with CI (.github/scripts/discover_tests.py); the
+# lib* packages are what the .NET SDK needs on Debian. There's no GitHub CLI
+# and no Docker or browser: the sandbox never talks to GitHub (see main.mts),
+# and check.sh skips the tests that need Docker or a browser, which CI runs.
 RUN apt-get update && apt-get install -y \
   git \
   curl \
@@ -19,14 +21,6 @@ RUN apt-get update && apt-get install -y \
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable pnpm
 
-# Install GitHub CLI
-RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-  | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-  | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-  && apt-get update && apt-get install -y gh \
-  && rm -rf /var/lib/apt/lists/*
-
 # Build-args for UID/GID alignment: sandcastle docker build-image
 # defaults these to the host user's UID/GID so image-built files
 # and bind-mounted files share an owner without runtime chown.
@@ -40,14 +34,17 @@ USER ${AGENT_UID}:${AGENT_GID}
 # Install Claude Code CLI
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
-# Install the .NET SDK that global.json pins, so agents can run scripts/gate.sh
-# (dotnet build and dotnet test). Keep DOTNET_SDK_VERSION in step with global.json.
-ARG DOTNET_SDK_VERSION=10.0.401
+# Install the .NET SDK that .sandcastle/check.sh builds and tests with.
+# global.json pins 10.0.x with rollForward latestMinor, so the latest GA SDK on
+# the 10.0 channel satisfies it, and keeps satisfying it as Dependabot bumps
+# global.json within 10.0. Rebuild the image to pick up a newer SDK; change the
+# channel when global.json moves to a new major version.
+ARG DOTNET_CHANNEL=10.0
 ENV DOTNET_ROOT=/home/agent/.dotnet \
   DOTNET_CLI_TELEMETRY_OPTOUT=1 \
   DOTNET_NOLOGO=1
 RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
-  && bash /tmp/dotnet-install.sh --version "$DOTNET_SDK_VERSION" --install-dir "$DOTNET_ROOT" \
+  && bash /tmp/dotnet-install.sh --channel "$DOTNET_CHANNEL" --quality GA --install-dir "$DOTNET_ROOT" \
   && rm /tmp/dotnet-install.sh
 
 # Fetch the pinned pnpm (and the binary it runs) now, so the onSandboxReady
