@@ -1,11 +1,23 @@
 FROM node:22-bookworm
 
-# Install system dependencies
+# Install system dependencies. python3 runs the gate's test discovery
+# (.github/scripts/discover_tests.py); the lib* packages are what the .NET SDK
+# needs on Debian.
 RUN apt-get update && apt-get install -y \
   git \
   curl \
   jq \
+  python3 \
+  libicu72 \
+  libssl3 \
+  libgssapi-krb5-2 \
+  zlib1g \
   && rm -rf /var/lib/apt/lists/*
+
+# pnpm through corepack, as CI does (.github/ci/prepare.sh). Corepack runs the
+# version pinned by "packageManager" in package.json and src/Web/package.json.
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable pnpm
 
 # Install GitHub CLI
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
@@ -28,8 +40,23 @@ USER ${AGENT_UID}:${AGENT_GID}
 # Install Claude Code CLI
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
-# Add Claude to PATH
-ENV PATH="/home/agent/.local/bin:$PATH"
+# Install the .NET SDK that global.json pins, so agents can run scripts/gate.sh
+# (dotnet build and dotnet test). Keep DOTNET_SDK_VERSION in step with global.json.
+ARG DOTNET_SDK_VERSION=10.0.401
+ENV DOTNET_ROOT=/home/agent/.dotnet \
+  DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+  DOTNET_NOLOGO=1
+RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
+  && bash /tmp/dotnet-install.sh --version "$DOTNET_SDK_VERSION" --install-dir "$DOTNET_ROOT" \
+  && rm /tmp/dotnet-install.sh
+
+# Fetch the pinned pnpm (and the binary it runs) now, so the onSandboxReady
+# hook doesn't download it.
+# Keep the version in step with "packageManager" in package.json.
+RUN corepack install -g pnpm@12.6.0 && pnpm --version
+
+# Add Claude, .NET and its global tools to PATH
+ENV PATH="/home/agent/.local/bin:$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH"
 
 WORKDIR /home/agent
 

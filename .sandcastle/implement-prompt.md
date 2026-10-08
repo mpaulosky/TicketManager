@@ -35,7 +35,8 @@ If applicable, use RGR to complete the task.
 
 # FEEDBACK LOOPS
 
-Before committing, run `npm run typecheck` and `npm run test` to ensure the tests pass.
+Before committing, run `scripts/gate.sh` to ensure the lints, the build and the tests pass. It is the gate the
+pre-push hook and CI run: it builds the solution with `dotnet build` and runs every test project with `dotnet test`.
 
 # COMMIT
 
