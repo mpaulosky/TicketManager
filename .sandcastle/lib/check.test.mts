@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { fenced, headOf, runCheck, tail } from "./check.mts";
+import { CHECK_COMMAND, fenced, headOf, runCheck, tail } from "./check.mts";
 
 const shaA = "a".repeat(40);
 const shaB = "b".repeat(40);
@@ -25,7 +25,7 @@ describe("runCheck", () => {
 		const result = await runCheck(
 			sandboxWith({
 				"git rev-parse HEAD": head(shaA),
-				".sandcastle/check.sh 2>&1": { stdout: "\u001b[32mok\u001b[0m\n", exitCode: 0 },
+				[CHECK_COMMAND]: { stdout: "\u001b[32mok\u001b[0m\n", exitCode: 0 },
 				"git status --porcelain 2>&1": { stdout: "", exitCode: 0 },
 			}),
 		);
@@ -34,7 +34,7 @@ describe("runCheck", () => {
 
 	it("fails a red check", async () => {
 		const result = await runCheck(
-			sandboxWith({ "git rev-parse HEAD": head(shaA), ".sandcastle/check.sh 2>&1": { stdout: "error CS1002", exitCode: 1 } }),
+			sandboxWith({ "git rev-parse HEAD": head(shaA), [CHECK_COMMAND]: { stdout: "error CS1002", exitCode: 1 } }),
 		);
 		assert.equal(result.passed, false);
 		assert.equal(result.output, "error CS1002");
@@ -44,7 +44,7 @@ describe("runCheck", () => {
 		const result = await runCheck(
 			sandboxWith({
 				"git rev-parse HEAD": head(shaA),
-				".sandcastle/check.sh 2>&1": { stdout: "ok", exitCode: 0 },
+				[CHECK_COMMAND]: { stdout: "ok", exitCode: 0 },
 				"git status --porcelain 2>&1": { stdout: " M src/Web/Program.cs\n", exitCode: 0 },
 			}),
 		);
@@ -56,12 +56,19 @@ describe("runCheck", () => {
 		const result = await runCheck(
 			sandboxWith({
 				"git rev-parse HEAD": [head(shaA), head(shaB)],
-				".sandcastle/check.sh 2>&1": { stdout: "ok", exitCode: 0 },
+				[CHECK_COMMAND]: { stdout: "ok", exitCode: 0 },
 				"git status --porcelain 2>&1": { stdout: "", exitCode: 0 },
 			}),
 		);
 		assert.equal(result.passed, false);
 		assert.match(result.output, /HEAD moved/);
+	});
+});
+
+describe("CHECK_COMMAND", () => {
+	it("runs main's copy of check.sh, not the branch's", () => {
+		assert.match(CHECK_COMMAND, /git show origin\/main:\.sandcastle\/check\.sh/);
+		assert.doesNotMatch(CHECK_COMMAND, /^\.sandcastle\/check\.sh/);
 	});
 });
 

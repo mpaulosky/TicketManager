@@ -35,10 +35,11 @@ import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { fetchMain, prepareBranches, withoutOpenPullRequests } from "./lib/branches.mts";
 import { buildIssue } from "./lib/build.mts";
 import { MAX_ITERATIONS, MODEL } from "./lib/config.mts";
-import { listSandcastleIssues, openPullRequestBranches } from "./lib/github.mts";
+import { commentOnIssue, listSandcastleIssues, openPullRequestBranches, repoName } from "./lib/github.mts";
 import { picksFrom, planSchema } from "./lib/plan.mts";
 import { plannerPromptArgs } from "./lib/prompts.mts";
 import { githubTokensIn } from "./lib/sandbox-env.mts";
+import { gitConfigTampered, trustGitConfig } from "./lib/shell.mts";
 
 const envFile = ".sandcastle/.env";
 const leakedTokens = existsSync(envFile) ? githubTokensIn(readFileSync(envFile, "utf8")) : [];
@@ -48,6 +49,11 @@ if (leakedTokens.length > 0) {
 			"Remove it: the host uses its own gh auth, and agents must not reach GitHub.",
 	);
 }
+
+// Record the git config and the repository before any sandbox exists; see
+// GitConfigGuard and repoName.
+trustGitConfig();
+repoName();
 
 for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 	console.log(`\n=== Iteration ${iteration}/${MAX_ITERATIONS} ===\n`);
@@ -87,7 +93,15 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 	// Phase 2: Build, review and publish
 	// -------------------------------------------------------------------------
 	fetchMain();
-	const work = prepareBranches(picks);
+	const { work, skipped } = prepareBranches(picks);
+	for (const { issue, reason } of skipped) {
+		console.warn(`  Skipping #${issue.number}: ${reason}.`);
+		commentOnIssue(issue.number, `Sandcastle didn't build this issue: ${reason}.`);
+	}
+	if (work.length === 0) {
+		console.log("No issue branch is ready to build. Stopping.");
+		break;
+	}
 
 	console.log(`Planning complete. ${work.length} issue(s) to build in parallel:`);
 	for (const { issue, branch } of work) {
@@ -105,6 +119,10 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 		} else if (outcome.value.prUrl) {
 			published.push(`  #${issue.number} (${branch}) → ${outcome.value.prUrl}`);
 		}
+	}
+
+	if (gitConfigTampered()) {
+		throw new Error("The git config changed during the round. Stopping; see the errors above.");
 	}
 
 	console.log(`\nRound complete. ${published.length} pull request(s):`);

@@ -2,8 +2,7 @@
 // everything an agent needs from GitHub reaches it through its prompt, and
 // every write (comments, pushes, pull requests) is made here, in code.
 
-import { execFileSync } from "node:child_process";
-import { sh } from "./shell.mts";
+import { gh } from "./shell.mts";
 
 // The author associations whose text may reach an agent. Anyone else can open
 // or comment on a public issue, so their words could steer an agent.
@@ -53,15 +52,19 @@ export function trustedIssues(raw: readonly RawIssue[]): { issues: SandcastleIss
 
 let repo: { owner: string; name: string } | undefined;
 
-// The repository in the current directory. Read on first use rather than at
-// import, so importing a module never shells out to gh.
+// The repository in the current directory, read once, on first use rather
+// than at import, so importing a module never shells out to gh. main.mts
+// reads it before any sandbox exists, and every gh call names it with --repo,
+// so gh never works it out again from remotes an agent could have changed.
 export function repoName(): { owner: string; name: string } {
 	if (!repo) {
-		const [owner, name] = sh(process.cwd(), "gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner").split("/");
+		const [owner, name] = gh(["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]).split("/");
 		repo = { owner: owner!, name: name! };
 	}
 	return repo;
 }
+
+const repoFlag = () => ["--repo", `${repoName().owner}/${repoName().name}`];
 
 const issuesQuery = `
 query($owner: String!, $name: String!) {
@@ -99,7 +102,7 @@ type IssuesResponse = {
 export function listSandcastleIssues(): SandcastleIssue[] {
 	const { owner, name } = repoName();
 	const response = JSON.parse(
-		sh(process.cwd(), "gh", "api", "graphql", "-f", `query=${issuesQuery}`, "-F", `owner=${owner}`, "-F", `name=${name}`),
+		gh(["api", "graphql", "-f", `query=${issuesQuery}`, "-F", `owner=${owner}`, "-F", `name=${name}`]),
 	) as IssuesResponse;
 	const { pageInfo, nodes } = response.data.repository.issues;
 	if (pageInfo.hasNextPage) console.warn("  More than 100 open Sandcastle issues: only the first 100 are considered.");
@@ -130,11 +133,7 @@ export function sameRepoPullRequests(prs: readonly PullRequestHead[]): PullReque
 }
 
 function openPullRequests(...filter: string[]): PullRequestHead[] {
-	const json = sh(
-		process.cwd(),
-		"gh", "pr", "list", "--state", "open", "--limit", "1000", ...filter,
-		"--json", "headRefName,isCrossRepository,url",
-	);
+	const json = gh(["pr", "list", ...repoFlag(), "--state", "open", "--limit", "1000", ...filter, "--json", "headRefName,isCrossRepository,url"]);
 	return sameRepoPullRequests(JSON.parse(json) as PullRequestHead[]);
 }
 
@@ -144,12 +143,7 @@ export function openPullRequestBranches(): string[] {
 }
 
 export function commentOnIssue(issue: number, body: string): void {
-	execFileSync("gh", ["issue", "comment", String(issue), "--body-file", "-"], {
-		cwd: process.cwd(),
-		encoding: "utf8",
-		stdio: ["pipe", "pipe", "inherit"],
-		input: body,
-	});
+	gh(["issue", "comment", String(issue), ...repoFlag(), "--body-file", "-"], body);
 }
 
 // Open a draft pull request for the branch, or return the open one it already
@@ -158,9 +152,5 @@ export function commentOnIssue(issue: number, body: string): void {
 export function openPullRequest(branch: string, title: string, body: string): string {
 	const existing = openPullRequests("--head", branch)[0];
 	if (existing) return existing.url;
-	return execFileSync(
-		"gh",
-		["pr", "create", "--draft", "--base", "main", "--head", branch, "--title", title, "--body-file", "-"],
-		{ cwd: process.cwd(), encoding: "utf8", stdio: ["pipe", "pipe", "inherit"], input: body },
-	).trim();
+	return gh(["pr", "create", ...repoFlag(), "--draft", "--base", "main", "--head", branch, "--title", title, "--body-file", "-"], body);
 }

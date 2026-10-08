@@ -105,32 +105,71 @@ describe("parseHeads", () => {
 });
 
 describe("prepareBranches", () => {
-	const branchGit = (remote: string[], local: string[], fetched: string[]) => ({
-		remoteIssueBranches: () => remote,
-		localIssueBranches: () => local,
-		fetch: (branch: string) => {
-			fetched.push(branch);
-		},
+	// A clone and origin with the given branch commits; ancestry is by
+	// commit-name prefix, so "a" is an ancestor of "ab".
+	const branchGit = (remote: Record<string, string>, local: Record<string, string>) => {
+		const calls = { fetched: [] as string[], set: [] as string[] };
+		return {
+			calls,
+			git: {
+				remoteIssueBranches: () => Object.keys(remote),
+				localIssueBranches: () => Object.keys(local),
+				fetch: (branch: string) => {
+					calls.fetched.push(branch);
+					return remote[branch]!;
+				},
+				localSha: (branch: string) => local[branch],
+				isAncestor: (ancestor: string, descendant: string) => descendant.startsWith(ancestor),
+				setLocal: (branch: string, sha: string) => {
+					calls.set.push(`${branch}@${sha}`);
+					local[branch] = sha;
+				},
+			},
+		};
+	};
+
+	it("creates the local branch from origin's when there's none here", () => {
+		const { git, calls } = branchGit({ "feature/4-search": "ab" }, {});
+		const { work } = prepareBranches([issue(4, "Add search")], git);
+		assert.deepEqual(work.map((w) => w.branch), ["feature/4-search"]);
+		assert.deepEqual(calls.fetched, ["feature/4-search"]);
+		assert.deepEqual(calls.set, ["feature/4-search@ab"]);
 	});
 
-	it("reuses a branch on origin and fetches it", () => {
-		const fetched: string[] = [];
-		const work = prepareBranches([issue(4, "Add search")], branchGit(["feature/4-search"], [], fetched));
-		assert.deepEqual(work.map((w) => w.branch), ["feature/4-search"]);
-		assert.deepEqual(fetched, ["feature/4-search"]);
+	it("fast-forwards a local branch that's behind origin's", () => {
+		const { git, calls } = branchGit({ "feature/4-search": "abc" }, { "feature/4-search": "a" });
+		const { work } = prepareBranches([issue(4, "Add search")], git);
+		assert.equal(work.length, 1);
+		assert.deepEqual(calls.set, ["feature/4-search@abc"]);
+	});
+
+	it("keeps a local branch that's ahead of origin's or the same", () => {
+		for (const localSha of ["abc", "ab"]) {
+			const { git, calls } = branchGit({ "feature/4-search": "ab" }, { "feature/4-search": localSha });
+			assert.equal(prepareBranches([issue(4, "Add search")], git).work.length, 1);
+			assert.deepEqual(calls.set, []);
+		}
+	});
+
+	it("skips an issue whose local branch has diverged from origin's", () => {
+		const { git, calls } = branchGit({ "feature/4-search": "ab" }, { "feature/4-search": "ax" });
+		const { work, skipped } = prepareBranches([issue(4, "Add search"), issue(5, "Sort")], git);
+		assert.deepEqual(work.map((w) => w.issue.number), [5]);
+		assert.match(skipped[0]!.reason, /diverged/);
+		assert.deepEqual(calls.set, []);
 	});
 
 	it("reuses a local branch that was never pushed, without fetching", () => {
-		const fetched: string[] = [];
-		const work = prepareBranches([issue(4, "Renamed title")], branchGit([], ["feature/4-add-search"], fetched));
+		const { git, calls } = branchGit({}, { "feature/4-add-search": "a" });
+		const { work } = prepareBranches([issue(4, "Renamed title")], git);
 		assert.deepEqual(work.map((w) => w.branch), ["feature/4-add-search"]);
-		assert.deepEqual(fetched, []);
+		assert.deepEqual(calls.fetched, []);
 	});
 
 	it("names a new branch when the issue has none", () => {
-		const fetched: string[] = [];
-		const work = prepareBranches([issue(4, "Add search", ["bug"])], branchGit(["feature/40-x"], [], fetched));
+		const { git, calls } = branchGit({ "feature/40-x": "a" }, {});
+		const { work } = prepareBranches([issue(4, "Add search", ["bug"])], git);
 		assert.deepEqual(work.map((w) => w.branch), ["fix/4-add-search"]);
-		assert.deepEqual(fetched, []);
+		assert.deepEqual(calls.fetched, []);
 	});
 });

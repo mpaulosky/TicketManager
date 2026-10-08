@@ -4,6 +4,17 @@
 // host pushes.
 
 import type { Sandbox } from "@ai-hero/sandcastle";
+import { BASE_BRANCH } from "./config.mts";
+
+// The check is main's copy of check.sh, not the branch's: the agents can edit
+// the branch's copy, and one stuck on a failing test could make it skip the
+// test or exit 0. It still builds and tests the branch's code, which the
+// agents wrote, so it shows the change builds and its tests pass, not that
+// the change is safe: CI and the person who marks the draft PR ready decide
+// that. stderr is folded into stdout, so the output keeps the order it was
+// printed in.
+export const CHECK_COMMAND =
+	`f="$(mktemp)" && { git show ${BASE_BRANCH}:.sandcastle/check.sh > "$f" && bash "$f"; } 2>&1; s=$?; rm -f "$f"; exit $s`;
 
 export type CheckRun = { passed: true; output: string; head: string } | { passed: false; output: string };
 
@@ -18,8 +29,7 @@ export async function headOf(sandbox: Pick<Sandbox, "exec">): Promise<string | u
 	return exitCode === 0 && /^[0-9a-f]{40,64}$/.test(sha) ? sha : undefined;
 }
 
-// Run the check with stderr folded into stdout, so the output keeps the order
-// it was printed in. A passing check still fails when the worktree is dirty
+// Run the check. A passing check still fails when the worktree is dirty
 // (only commits are pushed, so uncommitted edits would be checked but never
 // published) or when HEAD moved while it ran (the commit it built isn't the
 // one that's there now).
@@ -27,7 +37,7 @@ export async function runCheck(sandbox: Pick<Sandbox, "exec">): Promise<CheckRun
 	const before = await headOf(sandbox);
 	if (!before) return { passed: false, output: "git rev-parse HEAD failed, so there's no commit to check." };
 
-	const { stdout, exitCode } = await sandbox.exec(".sandcastle/check.sh 2>&1");
+	const { stdout, exitCode } = await sandbox.exec(CHECK_COMMAND);
 	const output = stdout.replace(ansiEscape, "");
 	if (exitCode !== 0) return { passed: false, output };
 

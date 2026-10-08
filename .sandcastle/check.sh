@@ -3,8 +3,8 @@
 # the sandbox before it publishes a branch: the exit code decides, never what
 # an agent reports. It builds the solution and runs every test project but the
 # ones that need Docker or a browser, which the sandbox doesn't have. CI runs
-# everything on the pull request, and scripts/gate.sh does before a push by
-# hand.
+# the full .NET suite on the pull request, and scripts/gate.sh does before a
+# push by hand. The host runs main's copy of this file (see lib/check.mts).
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"

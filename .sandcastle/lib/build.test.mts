@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildIssue, type BuildHost, type BuildSandbox } from "./build.mts";
+import { CHECK_COMMAND } from "./check.mts";
 
 const issue = { number: 7, title: "Add search", body: "Search tickets.", labels: ["Sandcastle"], comments: [] };
 const branch = "feature/7-add-search";
@@ -20,6 +21,7 @@ function pipeline(options: {
 	merge?: "up-to-date" | "merged" | "conflict";
 	ahead?: number;
 	publishError?: Error;
+	configIntact?: boolean;
 }) {
 	const checks = [...(options.checks ?? [true, true, true])];
 	let head = 1;
@@ -49,7 +51,7 @@ function pipeline(options: {
 		exec: async (command: string) => {
 			if (command === "git rev-parse HEAD") return ok(`${sha(head)}\n`);
 			if (command === "git status --porcelain 2>&1") return ok();
-			if (command.startsWith(".sandcastle/check.sh")) {
+			if (command === CHECK_COMMAND) {
 				const passed = checks.shift();
 				if (passed === undefined) throw new Error("check ran more often than scripted");
 				calls.checkedAt.push(sha(head));
@@ -84,6 +86,7 @@ function pipeline(options: {
 			calls.published.push({ sha: publishedSha, title, body });
 			return "https://github.com/o/r/pull/1";
 		},
+		gitConfigIntact: () => options.configIntact ?? true,
 		log: () => {},
 	};
 
@@ -182,6 +185,12 @@ describe("buildIssue", () => {
 		assert.equal((await run()).outcome, "nothing-to-publish");
 		assert.deepEqual(calls.runs, ["implementer"]);
 		assert.deepEqual(calls.comments, []);
+	});
+
+	it("leaves the sandbox running when the git config changed, since closing it runs git on the host", async () => {
+		const { run, calls } = pipeline({ configIntact: false });
+		await run();
+		assert.equal(calls.closed, false);
 	});
 
 	it("reports a failed push on the issue", async () => {

@@ -12,7 +12,7 @@ import { BASE_BRANCH, CHECK_COMMENT_LINES, copyToWorktree, hooks, IMPLEMENTER_IT
 import { commentOnIssue, openPullRequest, type SandcastleIssue } from "./github.mts";
 import { issuePromptArgs } from "./prompts.mts";
 import { prBody, prTitle } from "./publish.mts";
-import { git } from "./shell.mts";
+import { git, gitConfigIntact } from "./shell.mts";
 import { parseVerdict, type Verdict } from "./verdict.mts";
 
 // The parts of a sandbox buildIssue uses; tests pass a fake.
@@ -26,6 +26,8 @@ export type BuildHost = {
 	commentOnIssue(issueNumber: number, body: string): void;
 	// Push the commit to the branch on origin and open (or reuse) its pull request.
 	publish(branch: string, sha: string, title: string, body: string): string;
+	// False once an agent may have rewritten the clone's git config (see GitConfigGuard).
+	gitConfigIntact(): boolean;
 	log(line: string): void;
 };
 
@@ -45,6 +47,7 @@ const liveHost: BuildHost = {
 	commitsAhead,
 	commentOnIssue,
 	publish,
+	gitConfigIntact,
 	log: console.log,
 };
 
@@ -171,6 +174,12 @@ export async function buildIssue(
 			return stop("publish-failed", `Sandcastle couldn't publish \`${branch}\`: ${error}`);
 		}
 	} finally {
-		await sandbox.close();
+		// Closing removes the worktree with git on the host, which would read a
+		// rewritten config. Leave the sandbox for a person to inspect instead.
+		if (host.gitConfigIntact()) {
+			await sandbox.close();
+		} else {
+			log("left the sandbox running: the git config changed");
+		}
 	}
 }

@@ -82,8 +82,14 @@ export type BranchGit = {
 	// The issue branches in this clone, which keep the commits of work that
 	// was never published.
 	localIssueBranches(): string[];
-	// Fetch origin's branch into its remote-tracking ref.
-	fetch(branch: string): void;
+	// Fetch origin's branch into its remote-tracking ref, and return its commit.
+	fetch(branch: string): string;
+	// The local branch's commit, or undefined when there's no local branch.
+	localSha(branch: string): string | undefined;
+	// Whether `ancestor` is an ancestor of (or the same as) `descendant`.
+	isAncestor(ancestor: string, descendant: string): boolean;
+	// Create the local branch at `sha`, or move it there.
+	setLocal(branch: string, sha: string): void;
 };
 
 const hostGit: BranchGit = {
@@ -97,6 +103,25 @@ const hostGit: BranchGit = {
 			.filter(Boolean),
 	fetch: (branch) => {
 		git(process.cwd(), "fetch", "--quiet", "origin", `+refs/heads/${branch}:refs/remotes/origin/${branch}`);
+		return git(process.cwd(), "rev-parse", `refs/remotes/origin/${branch}^{commit}`);
+	},
+	localSha: (branch) => {
+		try {
+			return git(process.cwd(), "rev-parse", "--quiet", "--verify", `refs/heads/${branch}^{commit}`);
+		} catch {
+			return undefined;
+		}
+	},
+	isAncestor: (ancestor, descendant) => {
+		try {
+			git(process.cwd(), "merge-base", "--is-ancestor", ancestor, descendant);
+			return true;
+		} catch {
+			return false;
+		}
+	},
+	setLocal: (branch, sha) => {
+		git(process.cwd(), "branch", "--force", branch, sha);
 	},
 };
 
@@ -113,15 +138,44 @@ export function commitsAhead(sha: string): number {
 	return Number(git(process.cwd(), "rev-list", "--count", `${BASE_BRANCH}..${sha}`));
 }
 
+export type PreparedBranches<T> = {
+	work: { issue: T; branch: string }[];
+	// Issues not built this round, and why.
+	skipped: { issue: T; branch: string; reason: string }[];
+};
+
 // Name each issue's branch, reusing one that already exists here or on
-// origin, and fetch the ones on origin, so the sandbox starts from the work
-// already pushed rather than from main.
-export function prepareBranches<T extends BranchIssue>(issues: readonly T[], branchGit: BranchGit = hostGit): { issue: T; branch: string }[] {
+// origin. A branch on origin is fetched, and the local branch is created or
+// fast-forwarded to it, so the sandbox (which checks out the local branch)
+// starts from the work already pushed, and the host's push stays a
+// fast-forward. A local branch that has diverged from origin's is left for a
+// person rather than built on.
+export function prepareBranches<T extends BranchIssue>(issues: readonly T[], branchGit: BranchGit = hostGit): PreparedBranches<T> {
 	const remoteBranches = branchGit.remoteIssueBranches();
 	const knownBranches = [...new Set([...remoteBranches, ...branchGit.localIssueBranches()])];
-	return issues.map((issue) => {
+	const prepared: PreparedBranches<T> = { work: [], skipped: [] };
+	for (const issue of issues) {
 		const branch = branchFor(issue, knownBranches);
-		if (remoteBranches.includes(branch)) branchGit.fetch(branch);
-		return { issue, branch };
-	});
+		if (remoteBranches.includes(branch)) {
+			try {
+				const remote = branchGit.fetch(branch);
+				const local = branchGit.localSha(branch);
+				if (local === undefined || (local !== remote && branchGit.isAncestor(local, remote))) {
+					branchGit.setLocal(branch, remote);
+				} else if (!branchGit.isAncestor(remote, local)) {
+					prepared.skipped.push({
+						issue,
+						branch,
+						reason: `the local \`${branch}\` and origin's have diverged; reconcile them by hand`,
+					});
+					continue;
+				}
+			} catch (error) {
+				prepared.skipped.push({ issue, branch, reason: `\`${branch}\` couldn't be brought up to date with origin's: ${error}` });
+				continue;
+			}
+		}
+		prepared.work.push({ issue, branch });
+	}
+	return prepared;
 }
