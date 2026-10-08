@@ -35,8 +35,10 @@ If applicable, use RGR to complete the task.
 
 # FEEDBACK LOOPS
 
-Before committing, run `scripts/gate.sh` to ensure the lints, the build and the tests pass. It is the gate the
-pre-push hook and CI run: it builds the solution with `dotnet build` and runs every test project with `dotnet test`.
+After each commit (see COMMIT below), run `scripts/gate.sh` to ensure the lints, the build and the tests pass. It is
+the gate the pre-push hook and CI run: it builds the solution with `dotnet build` and runs every test project with
+`dotnet test`. Run it after the commit, not before: its lints only check committed changes. If it fails, fix the
+issues and commit the fix, in the same format, before you output COMPLETE.
 
 # COMMIT
 
