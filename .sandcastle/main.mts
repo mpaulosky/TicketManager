@@ -3,7 +3,8 @@
 // This template drives a multi-phase workflow:
 //   Phase 1 (Plan):             An opus agent analyzes open issues, builds a
 //                               dependency graph, and outputs a <plan> JSON
-//                               listing unblocked issues with branch names.
+//                               listing unblocked issues. The host names
+//                               each issue's branch (lib/branches.mts).
 //   Phase 2 (Execute + Review): For each issue, a sandbox is created via
 //                               createSandbox(). The implementer runs first
 //                               (100 iterations). If it produces commits, a
@@ -24,6 +25,7 @@
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { z } from "zod";
+import { branchFor, localIssueBranches, openSandcastleIssues } from "./lib/branches.mts";
 
 // The planner emits its plan as JSON inside <plan> tags; Output.object extracts
 // and validates it against this schema. We use Zod here, but any Standard
@@ -31,7 +33,7 @@ import { z } from "zod";
 // https://standardschema.dev.
 const planSchema = z.object({
   issues: z.array(
-    z.object({ id: z.string(), title: z.string(), branch: z.string() }),
+    z.object({ id: z.string(), title: z.string() }),
   ),
 });
 
@@ -86,7 +88,19 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     output: sandcastle.Output.object({ tag: "plan", schema: planSchema }),
   });
 
-  const issues = plan.output.issues;
+  // Name each picked issue's branch from its number, title and labels on
+  // GitHub, so the name follows the branch standard and doesn't drift
+  // between plans. An id that isn't an open Sandcastle issue is skipped.
+  const openIssues = openSandcastleIssues();
+  const existingBranches = localIssueBranches();
+  const issues = plan.output.issues.flatMap(({ id }) => {
+    const issue = openIssues.find((open) => String(open.number) === id);
+    if (!issue) {
+      console.warn(`  Skipping ${id}: not an open issue labelled Sandcastle.`);
+      return [];
+    }
+    return [{ id, title: issue.title, branch: branchFor(issue, existingBranches) }];
+  });
 
   if (issues.length === 0) {
     // No unblocked work — either everything is done or everything is blocked.
