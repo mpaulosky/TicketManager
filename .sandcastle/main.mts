@@ -35,7 +35,7 @@ import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { z } from "zod";
 import { branchFor, localIssueBranches, openSandcastleIssues } from "./lib/branches.mts";
-import { checkoutRoot, runningInPrimaryCheckout, worktreeSetup } from "./lib/checkout.mts";
+import { checkoutRoot, runningInPrimaryCheckout, runStamp, worktreeSetup } from "./lib/checkout.mts";
 
 // The planner emits its plan as JSON inside <plan> tags; Output.object extracts
 // and validates it against this schema. We use Zod here, but any Standard
@@ -76,7 +76,7 @@ if (runningInPrimaryCheckout()) {
 	console.error(
 		"Run Sandcastle from a linked worktree, not the primary checkout: the merger commits on the branch checked out here.\n" +
 			"Set one up and run it there:\n" +
-			worktreeSetup(checkoutRoot()).map((command) => `  ${command}`).join("\n"),
+			worktreeSetup(checkoutRoot(), runStamp()).map((command) => `  ${command}`).join("\n"),
 	);
 	process.exit(1);
 }

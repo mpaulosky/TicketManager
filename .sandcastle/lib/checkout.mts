@@ -27,21 +27,33 @@ export function runningInPrimaryCheckout(): boolean {
 	);
 }
 
+// A path or argument quoted for a POSIX shell, so a space or quote in it
+// survives a copy and paste.
+const quote = (text: string) => `'${text.replaceAll("'", "'\\''")}'`;
+
 // The commands that set up a worktree Sandcastle can run in, beside the
 // primary checkout at `root` as docs/PROCESS.md lays them out. node_modules
-// and .sandcastle/.env are untracked, so a new worktree has neither.
-export function worktreeSetup(root: string): string[] {
+// and .sandcastle/.env are untracked, so a new worktree has neither. `stamp`
+// makes the branch and folder new for each run, so the commands still work
+// after an earlier run's branch is left behind by a squash merge.
+export function worktreeSetup(root: string, stamp: string): string[] {
 	const parent = root.replace(/\/[^/]*$/, "");
 	const name = root.slice(parent.length + 1);
-	const worktree = `${parent}/${name}-worktrees/chore-sandcastle-run`;
+	const branch = `chore/sandcastle-run-${stamp}`;
+	const worktree = `${parent}/${name}-worktrees/${branch.replace("/", "-")}`;
 	return [
 		`git fetch origin`,
-		`git worktree add -b chore/sandcastle-run ${worktree} origin/main`,
-		`cd ${worktree}`,
+		`git worktree add -b ${branch} ${quote(worktree)} origin/main`,
+		`cd ${quote(worktree)}`,
 		`pnpm install --frozen-lockfile`,
-		`cp ${root}/.sandcastle/.env .sandcastle/.env`,
+		`cp ${quote(`${root}/.sandcastle/.env`)} .sandcastle/.env`,
 		`pnpm run sandcastle`,
 	];
+}
+
+// The current UTC time as yyyymmddhhmm, a branch-slug-safe run stamp.
+export function runStamp(now: Date = new Date()): string {
+	return now.toISOString().slice(0, 16).replace(/[-T:]/g, "");
 }
 
 export function checkoutRoot(): string {
