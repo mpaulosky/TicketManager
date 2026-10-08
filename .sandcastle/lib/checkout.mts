@@ -26,3 +26,24 @@ export function runningInPrimaryCheckout(): boolean {
 		allow,
 	);
 }
+
+// The commands that set up a worktree Sandcastle can run in, beside the
+// primary checkout at `root` as docs/PROCESS.md lays them out. node_modules
+// and .sandcastle/.env are untracked, so a new worktree has neither.
+export function worktreeSetup(root: string): string[] {
+	const parent = root.replace(/\/[^/]*$/, "");
+	const name = root.slice(parent.length + 1);
+	const worktree = `${parent}/${name}-worktrees/chore-sandcastle-run`;
+	return [
+		`git fetch origin`,
+		`git worktree add -b chore/sandcastle-run ${worktree} origin/main`,
+		`cd ${worktree}`,
+		`pnpm install --frozen-lockfile`,
+		`cp ${root}/.sandcastle/.env .sandcastle/.env`,
+		`pnpm run sandcastle`,
+	];
+}
+
+export function checkoutRoot(): string {
+	return git("rev-parse", "--show-toplevel");
+}
