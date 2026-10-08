@@ -18,7 +18,9 @@ set -euo pipefail
 
 base="${1-}"
 
-# shellcheck source=.github/ci/sandcastle.sh
+# Sourced, so shellcheck run on this file alone (as the gate runs it) can't
+# follow it; it checks sandcastle.sh on its own.
+# shellcheck disable=SC1091
 source "$(dirname "$0")/sandcastle.sh"
 
 # Sandcastle's orchestration code: type-check it and run its tests. CI's

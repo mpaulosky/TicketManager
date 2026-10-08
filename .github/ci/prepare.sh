@@ -29,7 +29,9 @@ install_pnpm_packages() {
   (cd src/Web && pnpm install --frozen-lockfile && touch node_modules/.install-stamp)
 }
 
-# shellcheck source=.github/ci/sandcastle.sh
+# Sourced, so shellcheck run on this file alone (as the gate runs it) can't
+# follow it; it checks sandcastle.sh on its own.
+# shellcheck disable=SC1091
 source "$(dirname "$0")/sandcastle.sh"
 
 # Sandcastle's orchestration code (.sandcastle/): type-check it and run its
