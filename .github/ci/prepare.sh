@@ -29,8 +29,24 @@ install_pnpm_packages() {
   (cd src/Web && pnpm install --frozen-lockfile && touch node_modules/.install-stamp)
 }
 
+# Sandcastle's orchestration code (.sandcastle/): type-check it and run its
+# tests when the PR changes it or the root package files, as the local gate's
+# .github/ci/gate-checks.sh does. Without an origin/main to compare with, run
+# them. The tests run on the runner's own Node, which strips the types itself.
+sandcastle_tests() {
+  local base
+  if base="$(git merge-base HEAD origin/main 2>/dev/null)" \
+    && git diff --quiet --no-renames "$base" HEAD -- .sandcastle package.json pnpm-lock.yaml pnpm-workspace.yaml; then
+    echo "No Sandcastle or root package changes to test."
+    return
+  fi
+  echo "Sandcastle type check and tests (node $(node --version))"
+  pnpm install --frozen-lockfile
+  pnpm run test:sandcastle
+}
+
 case "$job" in
-  build) install_pnpm_packages ;;
+  build) install_pnpm_packages; sandcastle_tests ;;
   test) : "$test_name"; install_pnpm_packages ;;
   *) echo "prepare.sh: unknown job '$job'" >&2; exit 2 ;;
 esac
