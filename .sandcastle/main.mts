@@ -22,15 +22,17 @@
 // Usage (Node strips the types itself, as it does for test:sandcastle):
 //   pnpm run sandcastle
 //
-// Run it from a linked worktree on its own branch, not the primary checkout.
-// The merger uses Sandcastle's default `head` strategy for docker(), so it
-// merges and commits on the branch checked out where this runs, and the
-// pre-commit hook refuses commits in the primary checkout (see docs/PROCESS.md).
+// Run it from a linked worktree on its own branch, not the primary checkout,
+// which stays on main (docs/PROCESS.md). The merger uses Sandcastle's default
+// `head` strategy for docker(), so it merges and commits on the branch checked
+// out where this runs. A clean `git merge` runs no pre-commit hook, so main.mts
+// checks for itself and refuses to start in the primary checkout.
 
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { z } from "zod";
 import { branchFor, localIssueBranches, openSandcastleIssues } from "./lib/branches.mts";
+import { runningInPrimaryCheckout } from "./lib/checkout.mts";
 
 // The planner emits its plan as JSON inside <plan> tags; Output.object extracts
 // and validates it against this schema. We use Zod here, but any Standard
@@ -66,6 +68,14 @@ const copyToWorktree = ["node_modules"];
 // ---------------------------------------------------------------------------
 // Main loop
 // ---------------------------------------------------------------------------
+
+if (runningInPrimaryCheckout()) {
+	console.error(
+		"Run Sandcastle from a linked worktree, not the primary checkout: the merger commits on the branch checked out here.\n" +
+			"  git worktree add -b chore/sandcastle-run ../<Repo>-worktrees/chore-sandcastle-run origin/main",
+	);
+	process.exit(1);
+}
 
 for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 	console.log(`\n=== Iteration ${iteration}/${MAX_ITERATIONS} ===\n`);
