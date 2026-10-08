@@ -47,8 +47,13 @@ Review the code changes on branch `{{BRANCH}}` and improve code clarity, consist
 If you find improvements to make:
 
 1. Make the changes directly on this branch
-2. Run `scripts/gate.sh` (the lints, the build and the tests) to ensure nothing is broken
-3. Commit describing the refinements
+2. Commit describing the refinements, as `<type>(<scope>): <Summary>` per
+   `.github/instructions/git-commit-instructions.md`, with `Refs #<issue>` as the body's last line, where
+   `<issue>` is the number in the branch name. Never use `--no-verify`
+3. Run `scripts/gate.sh` (the lints, the build and the tests) to ensure nothing is broken. Run it after the commit:
+   its lints only check committed changes
+4. If the gate fails, fix the issues, fold the fix into your commit with `git commit --amend --no-edit`, and run the
+   gate again
 
 If the code is already clean and well-structured, do nothing.
 

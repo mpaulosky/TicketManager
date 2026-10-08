@@ -21,11 +21,21 @@
 //
 // Usage (Node strips the types itself, as it does for test:sandcastle):
 //   pnpm run sandcastle
+//
+// Run it from a linked worktree on its own branch, not the primary checkout,
+// which stays on main (docs/PROCESS.md). The merger uses Sandcastle's default
+// `head` strategy for docker(), so it merges and commits on the branch checked
+// out where this runs. A clean `git merge` runs no pre-commit hook, so main.mts
+// checks for itself and refuses to start in the primary checkout, printing the
+// commands that set up a worktree: node_modules and .sandcastle/.env are
+// untracked, so a new worktree needs `pnpm install --frozen-lockfile` and a
+// copy of the primary checkout's .sandcastle/.env.
 
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { z } from "zod";
 import { branchFor, localIssueBranches, openSandcastleIssues } from "./lib/branches.mts";
+import { checkoutRoot, runningInPrimaryCheckout, runStamp, worktreeSetup } from "./lib/checkout.mts";
 
 // The planner emits its plan as JSON inside <plan> tags; Output.object extracts
 // and validates it against this schema. We use Zod here, but any Standard
@@ -61,6 +71,15 @@ const copyToWorktree = ["node_modules"];
 // ---------------------------------------------------------------------------
 // Main loop
 // ---------------------------------------------------------------------------
+
+if (runningInPrimaryCheckout()) {
+	console.error(
+		"Run Sandcastle from a linked worktree, not the primary checkout: the merger commits on the branch checked out here.\n" +
+			"Set one up and run it there:\n" +
+			worktreeSetup(checkoutRoot(), runStamp()).map((command) => `  ${command}`).join("\n"),
+	);
+	process.exit(1);
+}
 
 for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 	console.log(`\n=== Iteration ${iteration}/${MAX_ITERATIONS} ===\n`);
