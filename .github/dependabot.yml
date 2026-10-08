@@ -81,9 +81,12 @@ updates:
         patterns:
           - "*"
 
-  # Maintain the web project's pnpm packages (Tailwind CLI)
+  # Maintain the pnpm packages: the root one (Sandcastle, the agent
+  # orchestration in .sandcastle/) and the web project's (Tailwind CLI)
   - package-ecosystem: "npm"
-    directory: "/src/Web"
+    directories:
+      - "/"
+      - "/src/Web"
     target-branch: "main"
     schedule:
       interval: "weekly"
