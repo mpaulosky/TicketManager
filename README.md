@@ -142,6 +142,7 @@ notes) and then:
 
 | Version | Date | Title | Blog post |
 | ------- | ---- | ----- | --------- |
+| [v0.0.61](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.61) | 2026-10-08 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-08-pr-137-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.60](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.60) | 2026-10-08 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-08-pr-135-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.59](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.59) | 2026-10-08 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-08-pr-133-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.58](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.58) | 2026-10-07 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-07-pr-131-chore-re-apply-the-repo-ci-baseline-template.md) |
@@ -151,7 +152,6 @@ notes) and then:
 | [v0.0.54](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.54) | 2026-10-05 | chore: Use pnpm instead of npx in the gate and hooks | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-121-chore-use-pnpm-instead-of-npx-in-the-gate-and-hooks.md) |
 | [v0.0.53](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.53) | 2026-10-05 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-120-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.52](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.52) | 2026-10-05 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-118-chore-re-apply-the-repo-ci-baseline-template.md) |
-| [v0.0.51](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.51) | 2026-10-05 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-05-pr-116-chore-re-apply-the-repo-ci-baseline-template.md) |
 
 <!-- RELEASES_END -->
 
