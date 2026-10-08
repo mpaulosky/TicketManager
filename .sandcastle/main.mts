@@ -21,6 +21,11 @@
 //
 // Usage (Node strips the types itself, as it does for test:sandcastle):
 //   pnpm run sandcastle
+//
+// Run it from a linked worktree on its own branch, not the primary checkout.
+// The merger uses Sandcastle's default `head` strategy for docker(), so it
+// merges and commits on the branch checked out where this runs, and the
+// pre-commit hook refuses commits in the primary checkout (see docs/PROCESS.md).
 
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
