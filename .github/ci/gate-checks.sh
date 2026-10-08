@@ -18,32 +18,13 @@ set -euo pipefail
 
 base="${1-}"
 
-# changed <pathspec>...: true when any matching path changed since <base>, or
-# always when there's no base. Deletions count.
-changed() {
-  [[ -z "$base" ]] && return 0
-  ! git diff --quiet --no-renames "$base" HEAD -- "$@"
-}
-
-# The tests rely on Node stripping the types from .mts files without a flag
-# (Node 22.18 or later) and on globs in `node --test` (Node 21). Fail with a
-# clear message on an older Node instead of a syntax error.
-require_node_22_18() {
-  if ! node -e 'const [a, b] = process.versions.node.split(".").map(Number); process.exit(a > 22 || (a === 22 && b >= 18) ? 0 : 1)'; then
-    echo "The Sandcastle tests need Node 22.18 or later; found $(node --version)." >&2
-    return 1
-  fi
-}
+# shellcheck source=.github/ci/sandcastle.sh
+source "$(dirname "$0")/sandcastle.sh"
 
 # Sandcastle's orchestration code: type-check it and run its tests. CI's
-# Build Solution job runs the same through .github/ci/prepare.sh. The paths are
-# what the tests read (branches.test.mts runs scripts/check-branch-name.sh) and
-# what pnpm install reads; keep them in step with prepare.sh's.
-if changed .sandcastle package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc scripts/check-branch-name.sh; then
-  echo "Sandcastle type check and tests (node $(node --version))"
-  require_node_22_18
-  pnpm install --frozen-lockfile
-  pnpm run test:sandcastle
+# Build Solution job runs the same through .github/ci/prepare.sh.
+if sandcastle_changed_since "$base"; then
+  run_sandcastle_tests
 else
   echo "No Sandcastle or root package changes to check."
 fi
