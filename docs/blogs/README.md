@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 | ---- | ----- | ---- |
+| 2026-10-08 | [chore(sandcastle): Have agents write Conventional Commits](2026-10-08-pr-153-chore-sandcastle-have-agents-write-conventional-commits.md) | release,automation |
 | 2026-10-08 | [chore(claude): Stop tracking .claude/scheduled_tasks.lock](2026-10-08-pr-156-chore-claude-stop-tracking-claude-scheduled-tasks-lock.md) | release,automation |
 | 2026-10-08 | [fix(sandcastle): Name bug branches fix/ instead of hotfix/](2026-10-08-pr-154-fix-sandcastle-name-bug-branches-fix-instead-of-hotfix.md) | release,automation |
 | 2026-10-08 | [chore: Commit the Sandcastle setup](2026-10-08-pr-149-chore-commit-the-sandcastle-setup.md) | release,automation |
