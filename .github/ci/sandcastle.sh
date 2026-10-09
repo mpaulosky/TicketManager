@@ -4,8 +4,10 @@
 # type-check and test Sandcastle's orchestration code (.sandcastle/).
 
 # What the Sandcastle tests read or run: the code itself, the root package
-# files pnpm install reads, the branch-name script branches.test.mts runs, and
-# the scripts that run the tests (this one included).
+# files pnpm install reads, the branch-name script branches.test.mts runs, the
+# scripts that run the tests (this one included) and the Template-owned files
+# that call them: scripts/gate.sh, and ci.yml, which also picks the runner and
+# so the Node the tests run on.
 SANDCASTLE_PATHS=(
   .sandcastle
   package.json
@@ -16,6 +18,8 @@ SANDCASTLE_PATHS=(
   .github/ci/sandcastle.sh
   .github/ci/gate-checks.sh
   .github/ci/prepare.sh
+  scripts/gate.sh
+  .github/workflows/ci.yml
 )
 
 # sandcastle_changed_since <base>: true when any of SANDCASTLE_PATHS changed
