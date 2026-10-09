@@ -43,8 +43,12 @@ Output your plan as a JSON object wrapped in `<plan>` tags:
 {"issues": [{"id": "42", "title": "Fix auth bug"}]}
 </plan>
 
-List each issue once. Include only unblocked issues from the ready list. If every issue is blocked, include the single highest-priority
-candidate (the one with the fewest or weakest dependencies).
+List each issue once. Include only unblocked issues from the ready list.
+
+Never include a ready issue that is blocked by an issue in review, even if that leaves nothing to pick: its prerequisite
+isn't on main yet. Only when every remaining ready issue is blocked by other *ready* issues (a cycle), include the single
+highest-priority one of those (the one with the fewest or weakest dependencies). If nothing is left, output
+`<plan>{"issues": []}</plan>`.
 
 Always emit the `<plan>` tags, even when there is nothing to do. If there are no issues to work on at all, output
 `<plan>{"issues": []}</plan>` so the run can exit cleanly.
