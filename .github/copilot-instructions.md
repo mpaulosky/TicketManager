@@ -59,8 +59,11 @@
 - Before a push or PR-ready handoff, run the repository's full required
   validation. The local pre-push hook checks branch naming and refuses a dirty
   working tree, then runs `scripts/gate.sh`: it lints the changed Markdown,
-  YAML, workflow (actionlint, zizmor) and shell (shellcheck) files, builds the
-  solution, and runs every test project.
+  YAML, workflow (actionlint, zizmor) and shell (shellcheck) files, runs the
+  repo checks in `.github/ci/gate-checks.sh`, builds the solution, and runs
+  every test project. The repo checks type-check and test the Sandcastle code
+  (`pnpm run test:sandcastle`, which needs Node 22.18 or later and pnpm) when
+  the branch touches one of the paths in `.github/ci/sandcastle.sh`.
 - Report exactly which validation commands ran and whether they passed. Do not claim tests or builds that were not run.
 - The branch, worktree, commit, PR title and PR description rules are in [docs/PROCESS.md](../docs/PROCESS.md).
 

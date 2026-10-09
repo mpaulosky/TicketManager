@@ -17,4 +17,16 @@
 set -euo pipefail
 
 base="${1-}"
-: "$base"
+
+# Sourced, so shellcheck run on this file alone (as the gate runs it) can't
+# follow it; it checks sandcastle.sh on its own.
+# shellcheck disable=SC1091
+source "$(dirname "$0")/sandcastle.sh"
+
+# Sandcastle's orchestration code: type-check it and run its tests. CI's
+# Build Solution job runs the same through .github/ci/prepare.sh.
+if sandcastle_changed_since "$base"; then
+  run_sandcastle_tests
+else
+  echo "No Sandcastle or root package changes to check."
+fi

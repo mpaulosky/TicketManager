@@ -29,8 +29,30 @@ install_pnpm_packages() {
   (cd src/Web && pnpm install --frozen-lockfile && touch node_modules/.install-stamp)
 }
 
+# Sourced, so shellcheck run on this file alone (as the gate runs it) can't
+# follow it; it checks sandcastle.sh on its own.
+# shellcheck disable=SC1091
+source "$(dirname "$0")/sandcastle.sh"
+
+# Sandcastle's orchestration code (.sandcastle/): type-check it and run its
+# tests. On a PR, only when it changes what the tests read (see sandcastle.sh),
+# as the local gate's .github/ci/gate-checks.sh does. On any other run (a push
+# to main, a manual run) or without an origin/main to compare with, always:
+# there HEAD is main, so the diff would always be empty. The tests run on the
+# runner's own Node, which strips the types itself.
+sandcastle_tests() {
+  local base
+  if [[ "${GITHUB_EVENT_NAME-}" == pull_request ]] \
+    && base="$(git merge-base HEAD origin/main 2>/dev/null)" \
+    && ! sandcastle_changed_since "$base"; then
+    echo "No Sandcastle or root package changes to test."
+    return
+  fi
+  run_sandcastle_tests
+}
+
 case "$job" in
-  build) install_pnpm_packages ;;
+  build) install_pnpm_packages; sandcastle_tests ;;
   test) : "$test_name"; install_pnpm_packages ;;
   *) echo "prepare.sh: unknown job '$job'" >&2; exit 2 ;;
 esac
