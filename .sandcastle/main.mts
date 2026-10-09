@@ -58,7 +58,7 @@ if (leakedTokens.length > 0) {
 // createSandbox so that, as in buildIssue, the sandbox is only closed (which
 // runs git on the host) while the git config is intact. It throws, which
 // stops the run, when it isn't. A missing or malformed plan throws too.
-async function runPlanner(ready: readonly SandcastleIssue[], mainSha: string) {
+async function runPlanner(ready: readonly SandcastleIssue[], inReview: readonly SandcastleIssue[], mainSha: string) {
 	const sandbox = await sandcastle.createSandbox({ branch: PLANNER_BRANCH, baseBranch: mainSha, sandbox: docker() });
 	try {
 		const result = await sandbox.run({
@@ -66,7 +66,7 @@ async function runPlanner(ready: readonly SandcastleIssue[], mainSha: string) {
 			maxIterations: 1,
 			agent: sandcastle.claudeCode(MODEL),
 			promptFile: "./.sandcastle/plan-prompt.md",
-			promptArgs: plannerPromptArgs(ready),
+			promptArgs: plannerPromptArgs(ready, inReview),
 		});
 		if (!gitConfigIntact(sandbox.worktreePath)) {
 			throw new Error("The git config changed while the planner ran. Left its sandbox running for you to inspect; stopping.");
@@ -91,7 +91,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 	// -------------------------------------------------------------------------
 	const { ready, inReview } = withoutOpenPullRequests(listSandcastleIssues(), openPullRequestBranches());
 	for (const issue of inReview) {
-		console.log(`  ⏸ #${issue.number} is held back: its pull request is open.`);
+		console.log(`  ⏸ #${issue.number} is held back: its pull request is open. It still blocks what depends on it.`);
 	}
 	if (ready.length === 0) {
 		console.log("No open Sandcastle issues ready to build. Exiting.");
@@ -102,7 +102,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 	const mainSha = fetchMain();
 
 	resetPlannerBranch(mainSha);
-	const plan = await runPlanner(ready, mainSha);
+	const plan = await runPlanner(ready, inReview, mainSha);
 
 	const picks = picksFrom(plan.issues.map(({ id }) => id), ready);
 	if (picks.length === 0) {

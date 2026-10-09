@@ -126,8 +126,12 @@ export async function buildIssue(
 		// not only when this run added commits: a re-run of a finished issue
 		// makes none, and its earlier work still needs a PR.
 		if (host.commitsAhead(main, checked) === 0) {
-			log("nothing to publish");
-			return { outcome: "nothing-to-publish" };
+			return stop(
+				"nothing-to-publish",
+				"Sandcastle's implementer finished this issue without changing anything main doesn't already have, so there's " +
+					"no pull request. If the issue is already done or needs no code, close it or remove the Sandcastle label; " +
+					"otherwise every run builds it again.",
+			);
 		}
 
 		// Review. The reviewer may commit refinements, and must end with a

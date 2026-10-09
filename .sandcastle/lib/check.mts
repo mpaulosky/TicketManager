@@ -8,7 +8,7 @@ import type { Sandbox } from "@ai-hero/sandcastle";
 // The check is main's copy of check.sh, not the branch's, named by the commit
 // the host got from origin rather than by origin/main: the agents can edit
 // the branch's copy and can move refs in the shared .git, but can't change
-// what a commit holds. PATH is the image's root-owned directories only, so
+// what a commit holds (replace refs, which could, are ignored). PATH is the image's root-owned directories only, so
 // the dotnet, pnpm and node it runs aren't ones an agent dropped in its home.
 //
 // This makes the check hard to sidestep by accident or by a casual
@@ -21,7 +21,7 @@ export function checkCommand(mainSha: string): string {
 	if (!/^[0-9a-f]{40,64}$/.test(mainSha)) throw new Error(`Not a commit id: ${mainSha}`);
 	return (
 		`export PATH=/usr/local/bin:/usr/bin:/bin; f="$(mktemp)" && ` +
-		`{ git show ${mainSha}:.sandcastle/check.sh > "$f" && bash "$f"; } 2>&1; s=$?; rm -f "$f"; exit $s`
+		`{ git --no-replace-objects show ${mainSha}:.sandcastle/check.sh > "$f" && bash "$f"; } 2>&1; s=$?; rm -f "$f"; exit $s`
 	);
 }
 

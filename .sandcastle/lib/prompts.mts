@@ -29,7 +29,12 @@ export function issuePromptArgs(issue: SandcastleIssue, branch: string, mainSha:
 	};
 }
 
-export function plannerPromptArgs(ready: readonly SandcastleIssue[]) {
-	// Without Sandcastle's own reports, which quote agent-written output.
-	return { ISSUES_JSON: JSON.stringify(ready.map(({ lastReport: _lastReport, ...issue }) => issue)) };
+// The ready issues, and the ones whose pull request is open: those can't be
+// picked (picksFrom only takes ready ones) but still block, since their
+// change isn't on main yet. Both without Sandcastle's own reports, which quote
+// agent-written output.
+export function plannerPromptArgs(ready: readonly SandcastleIssue[], inReview: readonly SandcastleIssue[]) {
+	const forPlanner = (issues: readonly SandcastleIssue[]) =>
+		JSON.stringify(issues.map(({ lastReport: _lastReport, ...issue }) => issue));
+	return { ISSUES_JSON: forPlanner(ready), IN_REVIEW_JSON: forPlanner(inReview) };
 }

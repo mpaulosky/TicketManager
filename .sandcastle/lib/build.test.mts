@@ -201,11 +201,11 @@ describe("buildIssue", () => {
 		assert.deepEqual(calls.published, []);
 	});
 
-	it("publishes nothing when the branch has no work main lacks", async () => {
+	it("publishes nothing when the branch has no work main lacks, and says so on the issue", async () => {
 		const { run, calls } = pipeline({ ahead: 0 });
 		assert.equal((await run()).outcome, "nothing-to-publish");
 		assert.deepEqual(calls.runs, ["implementer"]);
-		assert.deepEqual(calls.comments, []);
+		assert.match(calls.comments[0]!, /without changing anything/);
 	});
 
 	it("leaves the sandbox running when the git config changed, since closing it runs git on the host", async () => {

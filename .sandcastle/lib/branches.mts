@@ -3,7 +3,7 @@
 // work, and every name passes scripts/check-branch-name.sh.
 
 import { PLANNER_BRANCH } from "./config.mts";
-import { git } from "./shell.mts";
+import { git, trustedCommonDir, worktreeIntact } from "./shell.mts";
 
 const maxSlugLength = 50;
 
@@ -143,8 +143,34 @@ export function fetchMain(): string {
 // starts a branch from its base only when the branch is new, so without this
 // every planner would read the repository as it was when the branch was made,
 // along with anything an earlier planner committed there.
+// A planner worktree an interrupted run left behind still has the branch
+// checked out, which would make the reset fail, so it's removed first, once
+// its git files show it's safe to run git on.
 export function resetPlannerBranch(mainSha: string): void {
+	const leftover = worktreeForBranch(git(process.cwd(), "worktree", "list", "--porcelain"), PLANNER_BRANCH);
+	if (leftover !== undefined) {
+		if (!worktreeIntact(leftover, trustedCommonDir())) {
+			throw new Error(
+				`The planner's leftover worktree at ${leftover} has changed git files, so Sandcastle won't run git on it. ` +
+					"Inspect it, then delete the folder and run `git worktree prune`.",
+			);
+		}
+		console.warn(`  Removing the planner's leftover worktree at ${leftover}.`);
+		git(process.cwd(), "worktree", "remove", "--force", leftover);
+	}
 	git(process.cwd(), "branch", "--force", PLANNER_BRANCH, mainSha);
+}
+
+// The path of the worktree that has `branch` checked out, from
+// `git worktree list --porcelain` output, or undefined when none has.
+export function worktreeForBranch(porcelain: string, branch: string): string | undefined {
+	for (const entry of porcelain.split(/\n\n+/)) {
+		const lines = entry.split("\n");
+		if (lines.includes(`branch refs/heads/${branch}`)) {
+			return lines.find((line) => line.startsWith("worktree "))?.slice("worktree ".length);
+		}
+	}
+	return undefined;
 }
 
 // The commits `sha` has that `mainSha` doesn't.

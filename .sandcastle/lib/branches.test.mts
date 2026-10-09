@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { describe, it } from "node:test";
-import { branchFor, isIssueBranch, parseHeads, prepareBranches, slugFor, withoutOpenPullRequests } from "./branches.mts";
+import { branchFor, isIssueBranch, parseHeads, prepareBranches, slugFor, withoutOpenPullRequests, worktreeForBranch } from "./branches.mts";
 
 const issue = (number: number, title: string, labels: string[] = ["Sandcastle"]) => ({ number, title, labels });
 
@@ -171,5 +171,22 @@ describe("prepareBranches", () => {
 		const { work } = prepareBranches([issue(4, "Add search", ["bug"])], git);
 		assert.deepEqual(work.map((w) => w.branch), ["fix/4-add-search"]);
 		assert.deepEqual(calls.fetched, []);
+	});
+});
+
+describe("worktreeForBranch", () => {
+	const porcelain = [
+		"worktree /repo\nHEAD aaa\nbranch refs/heads/main",
+		"worktree /repo/.sandcastle/worktrees/planner\nHEAD bbb\nbranch refs/heads/chore/sandcastle-planner",
+		"worktree /repo/.sandcastle/worktrees/x\nHEAD ccc\ndetached",
+	].join("\n\n");
+
+	it("finds the worktree that has the branch checked out", () => {
+		assert.equal(worktreeForBranch(porcelain, "chore/sandcastle-planner"), "/repo/.sandcastle/worktrees/planner");
+	});
+
+	it("finds nothing when no worktree has it, or only a longer name matches", () => {
+		assert.equal(worktreeForBranch(porcelain, "chore/sandcastle"), undefined);
+		assert.equal(worktreeForBranch(porcelain, "feature/1-x"), undefined);
 	});
 });

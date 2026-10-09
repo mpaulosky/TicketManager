@@ -53,7 +53,8 @@ export const gitConfigTampered = () => tampered;
 // own config.worktree (under .git/worktrees/<name>/ for a linked worktree),
 // and its commondir file, which would point git at another config. Host git
 // and gh also get GIT_DIR and GIT_COMMON_DIR, so git never follows a
-// commondir file to find the config.
+// commondir file to find the config, and GIT_NO_REPLACE_OBJECTS, so a
+// replace ref an agent wrote can't change what a commit id names.
 export function trustGitConfig(cwd = process.cwd()): void {
 	const revParse = (...args: string[]) =>
 		resolve(cwd, execFileSync("git", ["rev-parse", "--path-format=absolute", ...args], { cwd, encoding: "utf8" }).trim());
@@ -97,6 +98,12 @@ export function assertLeftoverWorktreesIntact(cwd = process.cwd()): void {
 	}
 }
 
+// The clone's common git directory, as trustGitConfig recorded it.
+export function trustedCommonDir(): string {
+	if (!repo) throw new Error("trustGitConfig() must run first.");
+	return repo.commonDir;
+}
+
 // Whether the config is still as recorded and, given a sandbox's worktree,
 // that it still points where it should; false (and tampered) otherwise.
 export function gitConfigIntact(worktreePath?: string): boolean {
@@ -116,7 +123,7 @@ export function gitConfigIntact(worktreePath?: string): boolean {
 function verifyGitConfig(): NodeJS.ProcessEnv {
 	if (!guard || !repo) throw new Error("trustGitConfig() must run before the host runs git or gh.");
 	guard.verify();
-	return { ...process.env, GIT_DIR: repo.gitDir, GIT_COMMON_DIR: repo.commonDir };
+	return { ...process.env, GIT_DIR: repo.gitDir, GIT_COMMON_DIR: repo.commonDir, GIT_NO_REPLACE_OBJECTS: "1" };
 }
 
 // Run a command on the host in `cwd` and return trimmed stdout. Throws on failure.

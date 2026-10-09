@@ -11,8 +11,15 @@ const placeholders = (file: string) =>
 
 describe("plannerPromptArgs", () => {
 	it("leaves out Sandcastle's own reports", () => {
-		const args = plannerPromptArgs([{ ...issue, lastReport: "The check failed." }]);
+		const args = plannerPromptArgs([{ ...issue, lastReport: "The check failed." }], [{ ...issue, number: 6, lastReport: "Rejected." }]);
 		assert.doesNotMatch(args.ISSUES_JSON, /The check failed/);
+		assert.doesNotMatch(args.IN_REVIEW_JSON, /Rejected/);
+	});
+
+	it("lists the issues in review separately, so they block without being picked", () => {
+		const args = plannerPromptArgs([issue], [{ ...issue, number: 6 }]);
+		assert.match(args.IN_REVIEW_JSON, /"number":6/);
+		assert.doesNotMatch(args.ISSUES_JSON, /"number":6/);
 	});
 });
 
@@ -39,7 +46,7 @@ describe("issuePromptArgs", () => {
 	}
 
 	it("supplies every placeholder plan-prompt.md uses", () => {
-		const args = plannerPromptArgs([issue]);
+		const args = plannerPromptArgs([issue], []);
 		for (const key of placeholders("plan-prompt.md")) assert.ok(key in args, `plan-prompt.md uses {{${key}}}`);
 	});
 });

@@ -74,7 +74,7 @@ describe("runCheck", () => {
 
 describe("checkCommand", () => {
 	it("runs main's copy of check.sh by commit id, not a ref an agent could move", () => {
-		assert.ok(CHECK_COMMAND.includes(`git show ${main}:.sandcastle/check.sh`));
+		assert.ok(CHECK_COMMAND.includes(`git --no-replace-objects show ${main}:.sandcastle/check.sh`));
 		assert.doesNotMatch(CHECK_COMMAND, /origin\/main/);
 	});
 
