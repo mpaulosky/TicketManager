@@ -44,6 +44,7 @@ function pipeline(options: {
 	const ok = (stdout = "") => ({ stdout, stderr: "", exitCode: 0 });
 
 	const sandbox = {
+		worktreePath: "/tmp/worktree",
 		run: async (opts: { name?: string }) => {
 			calls.runs.push(opts.name!);
 			const result = results[opts.name!]!;
@@ -143,7 +144,7 @@ describe("buildIssue", () => {
 		const { run, calls } = pipeline({ implementer: { moveHead: true } });
 		assert.equal((await run()).outcome, "implementer-unfinished");
 		assert.deepEqual(calls.runs, ["implementer"]);
-		assert.match(calls.comments[0]!, /ran out of iterations/);
+		assert.match(calls.comments[0]!, /the implementer ran out of iterations unfinished\./);
 	});
 
 	it("stops when the check fails after the implementer", async () => {

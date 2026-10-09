@@ -23,11 +23,13 @@ export function issuePromptArgs(issue: SandcastleIssue, branch: string, mainSha:
 		ISSUE_TITLE: issue.title,
 		ISSUE_BODY: issue.body || "(no description)",
 		ISSUE_COMMENTS: issue.comments.length > 0 ? issue.comments.join("\n\n---\n\n") : "(no comments)",
+		LAST_REPORT: issue.lastReport ?? "(none)",
 		BRANCH: branch,
 		BASE_BRANCH: mainSha,
 	};
 }
 
 export function plannerPromptArgs(ready: readonly SandcastleIssue[]) {
-	return { ISSUES_JSON: JSON.stringify(ready) };
+	// Without Sandcastle's own reports, which quote agent-written output.
+	return { ISSUES_JSON: JSON.stringify(ready.map(({ lastReport: _lastReport, ...issue }) => issue)) };
 }

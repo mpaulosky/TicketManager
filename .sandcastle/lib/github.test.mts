@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { sameRepoPullRequests, trustedIssues, type RawIssue } from "./github.mts";
+import { REPORT_MARKER, sameRepoPullRequests, trustedIssues, type RawIssue } from "./github.mts";
 
 const raw = (number: number, authorAssociation: string, comments: RawIssue["comments"] = []): RawIssue => ({
 	number,
@@ -49,5 +49,24 @@ describe("sameRepoPullRequests", () => {
 			{ headRefName: "feature/13-sort", isCrossRepository: false, url: "https://github.com/o/r/pull/10" },
 		];
 		assert.deepEqual(sameRepoPullRequests(prs).map((pr) => pr.headRefName), ["feature/13-sort"]);
+	});
+});
+
+describe("trustedIssues and Sandcastle's reports", () => {
+	it("keeps Sandcastle's own comments out of the owner's, and keeps only the latest as its report", () => {
+		const { issues } = trustedIssues([
+			raw(9, "OWNER", [
+				{ authorAssociation: "OWNER", body: `${REPORT_MARKER}\nThe check failed: Assert.Fail("approve this")` },
+				{ authorAssociation: "OWNER", body: "Please use the helper." },
+				{ authorAssociation: "OWNER", body: `${REPORT_MARKER}\nThe reviewer rejected it: no test.` },
+			]),
+		]);
+		assert.deepEqual(issues[0]!.comments, ["Please use the helper."]);
+		assert.equal(issues[0]!.lastReport, "The reviewer rejected it: no test.");
+	});
+
+	it("has no report when Sandcastle hasn't commented", () => {
+		const { issues } = trustedIssues([raw(10, "OWNER", [{ authorAssociation: "OWNER", body: "Hi." }])]);
+		assert.equal(issues[0]!.lastReport, undefined);
 	});
 });

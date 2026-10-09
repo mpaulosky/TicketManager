@@ -22,9 +22,17 @@ export type SandcastleIssue = {
 	title: string;
 	body: string;
 	labels: string[];
-	// Only comments from trusted authors; see trustedIssues.
+	// Only comments from trusted authors, without Sandcastle's own; see trustedIssues.
 	comments: string[];
+	// Sandcastle's latest report on the issue (see commentOnIssue), if any.
+	lastReport?: string;
 };
+
+// The first line of every comment the host posts. Those comments carry the
+// user's own author association, but much of what they quote (check output,
+// a rejection summary) came from agents, so they mustn't reach later agents
+// as the owner's words.
+export const REPORT_MARKER = "<!-- sandcastle-report -->";
 
 // Keep only what trusted authors wrote: an issue opened by anyone else is
 // dropped (its body can't be trusted), and so is every untrusted comment.
@@ -37,14 +45,18 @@ export function trustedIssues(raw: readonly RawIssue[]): { issues: SandcastleIss
 			untrusted.push(issue.number);
 			continue;
 		}
+		const trusted = issue.comments
+			.filter((comment) => TRUSTED_ASSOCIATIONS.has(comment.authorAssociation))
+			.map((comment) => comment.body);
+		const reports = trusted.filter((body) => body.startsWith(REPORT_MARKER));
+		const lastReport = reports.at(-1)?.slice(REPORT_MARKER.length).trim();
 		issues.push({
 			number: issue.number,
 			title: issue.title,
 			body: issue.body,
 			labels: issue.labels,
-			comments: issue.comments
-				.filter((comment) => TRUSTED_ASSOCIATIONS.has(comment.authorAssociation))
-				.map((comment) => comment.body),
+			comments: trusted.filter((body) => !body.startsWith(REPORT_MARKER)),
+			...(lastReport ? { lastReport } : {}),
 		});
 	}
 	return { issues, untrusted };
@@ -143,7 +155,7 @@ export function openPullRequestBranches(): string[] {
 }
 
 export function commentOnIssue(issue: number, body: string): void {
-	gh(["issue", "comment", String(issue), ...repoFlag(), "--body-file", "-"], body);
+	gh(["issue", "comment", String(issue), ...repoFlag(), "--body-file", "-"], `${REPORT_MARKER}\n${body}`);
 }
 
 // Open a draft pull request for the branch, or return the open one it already

@@ -9,6 +9,13 @@ const issue = { number: 5, title: "Add search", body: "", labels: ["Sandcastle"]
 const placeholders = (file: string) =>
 	new Set([...readFileSync(new URL(`../${file}`, import.meta.url), "utf8").matchAll(/\{\{\s*([A-Za-z_]\w*)\s*\}\}/g)].map((m) => m[1]!));
 
+describe("plannerPromptArgs", () => {
+	it("leaves out Sandcastle's own reports", () => {
+		const args = plannerPromptArgs([{ ...issue, lastReport: "The check failed." }]);
+		assert.doesNotMatch(args.ISSUES_JSON, /The check failed/);
+	});
+});
+
 describe("issuePromptArgs", () => {
 	it("fills in an empty body and joins the comments", () => {
 		const args = issuePromptArgs(issue, "feature/5-add-search", "c".repeat(40));

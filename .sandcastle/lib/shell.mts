@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 
 // Sandcastle mounts the clone's .git directory read-write into every sandbox,
 // because the agents' commits have to land in it. So an agent can rewrite
@@ -40,48 +40,98 @@ export class GitConfigGuard {
 }
 
 let guard: GitConfigGuard | undefined;
+let repo: { gitDir: string; commonDir: string } | undefined;
 let tampered = false;
 
 // Whether a config change was found. A sandbox is then left running rather
 // than closed, because closing it runs git on the host.
 export const gitConfigTampered = () => tampered;
 
-// Record the clone's git config. main.mts calls this before it creates any
-// sandbox; host git and gh calls refuse to run until it has.
-// The files are the shared config and this checkout's own config.worktree,
-// which for a linked worktree lives under .git/worktrees/<name>/.
+// Record the clone's git config and where its git directories are. main.mts
+// calls this before it creates any sandbox; host git and gh calls refuse to
+// run until it has. The guarded files are the shared config, this checkout's
+// own config.worktree (under .git/worktrees/<name>/ for a linked worktree),
+// and its commondir file, which would point git at another config. Host git
+// and gh also get GIT_DIR and GIT_COMMON_DIR, so git never follows a
+// commondir file to find the config.
 export function trustGitConfig(cwd = process.cwd()): void {
-	const gitPath = (path: string) =>
-		resolve(cwd, execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-path", path], { cwd, encoding: "utf8" }).trim());
-	const commonDir = resolve(cwd, execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { cwd, encoding: "utf8" }).trim());
-	guard = new GitConfigGuard([...new Set([join(commonDir, "config"), gitPath("config.worktree")])]);
+	const revParse = (...args: string[]) =>
+		resolve(cwd, execFileSync("git", ["rev-parse", "--path-format=absolute", ...args], { cwd, encoding: "utf8" }).trim());
+	repo = { gitDir: revParse("--absolute-git-dir"), commonDir: revParse("--git-common-dir") };
+	guard = new GitConfigGuard([
+		...new Set([join(repo.commonDir, "config"), join(repo.gitDir, "config.worktree"), join(repo.gitDir, "commondir")]),
+	]);
 }
 
-// Whether the config is still as recorded; false (and tampered) otherwise.
-export function gitConfigIntact(): boolean {
+// Whether a sandbox's worktree still points git where Sandcastle made it
+// point. Closing a sandbox runs git on the host inside the worktree, which
+// reads the worktree's .git file and, through it, a commondir file: both are
+// in the sandbox's reach, and either could lead git to a config an agent
+// wrote. Git writes "gitdir: <common>/worktrees/<name>" and "../..".
+export function worktreeIntact(worktreePath: string, commonDir: string): boolean {
 	try {
-		verifyGitConfig();
-		return true;
+		const pointer = /^gitdir: (.+)\n?$/.exec(readFileSync(join(worktreePath, ".git"), "utf8"));
+		if (!pointer) return false;
+		const gitDir = resolve(worktreePath, pointer[1]!);
+		if (dirname(gitDir) !== join(commonDir, "worktrees")) return false;
+		if (existsSync(join(gitDir, "config.worktree"))) return false;
+		return readFileSync(join(gitDir, "commondir"), "utf8").trim() === "../..";
 	} catch {
 		return false;
 	}
 }
 
-function verifyGitConfig(): void {
-	if (!guard) throw new Error("trustGitConfig() must run before the host runs git or gh.");
+// Refuse to go on while a worktree an earlier run left under
+// .sandcastle/worktrees/ has redirected git files: Sandcastle reuses such a
+// worktree for its branch and runs git in it on the host. Throws, naming them.
+export function assertLeftoverWorktreesIntact(cwd = process.cwd()): void {
+	if (!repo) throw new Error("trustGitConfig() must run first.");
+	const dir = join(cwd, ".sandcastle", "worktrees");
+	if (!existsSync(dir)) return;
+	const bad = readdirSync(dir)
+		.map((name) => join(dir, name))
+		.filter((path) => existsSync(join(path, ".git")) && !worktreeIntact(path, repo!.commonDir));
+	if (bad.length > 0) {
+		tampered = true;
+		throw new Error(`These worktrees' git files were changed, so Sandcastle won't run git in them: ${bad.join(", ")}. Inspect and remove them by hand.`);
+	}
+}
+
+// Whether the config is still as recorded and, given a sandbox's worktree,
+// that it still points where it should; false (and tampered) otherwise.
+export function gitConfigIntact(worktreePath?: string): boolean {
+	try {
+		verifyGitConfig();
+	} catch {
+		return false;
+	}
+	if (worktreePath !== undefined && !worktreeIntact(worktreePath, repo!.commonDir)) {
+		tampered = true;
+		console.error(`The git files of the worktree at ${worktreePath} changed; an agent may have redirected them.`);
+		return false;
+	}
+	return true;
+}
+
+function verifyGitConfig(): NodeJS.ProcessEnv {
+	if (!guard || !repo) throw new Error("trustGitConfig() must run before the host runs git or gh.");
 	guard.verify();
+	return { ...process.env, GIT_DIR: repo.gitDir, GIT_COMMON_DIR: repo.commonDir };
 }
 
 // Run a command on the host in `cwd` and return trimmed stdout. Throws on failure.
-export const sh = (cwd: string, cmd: string, ...args: string[]) =>
-	execFileSync(cmd, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] }).trim();
+export const sh = (cwd: string, cmd: string, ...args: string[]) => shWith(process.env, cwd, cmd, ...args);
+
+const shWith = (env: NodeJS.ProcessEnv, cwd: string, cmd: string, ...args: string[]) =>
+	execFileSync(cmd, args, { cwd, env, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] }).trim();
 
 // Run gh on the host, once the git config it reads the remotes from is known
 // to be unchanged. `input` is piped to stdin.
 export function gh(args: readonly string[], input?: string): string {
-	verifyGitConfig();
+	const env = verifyGitConfig();
 	return execFileSync("gh", args, {
 		cwd: process.cwd(),
+		env,
 		encoding: "utf8",
 		stdio: [input === undefined ? "ignore" : "pipe", "pipe", "inherit"],
 		input,
@@ -95,6 +145,6 @@ export function gh(args: readonly string[], input?: string): string {
 // code running outside the sandbox. The full gate those hooks would run is
 // CI's job.
 export function git(cwd: string, ...args: string[]): string {
-	verifyGitConfig();
-	return sh(cwd, "git", "-c", "core.hooksPath=/dev/null", ...args);
+	const env = verifyGitConfig();
+	return shWith(env, cwd, "git", "-c", "core.hooksPath=/dev/null", ...args);
 }

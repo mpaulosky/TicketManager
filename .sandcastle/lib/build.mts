@@ -16,7 +16,7 @@ import { git, gitConfigIntact } from "./shell.mts";
 import { parseVerdict, type Verdict } from "./verdict.mts";
 
 // The parts of a sandbox buildIssue uses; tests pass a fake.
-export type BuildSandbox = Pick<sandcastle.Sandbox, "run" | "exec" | "close">;
+export type BuildSandbox = Pick<sandcastle.Sandbox, "run" | "exec" | "close" | "worktreePath">;
 
 // What buildIssue needs from outside the pipeline; tests pass stubs.
 export type BuildHost = {
@@ -28,8 +28,9 @@ export type BuildHost = {
 	commentOnIssue(issueNumber: number, body: string): void;
 	// Push the commit to the branch on origin and open (or reuse) its pull request.
 	publish(branch: string, sha: string, title: string, body: string): string;
-	// False once an agent may have rewritten the clone's git config (see GitConfigGuard).
-	gitConfigIntact(): boolean;
+	// False once an agent may have rewritten the clone's git config or
+	// redirected the worktree's git files (see GitConfigGuard and worktreeIntact).
+	gitConfigIntact(worktreePath: string): boolean;
 	log(line: string): void;
 };
 
@@ -84,7 +85,7 @@ export async function buildIssue(
 		// Implement. A run that throws or uses up its iterations without
 		// signalling completion stops the issue for this round.
 		let finished: boolean;
-		let failure = "it ran out of iterations unfinished";
+		let failure = "ran out of iterations unfinished";
 		try {
 			const implement = await sandbox.run({
 				name: "implementer",
@@ -96,7 +97,7 @@ export async function buildIssue(
 			finished = implement.completionSignal !== undefined;
 		} catch (error) {
 			finished = false;
-			failure = `it failed: ${error}`;
+			failure = `failed: ${error}`;
 		}
 		if (!finished) {
 			return stop("implementer-unfinished", `Sandcastle stopped building this issue: the implementer ${failure}. ${notPushed}`);
@@ -184,7 +185,7 @@ export async function buildIssue(
 	} finally {
 		// Closing removes the worktree with git on the host, which would read a
 		// rewritten config. Leave the sandbox for a person to inspect instead.
-		if (host.gitConfigIntact()) {
+		if (host.gitConfigIntact(sandbox.worktreePath)) {
 			await sandbox.close();
 		} else {
 			log("left the sandbox running: the git config changed");

@@ -34,7 +34,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
-import { fetchMain, prepareBranches, withoutOpenPullRequests } from "./lib/branches.mts";
+import { fetchMain, prepareBranches, resetPlannerBranch, withoutOpenPullRequests } from "./lib/branches.mts";
 import { buildIssue } from "./lib/build.mts";
 import { MAX_ITERATIONS, MODEL, PLANNER_BRANCH } from "./lib/config.mts";
 import { commentOnIssue, listSandcastleIssues, openPullRequestBranches, repoName } from "./lib/github.mts";
@@ -42,7 +42,7 @@ import { parsePlan, picksFrom } from "./lib/plan.mts";
 import { plannerPromptArgs } from "./lib/prompts.mts";
 import type { SandcastleIssue } from "./lib/github.mts";
 import { githubTokensIn } from "./lib/sandbox-env.mts";
-import { gitConfigIntact, gitConfigTampered, trustGitConfig } from "./lib/shell.mts";
+import { assertLeftoverWorktreesIntact, gitConfigIntact, gitConfigTampered, trustGitConfig } from "./lib/shell.mts";
 
 const envFile = ".sandcastle/.env";
 const leakedTokens = existsSync(envFile) ? githubTokensIn(readFileSync(envFile, "utf8")) : [];
@@ -56,8 +56,8 @@ if (leakedTokens.length > 0) {
 // Run the planner in a worktree of its own (not docker()'s default "head"
 // strategy, which would mount this checkout and let it write here), through
 // createSandbox so that, as in buildIssue, the sandbox is only closed (which
-// runs git on the host) while the git config is intact. Returns undefined
-// when it isn't. A missing or malformed plan throws, which stops the run.
+// runs git on the host) while the git config is intact. It throws, which
+// stops the run, when it isn't. A missing or malformed plan throws too.
 async function runPlanner(ready: readonly SandcastleIssue[], mainSha: string) {
 	const sandbox = await sandcastle.createSandbox({ branch: PLANNER_BRANCH, baseBranch: mainSha, sandbox: docker() });
 	try {
@@ -68,13 +68,12 @@ async function runPlanner(ready: readonly SandcastleIssue[], mainSha: string) {
 			promptFile: "./.sandcastle/plan-prompt.md",
 			promptArgs: plannerPromptArgs(ready),
 		});
-		return gitConfigIntact() ? parsePlan(result.stdout) : undefined;
-	} finally {
-		if (gitConfigIntact()) {
-			await sandbox.close();
-		} else {
-			console.error("The git config changed while the planner ran. Left its sandbox running for you to inspect; stopping.");
+		if (!gitConfigIntact(sandbox.worktreePath)) {
+			throw new Error("The git config changed while the planner ran. Left its sandbox running for you to inspect; stopping.");
 		}
+		return parsePlan(result.stdout);
+	} finally {
+		if (gitConfigIntact(sandbox.worktreePath)) await sandbox.close();
 	}
 }
 
@@ -82,6 +81,7 @@ async function runPlanner(ready: readonly SandcastleIssue[], mainSha: string) {
 // GitConfigGuard and repoName.
 trustGitConfig();
 repoName();
+assertLeftoverWorktreesIntact();
 
 for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 	console.log(`\n=== Iteration ${iteration}/${MAX_ITERATIONS} ===\n`);
@@ -101,8 +101,8 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 	// main's commit for this round, read from origin: see fetchMain.
 	const mainSha = fetchMain();
 
+	resetPlannerBranch(mainSha);
 	const plan = await runPlanner(ready, mainSha);
-	if (!plan) break;
 
 	const picks = picksFrom(plan.issues.map(({ id }) => id), ready);
 	if (picks.length === 0) {

@@ -2,6 +2,7 @@
 // so re-planning an issue always lands on the branch that holds its earlier
 // work, and every name passes scripts/check-branch-name.sh.
 
+import { PLANNER_BRANCH } from "./config.mts";
 import { git } from "./shell.mts";
 
 const maxSlugLength = 50;
@@ -136,6 +137,14 @@ export function fetchMain(): string {
 	git(process.cwd(), "fetch", "--quiet", "origin", "main");
 	git(process.cwd(), "cat-file", "-e", `${sha}^{commit}`);
 	return sha;
+}
+
+// Move the planner's branch to main's commit before each plan. Sandcastle
+// starts a branch from its base only when the branch is new, so without this
+// every planner would read the repository as it was when the branch was made,
+// along with anything an earlier planner committed there.
+export function resetPlannerBranch(mainSha: string): void {
+	git(process.cwd(), "branch", "--force", PLANNER_BRANCH, mainSha);
 }
 
 // The commits `sha` has that `mainSha` doesn't.

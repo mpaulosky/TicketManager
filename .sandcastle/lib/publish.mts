@@ -19,6 +19,15 @@ export function prTitle(issue: Pick<SandcastleIssue, "title" | "labels">): strin
 	return `${prefix}${summary.charAt(0).toUpperCase()}${summary.slice(1)}`;
 }
 
+// GitHub's closing keywords (close, closes, closed, fix, fixes, fixed,
+// resolve, resolves, resolved), with a zero-width space after the first
+// letter so GitHub no longer reads them. A fence keeps them inert on the PR
+// page, but the description becomes the squash commit's message, where a
+// "fixes #12" closes #12 whatever surrounds it.
+export function withoutClosingKeywords(text: string): string {
+	return text.replace(/\b(clos(?:e[sd]?)|fix(?:e[sd])?|resolv(?:e[sd]?))\b/gi, (word) => `${word[0]}\u200b${word.slice(1)}`);
+}
+
 export function prBody(issue: Pick<SandcastleIssue, "number" | "title">, reviewSummary: string): string {
 	return [
 		"## Why",
@@ -29,9 +38,9 @@ export function prBody(issue: Pick<SandcastleIssue, "number" | "title">, reviewS
 		"",
 		"Sandcastle's implementer built the change in a sandbox, and its reviewer approved it:",
 		"",
-		// In a fence, so a "Fixes #12" or @mention the model wrote is shown,
-		// not acted on.
-		fenced(reviewSummary),
+		// In a fence, so an @mention the model wrote is shown, not acted on, and
+		// without closing keywords, which a fence doesn't stop in the commit.
+		fenced(withoutClosingKeywords(reviewSummary)),
 		"",
 		"## Verification",
 		"",

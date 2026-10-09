@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { describe, it } from "node:test";
-import { prBody, prTitle } from "./publish.mts";
+import { prBody, prTitle, withoutClosingKeywords } from "./publish.mts";
 
 // The PR title standard, from the script the required PR title check runs.
 const passesTitleCheck = (title: string) => {
@@ -43,11 +43,21 @@ describe("prTitle", () => {
 	});
 });
 
+describe("withoutClosingKeywords", () => {
+	it("breaks every form of every closing keyword, and nothing else", () => {
+		for (const word of ["close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved", "FIXES"]) {
+			assert.notEqual(withoutClosingKeywords(word), word, word);
+		}
+		assert.equal(withoutClosingKeywords("prefix fixture closet unresolved"), "prefix fixture closet unresolved");
+	});
+});
+
 describe("prBody", () => {
-	it("keeps closing keywords and mentions in the review inside a fence", () => {
-		const body = prBody({ number: 42, title: "Add search" }, "Fixes #12, cc @someone");
-		assert.ok(body.includes("```text\nFixes #12, cc @someone\n```"));
-		assert.ok(body.endsWith("\n\nFixes #42"));
+	it("fences the review and breaks its closing keywords, leaving only the PR's own", () => {
+		const body = prBody({ number: 42, title: "Add search" }, "Also fixes #12 and closes o/r#3, cc @someone");
+		assert.ok(body.includes("```text\nAlso f\u200bixes #12 and c\u200bloses o/r#3, cc @someone\n```"));
+		const keywords = body.match(/\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\s+\S*#\d+/gi);
+		assert.deepEqual(keywords, ["Fixes #42"]);
 	});
 
 	it("uses the template's headings, fences the review and closes the issue", () => {
