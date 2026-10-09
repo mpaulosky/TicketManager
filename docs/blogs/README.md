@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 | ---- | ----- | ---- |
+| 2026-10-09 | [ci: Run the Sandcastle tests when gate.sh or ci.yml changes](2026-10-09-pr-162-ci-run-the-sandcastle-tests-when-gate-sh-or-ci-yml-changes.md) | release,automation |
 | 2026-10-09 | [ci: Type-check and run the Sandcastle tests in the gate and in CI](2026-10-09-pr-158-ci-type-check-and-run-the-sandcastle-tests-in-the-gate-and-in-ci.md) | release,automation |
 | 2026-10-08 | [chore(sandcastle): Have agents write Conventional Commits](2026-10-08-pr-153-chore-sandcastle-have-agents-write-conventional-commits.md) | release,automation |
 | 2026-10-08 | [chore(claude): Stop tracking .claude/scheduled_tasks.lock](2026-10-08-pr-156-chore-claude-stop-tracking-claude-scheduled-tasks-lock.md) | release,automation |
