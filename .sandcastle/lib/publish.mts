@@ -2,6 +2,7 @@
 // follow docs/PROCESS.md, so the required PR title check passes and the
 // description reads like any other.
 
+import { fenced } from "./check.mts";
 import type { SandcastleIssue } from "./github.mts";
 
 const conventionalTitle = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([^)]+\))?!?: \S/;
@@ -28,12 +29,15 @@ export function prBody(issue: Pick<SandcastleIssue, "number" | "title">, reviewS
 		"",
 		"Sandcastle's implementer built the change in a sandbox, and its reviewer approved it:",
 		"",
-		...reviewSummary.split("\n").map((line) => `> ${line}`),
+		// In a fence, so a "Fixes #12" or @mention the model wrote is shown,
+		// not acted on.
+		fenced(reviewSummary),
 		"",
 		"## Verification",
 		"",
 		"- `.sandcastle/check.sh` (the solution build and every test project that needs neither Docker nor a browser)",
-		"  passed in the sandbox on the commit this PR was opened with, after main was merged in.",
+		"  passed in the sandbox on the commit this PR was opened with, after main was merged in. The agents had a shell",
+		"  in that sandbox, so treat this as a sanity check.",
 		"- CI runs the full suite, including the Aspire and Playwright tests.",
 		"",
 		`Fixes #${issue.number}`,

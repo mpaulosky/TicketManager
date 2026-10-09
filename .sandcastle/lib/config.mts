@@ -15,10 +15,6 @@ export const IMPLEMENTER_ITERATIONS = 100;
 // How much of a failed check's output an issue comment quotes.
 export const CHECK_COMMENT_LINES = 100;
 
-// The branch every issue branch starts from, is reviewed against and has
-// merged in before it's published. The host fetches it.
-export const BASE_BRANCH = "origin/main";
-
 // The planner's own branch. It reads and commits nothing, but runs in a
 // worktree on this branch so it never touches the checkout Sandcastle runs in.
 export const PLANNER_BRANCH = "chore/sandcastle-planner";

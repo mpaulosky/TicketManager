@@ -36,12 +36,13 @@ import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { fetchMain, prepareBranches, withoutOpenPullRequests } from "./lib/branches.mts";
 import { buildIssue } from "./lib/build.mts";
-import { BASE_BRANCH, MAX_ITERATIONS, MODEL, PLANNER_BRANCH } from "./lib/config.mts";
+import { MAX_ITERATIONS, MODEL, PLANNER_BRANCH } from "./lib/config.mts";
 import { commentOnIssue, listSandcastleIssues, openPullRequestBranches, repoName } from "./lib/github.mts";
-import { picksFrom, planSchema } from "./lib/plan.mts";
+import { parsePlan, picksFrom } from "./lib/plan.mts";
 import { plannerPromptArgs } from "./lib/prompts.mts";
+import type { SandcastleIssue } from "./lib/github.mts";
 import { githubTokensIn } from "./lib/sandbox-env.mts";
-import { gitConfigTampered, trustGitConfig } from "./lib/shell.mts";
+import { gitConfigIntact, gitConfigTampered, trustGitConfig } from "./lib/shell.mts";
 
 const envFile = ".sandcastle/.env";
 const leakedTokens = existsSync(envFile) ? githubTokensIn(readFileSync(envFile, "utf8")) : [];
@@ -50,6 +51,31 @@ if (leakedTokens.length > 0) {
 		`${envFile} sets ${leakedTokens.join(" and ")}, which Sandcastle would pass into the sandbox. ` +
 			"Remove it: the host uses its own gh auth, and agents must not reach GitHub.",
 	);
+}
+
+// Run the planner in a worktree of its own (not docker()'s default "head"
+// strategy, which would mount this checkout and let it write here), through
+// createSandbox so that, as in buildIssue, the sandbox is only closed (which
+// runs git on the host) while the git config is intact. Returns undefined
+// when it isn't. A missing or malformed plan throws, which stops the run.
+async function runPlanner(ready: readonly SandcastleIssue[], mainSha: string) {
+	const sandbox = await sandcastle.createSandbox({ branch: PLANNER_BRANCH, baseBranch: mainSha, sandbox: docker() });
+	try {
+		const result = await sandbox.run({
+			name: "planner",
+			maxIterations: 1,
+			agent: sandcastle.claudeCode(MODEL),
+			promptFile: "./.sandcastle/plan-prompt.md",
+			promptArgs: plannerPromptArgs(ready),
+		});
+		return gitConfigIntact() ? parsePlan(result.stdout) : undefined;
+	} finally {
+		if (gitConfigIntact()) {
+			await sandbox.close();
+		} else {
+			console.error("The git config changed while the planner ran. Left its sandbox running for you to inspect; stopping.");
+		}
+	}
 }
 
 // Record the git config and the repository before any sandbox exists; see
@@ -72,23 +98,13 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 		break;
 	}
 
-	const plan = await sandcastle.run({
-		sandbox: docker(),
-		// A worktree of its own, not docker()'s default "head" strategy, which
-		// would mount this checkout and let the planner write to it.
-		branchStrategy: { type: "branch", branch: PLANNER_BRANCH, baseBranch: BASE_BRANCH },
-		name: "planner",
-		// Structured output requires maxIterations: 1.
-		maxIterations: 1,
-		agent: sandcastle.claudeCode(MODEL),
-		promptFile: "./.sandcastle/plan-prompt.md",
-		promptArgs: plannerPromptArgs(ready),
-		// Throws StructuredOutputError if the tag is missing, the JSON is
-		// malformed, or validation fails, which aborts the loop.
-		output: sandcastle.Output.object({ tag: "plan", schema: planSchema }),
-	});
+	// main's commit for this round, read from origin: see fetchMain.
+	const mainSha = fetchMain();
 
-	const picks = picksFrom(plan.output.issues.map(({ id }) => id), ready);
+	const plan = await runPlanner(ready, mainSha);
+	if (!plan) break;
+
+	const picks = picksFrom(plan.issues.map(({ id }) => id), ready);
 	if (picks.length === 0) {
 		console.log("No unblocked issues to work on. Exiting.");
 		break;
@@ -97,7 +113,6 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 	// -------------------------------------------------------------------------
 	// Phase 2: Build, review and publish
 	// -------------------------------------------------------------------------
-	fetchMain();
 	const { work, skipped } = prepareBranches(picks);
 	for (const { issue, reason } of skipped) {
 		console.warn(`  Skipping #${issue.number}: ${reason}.`);
@@ -114,7 +129,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 	}
 
 	// Promise.allSettled means one failing pipeline doesn't cancel the others.
-	const settled = await Promise.allSettled(work.map(({ issue, branch }) => buildIssue(issue, branch)));
+	const settled = await Promise.allSettled(work.map(({ issue, branch }) => buildIssue(issue, branch, mainSha)));
 
 	const published: string[] = [];
 	for (const [i, outcome] of settled.entries()) {

@@ -48,9 +48,13 @@ export const gitConfigTampered = () => tampered;
 
 // Record the clone's git config. main.mts calls this before it creates any
 // sandbox; host git and gh calls refuse to run until it has.
+// The files are the shared config and this checkout's own config.worktree,
+// which for a linked worktree lives under .git/worktrees/<name>/.
 export function trustGitConfig(cwd = process.cwd()): void {
-	const commonDir = resolve(cwd, execFileSync("git", ["rev-parse", "--git-common-dir"], { cwd, encoding: "utf8" }).trim());
-	guard = new GitConfigGuard([join(commonDir, "config"), join(commonDir, "config.worktree")]);
+	const gitPath = (path: string) =>
+		resolve(cwd, execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-path", path], { cwd, encoding: "utf8" }).trim());
+	const commonDir = resolve(cwd, execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { cwd, encoding: "utf8" }).trim());
+	guard = new GitConfigGuard([...new Set([join(commonDir, "config"), gitPath("config.worktree")])]);
 }
 
 // Whether the config is still as recorded; false (and tampered) otherwise.

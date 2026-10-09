@@ -5,6 +5,7 @@
 // unreviewed work through.
 
 import { z } from "zod";
+import { lastTagContent } from "./tags.mts";
 
 const verdictSchema = z.object({
 	approved: z.boolean(),
@@ -13,23 +14,8 @@ const verdictSchema = z.object({
 
 export type Verdict = z.infer<typeof verdictSchema>;
 
-// The JSON inside the last <verdict> tag in the agent's output, without a
-// surrounding code fence, or undefined when there is no complete tag.
-function lastVerdictContent(output: string): string | undefined {
-	const end = output.lastIndexOf("</verdict>");
-	if (end === -1) return undefined;
-	const start = output.lastIndexOf("<verdict>", end);
-	if (start === -1) return undefined;
-	return output
-		.slice(start + "<verdict>".length, end)
-		.trim()
-		.replace(/^```(?:json)?\s*\n?/, "")
-		.replace(/\n?```$/, "")
-		.trim();
-}
-
 export function parseVerdict(output: string): Verdict {
-	const content = lastVerdictContent(output);
+	const content = lastTagContent(output, "verdict");
 	if (content === undefined) {
 		return { approved: false, summary: "The reviewer ended without a <verdict>, so the change counts as rejected." };
 	}

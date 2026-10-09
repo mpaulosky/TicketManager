@@ -44,10 +44,16 @@ describe("prTitle", () => {
 });
 
 describe("prBody", () => {
-	it("uses the template's headings, quotes the review and closes the issue", () => {
+	it("keeps closing keywords and mentions in the review inside a fence", () => {
+		const body = prBody({ number: 42, title: "Add search" }, "Fixes #12, cc @someone");
+		assert.ok(body.includes("```text\nFixes #12, cc @someone\n```"));
+		assert.ok(body.endsWith("\n\nFixes #42"));
+	});
+
+	it("uses the template's headings, fences the review and closes the issue", () => {
 		const body = prBody({ number: 42, title: "Add search" }, "Clean.\nTested.");
 		for (const heading of ["## Why", "## What changed", "## Verification"]) assert.ok(body.includes(heading), heading);
-		assert.ok(body.includes("> Clean.\n> Tested."));
+		assert.ok(body.includes("```text\nClean.\nTested.\n```"));
 		assert.ok(body.endsWith("Fixes #42"));
 	});
 });

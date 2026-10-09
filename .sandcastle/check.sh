@@ -42,6 +42,14 @@ needs_host() {
   return 1
 }
 
+# global.json names the SDK; the image has whichever was current when it was
+# built. Say which one to fetch rather than fail every build.
+if ! dotnet --version >/dev/null 2>&1; then
+  echo "This image's .NET SDK ($(dotnet --list-sdks | tr '\n' ' ')) doesn't satisfy global.json." >&2
+  echo "Rebuild the Sandcastle image without the cache to fetch a newer one." >&2
+  exit 1
+fi
+
 echo "▶ Build"
 mapfile -t solutions < <(find . -maxdepth 1 -name '*.slnx')
 dotnet build "${solutions[@]}" --configuration Release -warnaserror

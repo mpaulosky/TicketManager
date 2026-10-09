@@ -11,14 +11,14 @@ const placeholders = (file: string) =>
 
 describe("issuePromptArgs", () => {
 	it("fills in an empty body and joins the comments", () => {
-		const args = issuePromptArgs(issue, "feature/5-add-search");
+		const args = issuePromptArgs(issue, "feature/5-add-search", "c".repeat(40));
 		assert.equal(args.ISSUE_BODY, "(no description)");
 		assert.equal(args.ISSUE_COMMENTS, "One.\n\n---\n\nTwo.");
-		assert.equal(args.BASE_BRANCH, "origin/main");
+		assert.equal(args.BASE_BRANCH, "c".repeat(40));
 	});
 
 	it("never sets a built-in Sandcastle argument, which Sandcastle refuses", () => {
-		const args = issuePromptArgs(issue, "feature/5-add-search");
+		const args = issuePromptArgs(issue, "feature/5-add-search", "c".repeat(40));
 		assert.ok(!("TARGET_BRANCH" in args));
 		assert.ok(!("SOURCE_BRANCH" in args));
 	});
@@ -26,7 +26,7 @@ describe("issuePromptArgs", () => {
 	// Sandcastle fails a run whose prompt names an argument it wasn't given.
 	for (const file of ["implement-prompt.md", "review-prompt.md"]) {
 		it(`supplies every placeholder ${file} uses`, () => {
-			const args = issuePromptArgs(issue, "feature/5-add-search");
+			const args = issuePromptArgs(issue, "feature/5-add-search", "c".repeat(40));
 			for (const key of placeholders(file)) assert.ok(key in args, `${file} uses {{${key}}}`);
 		});
 	}

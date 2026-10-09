@@ -2,7 +2,6 @@
 // so re-planning an issue always lands on the branch that holds its earlier
 // work, and every name passes scripts/check-branch-name.sh.
 
-import { BASE_BRANCH } from "./config.mts";
 import { git } from "./shell.mts";
 
 const maxSlugLength = 50;
@@ -125,17 +124,23 @@ const hostGit: BranchGit = {
 	},
 };
 
-// Refresh origin/main, the base of every new issue branch, of every diff the
-// reviewer reads, and of the merge each branch gets before it's published.
-// The host's git calls are synchronous, so two fetches never contend for the
-// ref's lock.
-export function fetchMain(): void {
+// Main's commit on origin, fetched so its objects are here: the base of every
+// new issue branch, of every diff the reviewer reads, of the check script and
+// of the merge each branch gets before it's published. The id comes from
+// origin itself (ls-remote), never from refs/remotes/origin/main, which lives
+// in the .git the sandboxes can write. The host's git calls are synchronous,
+// so two fetches never contend for a ref's lock.
+export function fetchMain(): string {
+	const [sha] = git(process.cwd(), "ls-remote", "origin", "refs/heads/main").split(/\s/);
+	if (!sha || !/^[0-9a-f]{40,64}$/.test(sha)) throw new Error("Couldn't read main's commit from origin.");
 	git(process.cwd(), "fetch", "--quiet", "origin", "main");
+	git(process.cwd(), "cat-file", "-e", `${sha}^{commit}`);
+	return sha;
 }
 
-// The commits `sha` has that main doesn't.
-export function commitsAhead(sha: string): number {
-	return Number(git(process.cwd(), "rev-list", "--count", `${BASE_BRANCH}..${sha}`));
+// The commits `sha` has that `mainSha` doesn't.
+export function commitsAhead(mainSha: string, sha: string): number {
+	return Number(git(process.cwd(), "rev-list", "--count", `${mainSha}..${sha}`));
 }
 
 export type PreparedBranches<T> = {

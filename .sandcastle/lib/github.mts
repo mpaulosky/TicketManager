@@ -102,7 +102,7 @@ type IssuesResponse = {
 export function listSandcastleIssues(): SandcastleIssue[] {
 	const { owner, name } = repoName();
 	const response = JSON.parse(
-		gh(["api", "graphql", "-f", `query=${issuesQuery}`, "-F", `owner=${owner}`, "-F", `name=${name}`]),
+		gh(["api", "graphql", "-f", `query=${issuesQuery}`, "-f", `owner=${owner}`, "-f", `name=${name}`]),
 	) as IssuesResponse;
 	const { pageInfo, nodes } = response.data.repository.issues;
 	if (pageInfo.hasNextPage) console.warn("  More than 100 open Sandcastle issues: only the first 100 are considered.");

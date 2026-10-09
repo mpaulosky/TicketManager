@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { CHECK_COMMAND, fenced, headOf, runCheck, tail } from "./check.mts";
+import { checkCommand, fenced, headOf, isDirty, runCheck, tail } from "./check.mts";
+
+const main = "c".repeat(40);
+const CHECK_COMMAND = checkCommand(main);
 
 const shaA = "a".repeat(40);
 const shaB = "b".repeat(40);
@@ -28,6 +31,7 @@ describe("runCheck", () => {
 				[CHECK_COMMAND]: { stdout: "\u001b[32mok\u001b[0m\n", exitCode: 0 },
 				"git status --porcelain 2>&1": { stdout: "", exitCode: 0 },
 			}),
+			main,
 		);
 		assert.deepEqual(result, { passed: true, output: "ok\n", head: shaA });
 	});
@@ -35,6 +39,7 @@ describe("runCheck", () => {
 	it("fails a red check", async () => {
 		const result = await runCheck(
 			sandboxWith({ "git rev-parse HEAD": head(shaA), [CHECK_COMMAND]: { stdout: "error CS1002", exitCode: 1 } }),
+			main,
 		);
 		assert.equal(result.passed, false);
 		assert.equal(result.output, "error CS1002");
@@ -47,6 +52,7 @@ describe("runCheck", () => {
 				[CHECK_COMMAND]: { stdout: "ok", exitCode: 0 },
 				"git status --porcelain 2>&1": { stdout: " M src/Web/Program.cs\n", exitCode: 0 },
 			}),
+			main,
 		);
 		assert.equal(result.passed, false);
 		assert.match(result.output, /uncommitted changes/);
@@ -59,16 +65,34 @@ describe("runCheck", () => {
 				[CHECK_COMMAND]: { stdout: "ok", exitCode: 0 },
 				"git status --porcelain 2>&1": { stdout: "", exitCode: 0 },
 			}),
+			main,
 		);
 		assert.equal(result.passed, false);
 		assert.match(result.output, /HEAD moved/);
 	});
 });
 
-describe("CHECK_COMMAND", () => {
-	it("runs main's copy of check.sh, not the branch's", () => {
-		assert.match(CHECK_COMMAND, /git show origin\/main:\.sandcastle\/check\.sh/);
-		assert.doesNotMatch(CHECK_COMMAND, /^\.sandcastle\/check\.sh/);
+describe("checkCommand", () => {
+	it("runs main's copy of check.sh by commit id, not a ref an agent could move", () => {
+		assert.ok(CHECK_COMMAND.includes(`git show ${main}:.sandcastle/check.sh`));
+		assert.doesNotMatch(CHECK_COMMAND, /origin\/main/);
+	});
+
+	it("runs with only the image's root-owned directories on PATH", () => {
+		assert.match(CHECK_COMMAND, /^export PATH=\/usr\/local\/bin:\/usr\/bin:\/bin;/);
+	});
+
+	it("refuses anything but a commit id", () => {
+		assert.throws(() => checkCommand("origin/main"), /Not a commit id/);
+		assert.throws(() => checkCommand(`${main}; rm -rf /`), /Not a commit id/);
+	});
+});
+
+describe("isDirty", () => {
+	it("is true for uncommitted changes or a failing git status", async () => {
+		assert.equal(await isDirty(sandboxWith({ "git status --porcelain 2>&1": { stdout: "", exitCode: 0 } })), false);
+		assert.equal(await isDirty(sandboxWith({ "git status --porcelain 2>&1": { stdout: " M a.cs\n", exitCode: 0 } })), true);
+		assert.equal(await isDirty(sandboxWith({ "git status --porcelain 2>&1": { stdout: "fatal", exitCode: 128 } })), true);
 	});
 });
 

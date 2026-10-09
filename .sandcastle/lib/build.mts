@@ -7,8 +7,8 @@
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { commitsAhead, fetchMain } from "./branches.mts";
-import { fenced, headOf, runCheck, tail } from "./check.mts";
-import { BASE_BRANCH, CHECK_COMMENT_LINES, copyToWorktree, hooks, IMPLEMENTER_ITERATIONS, MODEL } from "./config.mts";
+import { fenced, headOf, isDirty, runCheck, tail } from "./check.mts";
+import { CHECK_COMMENT_LINES, copyToWorktree, hooks, IMPLEMENTER_ITERATIONS, MODEL } from "./config.mts";
 import { commentOnIssue, openPullRequest, type SandcastleIssue } from "./github.mts";
 import { issuePromptArgs } from "./prompts.mts";
 import { prBody, prTitle } from "./publish.mts";
@@ -20,9 +20,11 @@ export type BuildSandbox = Pick<sandcastle.Sandbox, "run" | "exec" | "close">;
 
 // What buildIssue needs from outside the pipeline; tests pass stubs.
 export type BuildHost = {
-	createSandbox(branch: string): Promise<BuildSandbox>;
-	fetchMain(): void;
-	commitsAhead(sha: string): number;
+	// A sandbox on the branch, which starts from `mainSha` when it's new.
+	createSandbox(branch: string, mainSha: string): Promise<BuildSandbox>;
+	// Fetch main and return its commit id, as origin reports it.
+	fetchMain(): string;
+	commitsAhead(mainSha: string, sha: string): number;
 	commentOnIssue(issueNumber: number, body: string): void;
 	// Push the commit to the branch on origin and open (or reuse) its pull request.
 	publish(branch: string, sha: string, title: string, body: string): string;
@@ -41,8 +43,8 @@ function publish(branch: string, sha: string, title: string, body: string): stri
 }
 
 const liveHost: BuildHost = {
-	createSandbox: (branch) =>
-		sandcastle.createSandbox({ branch, baseBranch: BASE_BRANCH, sandbox: docker(), hooks, copyToWorktree }),
+	createSandbox: (branch, mainSha) =>
+		sandcastle.createSandbox({ branch, baseBranch: mainSha, sandbox: docker(), hooks, copyToWorktree }),
 	fetchMain,
 	commitsAhead,
 	commentOnIssue,
@@ -60,9 +62,11 @@ export type BuildOutcome =
 	| "conflicts-with-main"
 	| "publish-failed";
 
+// `mainSha` is main's commit as the host fetched it for this round.
 export async function buildIssue(
 	issue: SandcastleIssue,
 	branch: string,
+	mainSha: string,
 	host: BuildHost = liveHost,
 ): Promise<{ outcome: BuildOutcome; prUrl?: string }> {
 	const log = (line: string) => host.log(`  #${issue.number} ${line}`);
@@ -72,9 +76,10 @@ export async function buildIssue(
 		return { outcome };
 	};
 	const notPushed = `\`${branch}\` wasn't pushed; the local branch keeps its commits.`;
-	const promptArgs = issuePromptArgs(issue, branch);
+	const promptArgs = issuePromptArgs(issue, branch, mainSha);
+	let main = mainSha;
 
-	const sandbox = await host.createSandbox(branch);
+	const sandbox = await host.createSandbox(branch, mainSha);
 	try {
 		// Implement. A run that throws or uses up its iterations without
 		// signalling completion stops the issue for this round.
@@ -100,7 +105,7 @@ export async function buildIssue(
 		// Run the check; on a pass, return the commit it passed on, the only
 		// commit that may be pushed. On a failure, say so on the issue.
 		const check = async (when: string): Promise<string | undefined> => {
-			const result = await runCheck(sandbox);
+			const result = await runCheck(sandbox, main);
 			log(`check ${when}: ${result.passed ? "passed" : "failed"}`);
 			if (result.passed) return result.head;
 			host.commentOnIssue(
@@ -119,7 +124,7 @@ export async function buildIssue(
 		// Gate, review and publish whenever the branch holds work main doesn't,
 		// not only when this run added commits: a re-run of a finished issue
 		// makes none, and its earlier work still needs a PR.
-		if (host.commitsAhead(checked) === 0) {
+		if (host.commitsAhead(main, checked) === 0) {
 			log("nothing to publish");
 			return { outcome: "nothing-to-publish" };
 		}
@@ -141,9 +146,12 @@ export async function buildIssue(
 		}
 		log(`reviewer ${verdict.approved ? "approved" : "rejected"}`);
 		if (!verdict.approved) {
-			return stop("rejected", `Sandcastle's reviewer rejected this issue's change, so ${notPushed}\n\n${verdict.summary}`);
+			return stop("rejected", `Sandcastle's reviewer rejected this issue's change, so ${notPushed}\n\n${fenced(verdict.summary)}`);
 		}
-		if ((await headOf(sandbox)) !== checked) {
+		// Uncommitted edits count as a change too: the check fails on them, so
+		// a fix the reviewer describes but didn't commit is never published
+		// without it.
+		if ((await headOf(sandbox)) !== checked || (await isDirty(sandbox))) {
 			checked = await check("after the reviewer's changes");
 			if (!checked) return { outcome: "check-failed" };
 		}
@@ -151,8 +159,8 @@ export async function buildIssue(
 		// Bring in main as it is now, so the PR is up to date (the ruleset
 		// requires it) and the check covers the merged result. A conflict is
 		// left for a person: the merge is aborted and nothing is pushed.
-		host.fetchMain();
-		const merge = await sandbox.exec(`git merge --no-edit -m "chore: Merge main" ${BASE_BRANCH} 2>&1`);
+		main = host.fetchMain();
+		const merge = await sandbox.exec(`git merge --no-edit -m "chore: Merge main" ${main} 2>&1`);
 		if (merge.exitCode !== 0) {
 			await sandbox.exec("git merge --abort");
 			return stop(

@@ -87,6 +87,12 @@ updates:
     directories:
       - "/"
       - "/src/Web"
+    # Sandcastle is 0.x, so a minor release can change how it fills in and
+    # runs prompts, which the agents' safety relies on (.sandcastle/lib/prompts.mts).
+    # A person bumps it on purpose.
+    ignore:
+      - dependency-name: "@ai-hero/sandcastle"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
     target-branch: "main"
     schedule:
       interval: "weekly"

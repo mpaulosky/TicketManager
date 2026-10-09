@@ -18,8 +18,34 @@ RUN apt-get update && apt-get install -y \
 
 # pnpm through corepack, as CI does (.github/ci/prepare.sh). Corepack runs the
 # version pinned by "packageManager" in package.json and src/Web/package.json.
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable pnpm
+# It's fetched now, as root, into a root-owned COREPACK_HOME, so the onSandboxReady
+# hook doesn't download it and the agents can't swap the pnpm the host's check
+# runs. Keep the version in step with "packageManager" in package.json.
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+  COREPACK_HOME=/usr/local/share/corepack
+RUN corepack enable pnpm \
+  && corepack install -g pnpm@12.6.0 \
+  && pnpm --version
+
+# Install the .NET SDK that .sandcastle/check.sh builds and tests with: the
+# latest GA SDK on the 10.0 channel when the image is built. Installed as root
+# and linked into /usr/local/bin, so the agents can't replace the dotnet the
+# host's check runs (it puts only root-owned directories on PATH).
+#
+# global.json pins an SDK with rollForward latestMinor, which never rolls back,
+# and Dependabot bumps it to each new release. Once it names a newer SDK than
+# the image has, check.sh says so and every build stops: rebuild the image
+# without the cache (sandcastle docker build-image, or docker build --no-cache)
+# to fetch the new SDK. Change the channel when global.json moves to a new
+# major version.
+ARG DOTNET_CHANNEL=10.0
+ENV DOTNET_ROOT=/usr/share/dotnet \
+  DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+  DOTNET_NOLOGO=1
+RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
+  && bash /tmp/dotnet-install.sh --channel "$DOTNET_CHANNEL" --quality GA --install-dir "$DOTNET_ROOT" \
+  && ln -s "$DOTNET_ROOT/dotnet" /usr/local/bin/dotnet \
+  && rm /tmp/dotnet-install.sh
 
 # Build-args for UID/GID alignment: sandcastle docker build-image
 # defaults these to the host user's UID/GID so image-built files
@@ -34,26 +60,8 @@ USER ${AGENT_UID}:${AGENT_GID}
 # Install Claude Code CLI
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
-# Install the .NET SDK that .sandcastle/check.sh builds and tests with.
-# global.json pins 10.0.x with rollForward latestMinor, so the latest GA SDK on
-# the 10.0 channel satisfies it, and keeps satisfying it as Dependabot bumps
-# global.json within 10.0. Rebuild the image to pick up a newer SDK; change the
-# channel when global.json moves to a new major version.
-ARG DOTNET_CHANNEL=10.0
-ENV DOTNET_ROOT=/home/agent/.dotnet \
-  DOTNET_CLI_TELEMETRY_OPTOUT=1 \
-  DOTNET_NOLOGO=1
-RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
-  && bash /tmp/dotnet-install.sh --channel "$DOTNET_CHANNEL" --quality GA --install-dir "$DOTNET_ROOT" \
-  && rm /tmp/dotnet-install.sh
-
-# Fetch the pinned pnpm (and the binary it runs) now, so the onSandboxReady
-# hook doesn't download it.
-# Keep the version in step with "packageManager" in package.json.
-RUN corepack install -g pnpm@12.6.0 && pnpm --version
-
-# Add Claude, .NET and its global tools to PATH
-ENV PATH="/home/agent/.local/bin:$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH"
+# Add Claude and .NET global tools to PATH
+ENV PATH="/home/agent/.local/bin:/home/agent/.dotnet/tools:$PATH"
 
 WORKDIR /home/agent
 

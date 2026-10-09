@@ -9,23 +9,22 @@
 // would become part of the command. Only BRANCH and BASE_BRANCH, which the
 // host makes, are used in shell blocks.
 
-import { BASE_BRANCH } from "./config.mts";
 import type { SandcastleIssue } from "./github.mts";
 
 // The arguments the prompts may use inside a !`…` shell block.
 export const SHELL_SAFE_ARGS: ReadonlySet<string> = new Set(["BRANCH", "BASE_BRANCH"]);
 
 // Sandcastle sets {{TARGET_BRANCH}} itself (to the sandbox's own branch inside
-// createSandbox) and refuses an override, so the branch to compare against
-// goes in as {{BASE_BRANCH}}.
-export function issuePromptArgs(issue: SandcastleIssue, branch: string) {
+// createSandbox) and refuses an override, so what to compare against goes in
+// as {{BASE_BRANCH}}: main's commit id, as the host read it from origin.
+export function issuePromptArgs(issue: SandcastleIssue, branch: string, mainSha: string) {
 	return {
 		TASK_ID: String(issue.number),
 		ISSUE_TITLE: issue.title,
 		ISSUE_BODY: issue.body || "(no description)",
 		ISSUE_COMMENTS: issue.comments.length > 0 ? issue.comments.join("\n\n---\n\n") : "(no comments)",
 		BRANCH: branch,
-		BASE_BRANCH,
+		BASE_BRANCH: mainSha,
 	};
 }
 

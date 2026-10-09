@@ -4,17 +4,26 @@
 // host pushes.
 
 import type { Sandbox } from "@ai-hero/sandcastle";
-import { BASE_BRANCH } from "./config.mts";
 
-// The check is main's copy of check.sh, not the branch's: the agents can edit
-// the branch's copy, and one stuck on a failing test could make it skip the
-// test or exit 0. It still builds and tests the branch's code, which the
-// agents wrote, so it shows the change builds and its tests pass, not that
-// the change is safe: CI and the person who marks the draft PR ready decide
-// that. stderr is folded into stdout, so the output keeps the order it was
-// printed in.
-export const CHECK_COMMAND =
-	`f="$(mktemp)" && { git show ${BASE_BRANCH}:.sandcastle/check.sh > "$f" && bash "$f"; } 2>&1; s=$?; rm -f "$f"; exit $s`;
+// The check is main's copy of check.sh, not the branch's, named by the commit
+// the host got from origin rather than by origin/main: the agents can edit
+// the branch's copy and can move refs in the shared .git, but can't change
+// what a commit holds. PATH is the image's root-owned directories only, so
+// the dotnet, pnpm and node it runs aren't ones an agent dropped in its home.
+//
+// This makes the check hard to sidestep by accident or by a casual
+// workaround; it isn't a security boundary. It builds and tests the branch's
+// code, which the agents wrote, in a container they've had a shell in, so it
+// shows the change builds and its tests pass, not that the change is safe:
+// CI and the person who marks the draft PR ready decide that. stderr is
+// folded into stdout, so the output keeps the order it was printed in.
+export function checkCommand(mainSha: string): string {
+	if (!/^[0-9a-f]{40,64}$/.test(mainSha)) throw new Error(`Not a commit id: ${mainSha}`);
+	return (
+		`export PATH=/usr/local/bin:/usr/bin:/bin; f="$(mktemp)" && ` +
+		`{ git show ${mainSha}:.sandcastle/check.sh > "$f" && bash "$f"; } 2>&1; s=$?; rm -f "$f"; exit $s`
+	);
+}
 
 export type CheckRun = { passed: true; output: string; head: string } | { passed: false; output: string };
 
@@ -33,11 +42,17 @@ export async function headOf(sandbox: Pick<Sandbox, "exec">): Promise<string | u
 // (only commits are pushed, so uncommitted edits would be checked but never
 // published) or when HEAD moved while it ran (the commit it built isn't the
 // one that's there now).
-export async function runCheck(sandbox: Pick<Sandbox, "exec">): Promise<CheckRun> {
+// Whether the worktree has uncommitted changes (or git can't say).
+export async function isDirty(sandbox: Pick<Sandbox, "exec">): Promise<boolean> {
+	const status = await sandbox.exec("git status --porcelain 2>&1");
+	return status.exitCode !== 0 || status.stdout.trim() !== "";
+}
+
+export async function runCheck(sandbox: Pick<Sandbox, "exec">, mainSha: string): Promise<CheckRun> {
 	const before = await headOf(sandbox);
 	if (!before) return { passed: false, output: "git rev-parse HEAD failed, so there's no commit to check." };
 
-	const { stdout, exitCode } = await sandbox.exec(CHECK_COMMAND);
+	const { stdout, exitCode } = await sandbox.exec(checkCommand(mainSha));
 	const output = stdout.replace(ansiEscape, "");
 	if (exitCode !== 0) return { passed: false, output };
 
