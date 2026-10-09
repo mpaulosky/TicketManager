@@ -142,6 +142,7 @@ notes) and then:
 
 | Version | Date | Title | Blog post |
 | ------- | ---- | ----- | --------- |
+| [v0.0.74](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.74) | 2026-10-09 | fix(sandcastle): Publish each issue as its own PR, from a Docker-free check | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-09-pr-159-fix-sandcastle-publish-each-issue-as-its-own-pr-from-a-docker-free-check.md) |
 | [v0.0.73](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.73) | 2026-10-09 | ci: Run the Sandcastle tests when gate.sh or ci.yml changes | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-09-pr-162-ci-run-the-sandcastle-tests-when-gate-sh-or-ci-yml-changes.md) |
 | [v0.0.72](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.72) | 2026-10-09 | ci: Type-check and run the Sandcastle tests in the gate and in CI | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-09-pr-158-ci-type-check-and-run-the-sandcastle-tests-in-the-gate-and-in-ci.md) |
 | [v0.0.71](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.71) | 2026-10-08 | chore(sandcastle): Have agents write Conventional Commits | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-08-pr-153-chore-sandcastle-have-agents-write-conventional-commits.md) |
@@ -151,7 +152,6 @@ notes) and then:
 | [v0.0.67](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.67) | 2026-10-08 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-08-pr-150-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.66](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.66) | 2026-10-08 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-08-pr-147-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.65](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.65) | 2026-10-08 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-08-pr-145-chore-re-apply-the-repo-ci-baseline-template.md) |
-| [v0.0.64](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.64) | 2026-10-08 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-08-pr-143-chore-re-apply-the-repo-ci-baseline-template.md) |
 
 <!-- RELEASES_END -->
 
