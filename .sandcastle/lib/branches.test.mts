@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { describe, it } from "node:test";
-import { branchFor, isIssueBranch, slugFor } from "./branches.mts";
+import { branchFor, isIssueBranch, parseHeads, prepareBranches, slugFor, withoutOpenPullRequests, worktreeForBranch } from "./branches.mts";
 
 const issue = (number: number, title: string, labels: string[] = ["Sandcastle"]) => ({ number, title, labels });
 
@@ -87,5 +87,106 @@ describe("branchFor", () => {
 				assert.ok(passesBranchStandard(branch), `${branch} fails scripts/check-branch-name.sh`);
 			}
 		}
+	});
+});
+
+describe("withoutOpenPullRequests", () => {
+	it("holds back an issue whose branch has an open pull request", () => {
+		const { ready, inReview } = withoutOpenPullRequests([issue(4, "A"), issue(5, "B")], ["fix/5-b", "feature/40-other"]);
+		assert.deepEqual(ready.map((i) => i.number), [4]);
+		assert.deepEqual(inReview.map((i) => i.number), [5]);
+	});
+});
+
+describe("parseHeads", () => {
+	it("reads branch names from ls-remote output", () => {
+		assert.deepEqual(parseHeads("abc\trefs/heads/feature/4-a\ndef\trefs/heads/fix/5-b\n"), ["feature/4-a", "fix/5-b"]);
+	});
+});
+
+describe("prepareBranches", () => {
+	// A clone and origin with the given branch commits; ancestry is by
+	// commit-name prefix, so "a" is an ancestor of "ab".
+	const branchGit = (remote: Record<string, string>, local: Record<string, string>) => {
+		const calls = { fetched: [] as string[], set: [] as string[] };
+		return {
+			calls,
+			git: {
+				remoteIssueBranches: () => Object.keys(remote),
+				localIssueBranches: () => Object.keys(local),
+				fetch: (branch: string) => {
+					calls.fetched.push(branch);
+					return remote[branch]!;
+				},
+				localSha: (branch: string) => local[branch],
+				isAncestor: (ancestor: string, descendant: string) => descendant.startsWith(ancestor),
+				setLocal: (branch: string, sha: string) => {
+					calls.set.push(`${branch}@${sha}`);
+					local[branch] = sha;
+				},
+			},
+		};
+	};
+
+	it("creates the local branch from origin's when there's none here", () => {
+		const { git, calls } = branchGit({ "feature/4-search": "ab" }, {});
+		const { work } = prepareBranches([issue(4, "Add search")], git);
+		assert.deepEqual(work.map((w) => w.branch), ["feature/4-search"]);
+		assert.deepEqual(calls.fetched, ["feature/4-search"]);
+		assert.deepEqual(calls.set, ["feature/4-search@ab"]);
+	});
+
+	it("fast-forwards a local branch that's behind origin's", () => {
+		const { git, calls } = branchGit({ "feature/4-search": "abc" }, { "feature/4-search": "a" });
+		const { work } = prepareBranches([issue(4, "Add search")], git);
+		assert.equal(work.length, 1);
+		assert.deepEqual(calls.set, ["feature/4-search@abc"]);
+	});
+
+	it("keeps a local branch that's ahead of origin's or the same", () => {
+		for (const localSha of ["abc", "ab"]) {
+			const { git, calls } = branchGit({ "feature/4-search": "ab" }, { "feature/4-search": localSha });
+			assert.equal(prepareBranches([issue(4, "Add search")], git).work.length, 1);
+			assert.deepEqual(calls.set, []);
+		}
+	});
+
+	it("skips an issue whose local branch has diverged from origin's", () => {
+		const { git, calls } = branchGit({ "feature/4-search": "ab" }, { "feature/4-search": "ax" });
+		const { work, skipped } = prepareBranches([issue(4, "Add search"), issue(5, "Sort")], git);
+		assert.deepEqual(work.map((w) => w.issue.number), [5]);
+		assert.match(skipped[0]!.reason, /diverged/);
+		assert.deepEqual(calls.set, []);
+	});
+
+	it("reuses a local branch that was never pushed, without fetching", () => {
+		const { git, calls } = branchGit({}, { "feature/4-add-search": "a" });
+		const { work } = prepareBranches([issue(4, "Renamed title")], git);
+		assert.deepEqual(work.map((w) => w.branch), ["feature/4-add-search"]);
+		assert.deepEqual(calls.fetched, []);
+	});
+
+	it("names a new branch when the issue has none", () => {
+		const { git, calls } = branchGit({ "feature/40-x": "a" }, {});
+		const { work } = prepareBranches([issue(4, "Add search", ["bug"])], git);
+		assert.deepEqual(work.map((w) => w.branch), ["fix/4-add-search"]);
+		assert.deepEqual(calls.fetched, []);
+	});
+});
+
+describe("worktreeForBranch", () => {
+	const porcelain = [
+		"worktree /repo\nHEAD aaa\nbranch refs/heads/main",
+		"worktree /repo/.sandcastle/worktrees/planner\nHEAD bbb\nbranch refs/heads/chore/sandcastle-planner",
+		"worktree /repo/.sandcastle/worktrees/x\nHEAD ccc\ndetached",
+	].join("\n\n");
+
+	it("finds the worktree that has the branch checked out", () => {
+		assert.equal(worktreeForBranch(porcelain, "chore/sandcastle-planner"), "/repo/.sandcastle/worktrees/planner");
+	});
+
+	it("finds nothing when no worktree has it, or only a longer name matches", () => {
+		assert.equal(worktreeForBranch(porcelain, "chore/sandcastle"), undefined);
+		assert.equal(worktreeForBranch(porcelain, "feature/1-x"), undefined);
 	});
 });

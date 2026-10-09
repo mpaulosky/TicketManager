@@ -4,7 +4,8 @@
 # type-check and test Sandcastle's orchestration code (.sandcastle/).
 
 # What the Sandcastle tests read or run: the code itself, the root package
-# files pnpm install reads, the branch-name script branches.test.mts runs, the
+# files pnpm install reads, the branch-name and PR-title scripts
+# branches.test.mts and publish.test.mts run, the
 # scripts that run the tests (this one included) and the Template-owned files
 # that call them: scripts/gate.sh, and ci.yml, which also picks the runner and
 # so the Node the tests run on.
@@ -15,6 +16,7 @@ SANDCASTLE_PATHS=(
   pnpm-workspace.yaml
   .npmrc
   scripts/check-branch-name.sh
+  scripts/check-pr-title.sh
   .github/ci/sandcastle.sh
   .github/ci/gate-checks.sh
   .github/ci/prepare.sh

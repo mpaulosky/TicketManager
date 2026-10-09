@@ -1,0 +1,40 @@
+// Prompt arguments built from GitHub content. Agents can't reach GitHub, so
+// this is everything they learn about an issue. The issues passed in hold
+// only what trusted authors wrote (see trustedIssues).
+//
+// Issue text is only ever placed in plain {{KEY}} placeholders, never inside
+// a !`…` shell block. Sandcastle 0.12 marks the prompt file's own shell blocks
+// before it substitutes the arguments and runs only marked blocks, so a title
+// containing !`cmd` stays text; a placeholder inside a shell block, though,
+// would become part of the command. Only BRANCH and BASE_BRANCH, which the
+// host makes, are used in shell blocks.
+
+import type { SandcastleIssue } from "./github.mts";
+
+// The arguments the prompts may use inside a !`…` shell block.
+export const SHELL_SAFE_ARGS: ReadonlySet<string> = new Set(["BRANCH", "BASE_BRANCH"]);
+
+// Sandcastle sets {{TARGET_BRANCH}} itself (to the sandbox's own branch inside
+// createSandbox) and refuses an override, so what to compare against goes in
+// as {{BASE_BRANCH}}: main's commit id, as the host read it from origin.
+export function issuePromptArgs(issue: SandcastleIssue, branch: string, mainSha: string) {
+	return {
+		TASK_ID: String(issue.number),
+		ISSUE_TITLE: issue.title,
+		ISSUE_BODY: issue.body || "(no description)",
+		ISSUE_COMMENTS: issue.comments.length > 0 ? issue.comments.join("\n\n---\n\n") : "(no comments)",
+		LAST_REPORT: issue.lastReport ?? "(none)",
+		BRANCH: branch,
+		BASE_BRANCH: mainSha,
+	};
+}
+
+// The ready issues, and the ones whose pull request is open: those can't be
+// picked (picksFrom only takes ready ones) but still block, since their
+// change isn't on main yet. Both without Sandcastle's own reports, which quote
+// agent-written output.
+export function plannerPromptArgs(ready: readonly SandcastleIssue[], inReview: readonly SandcastleIssue[]) {
+	const forPlanner = (issues: readonly SandcastleIssue[]) =>
+		JSON.stringify(issues.map(({ lastReport: _lastReport, ...issue }) => issue));
+	return { ISSUES_JSON: forPlanner(ready), IN_REVIEW_JSON: forPlanner(inReview) };
+}

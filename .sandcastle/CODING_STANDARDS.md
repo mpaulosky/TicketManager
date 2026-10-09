@@ -34,8 +34,8 @@ follow the source.
 - Test methods keep the `// Arrange`, `// Act` and `// Assert` markers.
 - Never change the code under test just to make a test pass: fix the implementation, or fix the test to state the
   intended behaviour.
-- `tests/` mirrors `src/`. A change must pass `scripts/gate.sh`, which lints, builds the solution and runs every test
-  project.
+- `tests/` mirrors `src/`. In the sandbox a change must pass `.sandcastle/check.sh`, which builds the solution and runs
+  every test project that needs neither Docker nor a browser; the pre-push gate (`scripts/gate.sh`) and CI run them all.
 
 ## Architecture
 
