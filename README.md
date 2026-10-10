@@ -142,6 +142,7 @@ notes) and then:
 
 | Version | Date | Title | Blog post |
 | ------- | ---- | ----- | --------- |
+| [v0.0.83](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.83) | 2026-10-10 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-10-pr-183-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.82](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.82) | 2026-10-09 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-09-pr-181-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.81](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.81) | 2026-10-09 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-09-pr-179-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.80](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.80) | 2026-10-09 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-09-pr-177-chore-re-apply-the-repo-ci-baseline-template.md) |
@@ -151,7 +152,6 @@ notes) and then:
 | [v0.0.76](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.76) | 2026-10-09 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-09-pr-169-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.75](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.75) | 2026-10-09 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-09-pr-167-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.74](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.74) | 2026-10-09 | fix(sandcastle): Publish each issue as its own PR, from a Docker-free check | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-09-pr-159-fix-sandcastle-publish-each-issue-as-its-own-pr-from-a-docker-free-check.md) |
-| [v0.0.73](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.73) | 2026-10-09 | ci: Run the Sandcastle tests when gate.sh or ci.yml changes | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-09-pr-162-ci-run-the-sandcastle-tests-when-gate-sh-or-ci-yml-changes.md) |
 
 <!-- RELEASES_END -->
 
