@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 | ---- | ----- | ---- |
+| 2026-10-16 | [build(deps): Re-enable the NuGet audit warnings](2026-10-16-pr-205-build-deps-re-enable-the-nuget-audit-warnings.md) | release,automation |
 | 2026-10-16 | [build(deps): Pin MessagePack 2.5.307 past GHSA-qhrr-8q5h-9q3h](2026-10-16-pr-203-build-deps-pin-messagepack-2-5-307-past-ghsa-qhrr-8q5h-9q3h.md) | release,automation |
 | 2026-10-15 | [chore: Re-apply the repo-ci-baseline Template](2026-10-15-pr-201-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-10-10 | [chore: Re-apply the repo-ci-baseline Template](2026-10-10-pr-199-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
