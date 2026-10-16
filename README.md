@@ -142,6 +142,7 @@ notes) and then:
 
 | Version | Date | Title | Blog post |
 | ------- | ---- | ----- | --------- |
+| [v0.0.96](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.96) | 2026-10-16 | build(deps): Update NuGet packages | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-16-pr-209-build-deps-update-nuget-packages.md) |
 | [v0.0.95](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.95) | 2026-10-16 | build(deps): Fail restore on vulnerable NuGet packages | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-16-pr-207-build-deps-fail-restore-on-vulnerable-nuget-packages.md) |
 | [v0.0.94](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.94) | 2026-10-16 | build(deps): Re-enable the NuGet audit warnings | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-16-pr-205-build-deps-re-enable-the-nuget-audit-warnings.md) |
 | [v0.0.93](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.93) | 2026-10-16 | build(deps): Pin MessagePack 2.5.307 past GHSA-qhrr-8q5h-9q3h | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-16-pr-203-build-deps-pin-messagepack-2-5-307-past-ghsa-qhrr-8q5h-9q3h.md) |
@@ -151,7 +152,6 @@ notes) and then:
 | [v0.0.89](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.89) | 2026-10-10 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-10-pr-195-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.88](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.88) | 2026-10-10 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-10-pr-193-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.87](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.87) | 2026-10-10 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-10-pr-191-chore-re-apply-the-repo-ci-baseline-template.md) |
-| [v0.0.86](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.86) | 2026-10-10 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-10-pr-189-chore-re-apply-the-repo-ci-baseline-template.md) |
 
 <!-- RELEASES_END -->
 
