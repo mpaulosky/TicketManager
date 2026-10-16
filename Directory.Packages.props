@@ -8,6 +8,8 @@
     <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1603;NU1608</WarningsNotAsErrors>
     <!-- Fail restore on a vulnerable package (NuGet Audit, transitive included) without making every build warning an error -->
     <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
+    <!-- In CI, also fail when the audit can't run (NU1900: vulnerability data unavailable); local restores still work offline -->
+    <WarningsAsErrors Condition="'$(CI)' == 'true'">$(WarningsAsErrors);NU1900</WarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
     <!-- Aspire -->
