@@ -6,8 +6,6 @@
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <!-- Disable warnings as errors for NuGet package version conflicts -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1603;NU1608</WarningsNotAsErrors>
-    <!-- Suppress security warnings for transitive dependencies from MongoDB.Driver 3.8.0 -->
-    <NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <!-- Aspire -->
