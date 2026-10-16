@@ -66,5 +66,7 @@
     <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />
     <PackageVersion Include="Polly" Version="8.7.0" />
     <PackageVersion Include="Polly.Extensions.Http" Version="3.0.0" />
+    <!-- Transitive override for a security advisory: Aspire brings in MessagePack 2.5.302 (GHSA-qhrr-8q5h-9q3h) -->
+    <PackageVersion Include="MessagePack" Version="2.5.307" />
   </ItemGroup>
 </Project>
