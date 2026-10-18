@@ -653,7 +653,8 @@ test("stops calling in Claude after MAX_CLAUDE_ROUNDS of its reviews, and leaves
   const { addedLabels, logs } = await evaluate(pr);
 
   assert.deepEqual(addedLabels, []);
-  assert.ok(logs.some((line) => line.includes("the owner decides")), logs.join("\n"));
+  // A notice, so the stalled PR shows on the run, not only in its log (mpaulosky/dotfiles#199).
+  assert.ok(logs.some((line) => line.startsWith("notice: PR #7") && line.includes("the owner decides")), logs.join("\n"));
   // Two rounds are under the limit (mpaulosky/dotfiles#193).
   const twice = await evaluate(readyPr({ copilotReviews: DECLINED, claudeReviews: claudeReviewsOf("one", "m1") }));
   assert.equal(twice.addedLabels.length, 1);
@@ -695,6 +696,15 @@ test("doesn't call in Claude for a draft, a handed-back PR or one past the cap",
   assert.deepEqual(handedBack.addedLabels, []);
   const capped = await evaluate(readyPr({ copilotReviews: copilotReviewsOf("one", "two", "three", { oid: HEAD, note: true }) }));
   assert.deepEqual(capped.addedLabels, []);
+});
+
+test("doesn't call in Claude for Dependabot's PR, which Claude Review never reviews (mpaulosky/dotfiles#201)", async () => {
+  for (const login of ["dependabot", "dependabot[bot]"]) {
+    const { addedLabels, logs } = await evaluate(readyPr({ copilotReviews: DECLINED, author: { login } }));
+    assert.deepEqual(addedLabels, [], login);
+    // A notice: no review of this head is coming, so the owner reviews and merges it.
+    assert.ok(logs.some((line) => line.startsWith("notice: PR #7") && line.includes("by hand")), logs.join("\n"));
+  }
 });
 
 test("doesn't count Copilot's quota notes toward the review cap", async () => {

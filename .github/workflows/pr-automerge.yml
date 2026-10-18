@@ -879,11 +879,22 @@ jobs:
               if (!declined || pr.labels.nodes.some((label) => label.name === CLAUDE_LABEL)) {
                 return;
               }
+              // Claude Review skips Dependabot's PRs (its merge-from-main job's
+              // condition), so the label would bring no review: a notice, as no
+              // review of this head is coming and the PR waits for its owner.
+              if (DEPENDABOT_PR_AUTHORS.includes(pr.author?.login)) {
+                core.notice(
+                  `PR #${pullNumber}: Copilot couldn't review ${pr.headRefOid}, and Claude Review doesn't review ` +
+                  `Dependabot's PRs, so review and merge it by hand.`
+                );
+                return;
+              }
               const head = pr.headRefOid;
               const rounds = claudeRounds(claudeReviews);
               if (rounds >= MAX_CLAUDE_ROUNDS) {
-                core.info(
-                  `Not calling in Claude for PR #${pullNumber}: Copilot couldn't review ${head}, but Claude has ` +
+                // A notice: no review of this head is coming, so the PR waits for its owner.
+                core.notice(
+                  `PR #${pullNumber}: Copilot couldn't review ${head}, but Claude has ` +
                   `already reviewed ${rounds} of its commits (MAX_CLAUDE_ROUNDS), so the owner decides.`
                 );
                 return;

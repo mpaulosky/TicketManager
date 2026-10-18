@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import textwrap
+import time
 from pathlib import Path
 
 import pytest
@@ -808,6 +809,37 @@ def test_an_unchanged_file_named_after_an_expression_is_followed(repo, tmp_path)
     ]
 
 
+def test_a_long_run_with_no_dot_doesnt_slow_the_naming_scan(repo, tmp_path):
+    # The scan was quadratic in a run of path characters with no ".ext" after it (mpaulosky/dotfiles#201):
+    # this file took over ten seconds.
+    repo.base = repo.commit({"src/helper.py": "h = 1\n"})
+    blob = "x" * (constant("MAX_CHANGED_FILE_BYTES") - 1000)
+    head = repo.commit({"src/app.py": f"# uses src/helper.py\nDATA = '{blob}'\n"})
+    started = time.monotonic()
+    repo.split(repo.base, head, tmp_path)
+    assert time.monotonic() - started < 5
+    assert "src/helper.py (named by src/app.py)" in headers(repo)
+
+
+def test_a_changed_workflow_too_big_for_context_still_has_its_pins_followed(repo, tmp_path):
+    runner_actions(tmp_path, repo, {"action.yml": "runs: {}\n", "src/actor.ts": "export function check() {}\n"})
+    steps = "".join(f"      - run: echo {n:07d}\n" for n in range(constant("MAX_CHANGED_FILE_BYTES") // 25))
+    head = repo.commit({".github/workflows/big.yml": "jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n" + steps})
+    repo.split(repo.base, head, tmp_path)
+    assert headers(repo) == [
+        "_actions/anthropics/act/v1/src/actor.ts (source of anthropics/act, which .github/workflows/big.yml pins)",
+        "_actions/anthropics/act/v1/action.yml (source of anthropics/act, which .github/workflows/big.yml pins)",
+    ]
+
+
+def test_a_run_that_starts_with_its_only_dot_names_nothing(repo, tmp_path):
+    # As the one pattern the scan replaced: a path needs a character before its ".ext", so *.py isn't a file.
+    repo.base = repo.commit({"src/.py": "x = 1\n"})
+    head = repo.commit({"src/app.py": "# globs *.py\n"})
+    repo.split(repo.base, head, tmp_path)
+    assert headers(repo) == ["src/app.py (changed in this PR)"]
+
+
 def test_line_numbers_count_newlines_only_as_git_does(repo, tmp_path):
     head = repo.commit({"src/app.py": b"a = 'one\rtwo'\r\nb = 2\r\nc = 3\n"})
     repo.split(repo.base, head, tmp_path)
@@ -868,13 +900,15 @@ def runner_actions(tmp_path, repo, files):
     return root
 
 
-def test_context_holds_a_pinned_actions_gatekeeping_source_after_the_changed_files(repo, tmp_path):
+def test_context_holds_a_pinned_actions_gatekeeping_source_after_the_changed_code_and_tests(repo, tmp_path):
     secret = tmp_path / "secret.txt"
     secret.write_text("TOKEN=hunter2\n")
     root = runner_actions(tmp_path, repo, {
         "action.yml": "runs:\n  using: node24\n",
         "src/github/validation/actor.ts": "export function checkHumanActor() {}\n",
         "src/github/token.ts": "export const token = 1\n",
+        "src/github/authorize.ts": "export function authorize() {}\n",
+        "src/git-auth-helper.ts": "export function configureCredentials() {}\n",
         "src/other.ts": "x\n",
         "src/github/validation/actor.test.ts": "test\n",
         "dist/actor.js": "bundle\n",
@@ -885,20 +919,165 @@ def test_context_holds_a_pinned_actions_gatekeeping_source_after_the_changed_fil
                                                         "      - uses: anthropics/act@v1 # pinned\n"
                                                         "      - uses: someone/absent@v2\n"
                                                         "      - run: python3 src/util.py\n",
-                        "tests/test_review.py": "def test(): pass\n"})
+                        "tests/test_review.py": "def test(): pass\n", "docs/review.md": "# Review\n"})
     repo.split(repo.base, head, tmp_path)
     pins = "source of anthropics/act, which .github/workflows/review.yml pins"
+    # The changed tests come before the action's source, which a budget that runs out cuts first
+    # (mpaulosky/dotfiles#199), and the changed docs after it; a credential helper isn't gatekeeping.
     assert headers(repo) == [
         ".github/workflows/review.yml (changed in this PR)",
+        "tests/test_review.py (changed in this PR)",
+        f"_actions/anthropics/act/v1/src/github/authorize.ts ({pins})",
         f"_actions/anthropics/act/v1/src/github/token.ts ({pins})",
         f"_actions/anthropics/act/v1/src/github/validation/actor.ts ({pins})",
         f"_actions/anthropics/act/v1/action.yml ({pins})",
-        "tests/test_review.py (changed in this PR)",
+        "docs/review.md (changed in this PR)",
         "src/util.py (named by .github/workflows/review.yml)",
     ]
     text = "".join(context_of(repo).values())
     assert "     1\texport function checkHumanActor() {}\n" in text
-    assert "hunter2" not in text and "bundle" not in text
+    assert "hunter2" not in text and "bundle" not in text and "configureCredentials" not in text
+
+
+def test_a_comment_only_edit_to_a_workflow_doesnt_follow_its_pins(repo, tmp_path):
+    runner_actions(tmp_path, repo, {"action.yml": "runs: {}\n", "src/actor.ts": "export function check() {}\n"})
+    steps = "jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n"
+    repo.base = repo.commit({".github/workflows/ci.yml": steps, ".github/workflows/lint.yml": steps})
+    head = repo.commit({".github/workflows/ci.yml": "# Builds the app.\n\n" + steps + "      # then tests\n",
+                        ".github/workflows/lint.yml": steps + "      - run: echo lint\n"})
+    repo.split(repo.base, head, tmp_path)
+    pins = "source of anthropics/act, which .github/workflows/lint.yml pins"
+    assert headers(repo) == [
+        ".github/workflows/ci.yml (changed in this PR)",
+        ".github/workflows/lint.yml (changed in this PR)",
+        f"_actions/anthropics/act/v1/src/actor.ts ({pins})",
+        f"_actions/anthropics/act/v1/action.yml ({pins})",
+    ]
+
+
+def test_a_hash_line_inside_a_block_scalar_is_content_not_a_comment(repo, tmp_path):
+    # A heading in a prompt, a private field in a script, a line of a heredoc: what the action is given
+    # (mpaulosky/dotfiles#203), on whichever side of the diff the line is.
+    runner_actions(tmp_path, repo, {"action.yml": "runs: {}\n", "src/actor.ts": "export function check() {}\n"})
+    pins = "_actions/anthropics/act/v1/src/actor.ts (source of anthropics/act, which .github/workflows/ci.yml pins)"
+
+    def workflow(prompt, script):
+        return ("jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n        with:\n"
+                f"          prompt: |\n            {prompt}\n            Review it.\n"
+                f"          script: >-\n            {script}\n      # a comment\n")
+
+    cases = [(workflow("## Review", "#count = 0;"), workflow("## Check", "#count = 0;")),
+             (workflow("## Review", "#count = 0;"), workflow("## Review", "#count = 1;")),
+             # A pure deletion of the prompt's last line: only the base side is judged, and on the head side
+             # that line number is outside the block.
+             ("jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n        with:\n          prompt: |\n"
+              "            Review it.\n            ## Review\n      # a comment\n",
+              "jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n        with:\n          prompt: |\n"
+              "            Review it.\n      # a comment\n"),
+             # An anchor or a tag before the indicator.
+             (workflow("## Review", "#count = 0;").replace("prompt: |", "prompt: &p |"),
+              workflow("## Check", "#count = 0;").replace("prompt: |", "prompt: &p |")),
+             (workflow("## Review", "#count = 0;").replace("script: >-", "script: !!str >-"),
+              workflow("## Review", "#count = 1;").replace("script: >-", "script: !!str >-")),
+             # An explicit indentation indicator: the block's indent is the key's plus 2, though its first line
+             # starts deeper.
+             ("jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n        with:\n          prompt: |2\n"
+              "                deeper first line\n            ## Review\n      # a comment\n",
+              "jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n        with:\n          prompt: |2\n"
+              "                deeper first line\n            ## Check\n      # a comment\n"),
+             # CRLF line endings.
+             (workflow("## Review", "#count = 0;").replace("\n", "\r\n"),
+              workflow("## Check", "#count = 0;").replace("\n", "\r\n"))]
+    for n, (old, new) in enumerate(cases):
+        case = Repo(tmp_path / f"case{n}")
+        case.workspace = repo.workspace
+        case.base = case.commit({".github/workflows/ci.yml": old.encode()})
+        head = case.commit({".github/workflows/ci.yml": new.encode()})
+        (tmp_path / f"run{n}").mkdir()
+        case.split(case.base, head, tmp_path / f"run{n}")
+        assert pins in headers(case), (n, headers(case))
+
+
+def test_a_comment_after_a_block_scalar_ends_is_still_a_comment(repo, tmp_path):
+    runner_actions(tmp_path, repo, {"action.yml": "runs: {}\n", "src/actor.ts": "export function check() {}\n"})
+    steps = ("jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n        with:\n"
+             "          prompt: |\n            Review it.\n")
+    repo.base = repo.commit({".github/workflows/ci.yml": steps + "      # old note\n"})
+    head = repo.commit({".github/workflows/ci.yml": steps + "      # new note\n"})
+    repo.split(repo.base, head, tmp_path)
+    assert not [header for header in headers(repo) if header.startswith("_actions/")], headers(repo)
+
+
+def test_a_long_line_of_anchors_doesnt_slow_the_block_scalar_check(repo, tmp_path):
+    # Finding a block scalar's header was quadratic in a line of "&- " tokens (mpaulosky/dotfiles#203).
+    runner_actions(tmp_path, repo, {"action.yml": "runs: {}\n", "src/actor.ts": "export function check() {}\n"})
+    steps = "jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n"
+    pins = "_actions/anthropics/act/v1/src/actor.ts (source of anthropics/act, which .github/workflows/ci.yml pins)"
+    header = "      key: " + "&a !t " * 15000 + "|\n"
+    # A comment line; a real header, with a note after its block; and the same header with the edit
+    # inside its block, where following the pins shows the header was walked to its "|".
+    cases = [("      # " + "&- " * 30000 + "x\n", "      ", False),
+             (header + "        text\n", "      ", False),
+             (header, "        ", True)]
+    for n, (line, indent, followed) in enumerate(cases):
+        case = Repo(tmp_path / f"case{n}")
+        case.workspace = repo.workspace
+        case.base = case.commit({".github/workflows/ci.yml": steps + line + indent + "# a\n"})
+        head = case.commit({".github/workflows/ci.yml": steps + line + indent + "# b\n"})
+        (tmp_path / f"run{n}").mkdir()
+        started = time.monotonic()
+        case.split(case.base, head, tmp_path / f"run{n}")
+        assert time.monotonic() - started < 5, n
+        assert (pins in headers(case)) == followed, (n, headers(case))
+
+
+def test_a_comment_after_a_list_items_block_scalar_is_still_a_comment(repo, tmp_path):
+    # In "- run: |" the block's indent is its first line's, not the dash's: a sibling's note is outside it.
+    runner_actions(tmp_path, repo, {"action.yml": "runs: {}\n", "src/actor.ts": "export function check() {}\n"})
+    steps = "jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n      - run: |\n          echo hi\n"
+    repo.base = repo.commit({".github/workflows/ci.yml": steps + "        # note about env\n        env:\n          A: 1\n"})
+    head = repo.commit({".github/workflows/ci.yml": steps + "        # new note\n        env:\n          A: 1\n"})
+    repo.split(repo.base, head, tmp_path)
+    assert not [header for header in headers(repo) if header.startswith("_actions/")], headers(repo)
+
+
+def test_the_comment_check_reads_the_diff_by_newline_and_counts_a_removed_document_marker(repo, tmp_path):
+    runner_actions(tmp_path, repo, {"action.yml": "runs: {}\n", "src/actor.ts": "export function check() {}\n"})
+    steps = "jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n"
+    # A comment holding U+0085, which str.splitlines() breaks at, before "-x": still only a comment.
+    one = Repo(tmp_path / "one")
+    one.workspace = repo.workspace
+    one.base = one.commit({".github/workflows/ci.yml": steps + "      # a\n"})
+    head = one.commit({".github/workflows/ci.yml": steps + "      # a\u0085-x\n"})
+    (tmp_path / "run1").mkdir()
+    one.split(one.base, head, tmp_path / "run1")
+    assert not [header for header in headers(one) if header.startswith("_actions/")], headers(one)
+    # Removing the "---" document marker shows as "----": a change, not a file header.
+    repo.base = repo.commit({".github/workflows/ci.yml": "---\n" + steps + "      # a\n"})
+    head = repo.commit({".github/workflows/ci.yml": steps + "      # b\n"})
+    repo.split(repo.base, head, tmp_path)
+    assert any(header.startswith("_actions/") for header in headers(repo)), headers(repo)
+
+
+def test_the_pins_check_reads_a_comment_only_edit_as_text_whatever_the_prs_gitattributes_say(repo, tmp_path):
+    # A diff git shows as binary, or one that fails, counts as a change and follows the pins; so this
+    # comment-only edit is left unfollowed only when the check reads its lines as text.
+    runner_actions(tmp_path, repo, {"action.yml": "runs: {}\n", "src/actor.ts": "export function check() {}\n"})
+    steps = "jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n"
+    repo.base = repo.commit({".github/workflows/ci.yml": steps})
+    head = repo.commit({".gitattributes": ".github/** -diff\n", ".github/workflows/ci.yml": steps + "      # note\n"})
+    repo.split(repo.base, head, tmp_path)
+    assert not [header for header in headers(repo) if header.startswith("_actions/")], headers(repo)
+
+
+def test_an_action_pinned_by_two_changed_workflows_is_listed_once_credited_to_the_first(repo, tmp_path):
+    runner_actions(tmp_path, repo, {"action.yml": "runs: {}\n", "src/actor.ts": "export function check() {}\n"})
+    steps = "jobs:\n  b:\n    steps:\n      - uses: anthropics/act@v1\n      - uses: anthropics/act@v1\n"
+    head = repo.commit({".github/workflows/a.yml": steps, ".github/workflows/b.yml": steps})
+    repo.split(repo.base, head, tmp_path)
+    found = [header for header in headers(repo) if header.startswith("_actions/")]
+    assert found == ["_actions/anthropics/act/v1/src/actor.ts (source of anthropics/act, which .github/workflows/a.yml pins)",
+                     "_actions/anthropics/act/v1/action.yml (source of anthropics/act, which .github/workflows/a.yml pins)"]
 
 
 def test_an_action_the_runner_hasnt_downloaded_adds_nothing(repo, tmp_path):
