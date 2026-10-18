@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 | ---- | ----- | ---- |
+| 2026-10-18 | [chore: Re-apply the repo-ci-baseline Template](2026-10-18-pr-220-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-10-18 | [chore(deps): Have Dependabot ignore claude-code-action](2026-10-18-pr-221-chore-deps-have-dependabot-ignore-claude-code-action.md) | release,automation |
 | 2026-10-18 | [chore: Re-apply the repo-ci-baseline Template](2026-10-18-pr-215-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-10-18 | [chore: Re-apply the repo-ci-baseline Template](2026-10-18-pr-213-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
