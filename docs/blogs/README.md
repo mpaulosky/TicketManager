@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 | ---- | ----- | ---- |
+| 2026-10-18 | [chore: Re-apply the repo-ci-baseline Template](2026-10-18-pr-211-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-10-16 | [build(deps): Update NuGet packages](2026-10-16-pr-209-build-deps-update-nuget-packages.md) | release,automation |
 | 2026-10-16 | [build(deps): Fail restore on vulnerable NuGet packages](2026-10-16-pr-207-build-deps-fail-restore-on-vulnerable-nuget-packages.md) | release,automation |
 | 2026-10-16 | [build(deps): Re-enable the NuGet audit warnings](2026-10-16-pr-205-build-deps-re-enable-the-nuget-audit-warnings.md) | release,automation |
