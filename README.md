@@ -142,6 +142,7 @@ notes) and then:
 
 | Version | Date | Title | Blog post |
 | ------- | ---- | ----- | --------- |
+| [v0.0.104](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.104) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-229-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.103](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.103) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-227-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.102](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.102) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-225-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.101](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.101) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-220-chore-re-apply-the-repo-ci-baseline-template.md) |
@@ -151,7 +152,6 @@ notes) and then:
 | [v0.0.97](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.97) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-211-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.96](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.96) | 2026-10-16 | build(deps): Update NuGet packages | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-16-pr-209-build-deps-update-nuget-packages.md) |
 | [v0.0.95](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.95) | 2026-10-16 | build(deps): Fail restore on vulnerable NuGet packages | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-16-pr-207-build-deps-fail-restore-on-vulnerable-nuget-packages.md) |
-| [v0.0.94](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.94) | 2026-10-16 | build(deps): Re-enable the NuGet audit warnings | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-16-pr-205-build-deps-re-enable-the-nuget-audit-warnings.md) |
 
 <!-- RELEASES_END -->
 
