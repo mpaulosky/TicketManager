@@ -1,7 +1,12 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.5.3">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
 
 	<ItemGroup>
 		<ProjectReference Include="..\Web\Web.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Lifts the MessagePack that Aspire brings in past GHSA-qhrr-8q5h-9q3h -->
+		<PackageReference Include="MessagePack" />
 	</ItemGroup>
 
 	<PropertyGroup>

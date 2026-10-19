@@ -283,7 +283,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
 
@@ -317,7 +317,7 @@ jobs:
         run: python3 .github/scripts/discover_tests.py --output "$GITHUB_OUTPUT"
 
   # Each matrix job restores and builds its own test project. Measured on
-  # #144: sharing the build job's output (with --no-build) saved nothing,
+  # IssueTracker#144: sharing the build job's output (with --no-build) saved nothing,
   # because packing and downloading it costs as much as the build, and one
   # job running every project used 60% fewer runner-minutes but took about
   # 1.5 minutes longer. So the matrix stays, with no build cache.
@@ -397,7 +397,7 @@ jobs:
 
       - name: Install Playwright browsers
         if: ${{ matrix.requires_playwright }}
-        # A hung install held IssueManager #260 for the job's 45 minutes;
+        # A hung install held IssueManager#260 for the job's 45 minutes;
         # it normally takes a minute or two, so fail fast and rerun instead.
         timeout-minutes: 10
         env:
@@ -450,7 +450,7 @@ jobs:
           exit $exit_code
 
       - name: Upload test results
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: test-results-${{ matrix.test_id }}
@@ -464,7 +464,7 @@ jobs:
         run: echo "dir=$(dirname "$PROJECT_PATH")" >> "$GITHUB_OUTPUT"
 
       - name: Upload Playwright diagnostics
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ always() && matrix.requires_playwright }}
         with:
           name: playwright-artifacts-${{ matrix.test_id }}
@@ -493,7 +493,7 @@ jobs:
           global-json-file: global.json
 
       - name: Download coverage reports
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: coverage-reports
 
@@ -550,7 +550,7 @@ jobs:
           echo "::notice::Coverage gate passed: $coverage% >= $threshold%"
 
       - name: Upload coverage reports
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: coverage-reports
@@ -590,7 +590,7 @@ jobs:
           persist-credentials: false
 
       - name: Download all test results
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: all-test-results
 
