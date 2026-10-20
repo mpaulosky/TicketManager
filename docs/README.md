@@ -142,6 +142,7 @@ notes) and then:
 
 | Version | Date | Title | Blog post |
 | ------- | ---- | ----- | --------- |
+| [v0.0.106](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.106) | 2026-10-20 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-20-pr-233-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.105](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.105) | 2026-10-19 | chore: Update favicon | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-19-pr-231-chore-update-favicon.md) |
 | [v0.0.104](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.104) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-229-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.103](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.103) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-227-chore-re-apply-the-repo-ci-baseline-template.md) |
@@ -151,7 +152,6 @@ notes) and then:
 | [v0.0.99](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.99) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-215-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.98](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.98) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-213-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.97](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.97) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-211-chore-re-apply-the-repo-ci-baseline-template.md) |
-| [v0.0.96](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.96) | 2026-10-16 | build(deps): Update NuGet packages | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-16-pr-209-build-deps-update-nuget-packages.md) |
 
 <!-- RELEASES_END -->
 
