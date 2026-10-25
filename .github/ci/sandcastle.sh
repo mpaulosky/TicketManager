@@ -42,5 +42,5 @@ run_sandcastle_tests() {
     return 1
   fi
   pnpm install --frozen-lockfile
-  pnpm run test:sandcastle
+  pnpm run check:sandcastle
 }

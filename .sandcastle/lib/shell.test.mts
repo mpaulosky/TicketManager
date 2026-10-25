@@ -1,91 +1,87 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { GitConfigGuard, gitConfigIntact, gitConfigTampered, trustGitConfig, worktreeIntact } from "./shell.mts";
+import { forgetGatedHead, hostGitInvocation, runHostGit } from "./shell.mts";
 
-describe("GitConfigGuard", () => {
-	const withConfig = (test: (config: string, worktreeConfig: string) => void) => {
-		const dir = mkdtempSync(join(tmpdir(), "sandcastle-guard-"));
-		try {
-			const config = join(dir, "config");
-			writeFileSync(config, '[remote "origin"]\n\turl = https://github.com/o/r.git\n');
-			test(config, join(dir, "config.worktree"));
-		} finally {
-			rmSync(dir, { recursive: true, force: true });
-		}
-	};
+describe("hostGitInvocation", () => {
+  it("turns hooks off with -c and in the environment, and pins the git directories to the main checkout", () => {
+    const { args, env } = hostGitInvocation("/repo", "/repo/.git", ["push", "origin", "abc:refs/heads/x"], { PATH: "/bin" });
 
-	it("passes while the config is unchanged", () => {
-		withConfig((config, worktreeConfig) => {
-			new GitConfigGuard([config, worktreeConfig]).verify();
-		});
-	});
+    assert.deepEqual(args, ["-c", "core.hooksPath=/dev/null", "push", "origin", "abc:refs/heads/x"]);
+    assert.equal(env.PATH, "/bin");
+    assert.equal(env.GIT_DIR, "/repo/.git");
+    assert.equal(env.GIT_COMMON_DIR, "/repo/.git");
+    assert.equal(env.GIT_WORK_TREE, "/repo");
+    assert.equal(env.GIT_NO_REPLACE_OBJECTS, "1");
+    assert.ok(env.GIT_GRAFT_FILE?.startsWith("/dev/null/"));
+    assert.equal(env[`GIT_CONFIG_KEY_${Number(env.GIT_CONFIG_COUNT) - 1}`], "core.hooksPath");
+    assert.equal(env[`GIT_CONFIG_VALUE_${Number(env.GIT_CONFIG_COUNT) - 1}`], "/dev/null");
+  });
 
-	it("refuses once a config file changes or appears", () => {
-		withConfig((config, worktreeConfig) => {
-			const guard = new GitConfigGuard([config, worktreeConfig]);
-			writeFileSync(worktreeConfig, "[credential]\n\thelper = !touch /tmp/pwned\n");
-			assert.throws(() => guard.verify(), /Git config changed/);
-			assert.ok(gitConfigTampered());
-		});
-	});
+  it("pushes a commit by its id without running the branch's pre-push hook", () => {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), "sandcastle-push-")));
+    try {
+      const repo = join(root, "repo");
+      const remote = join(root, "remote.git");
+      mkdirSync(repo);
+      const run = (cwd: string, args: string[], env: NodeJS.ProcessEnv = process.env) =>
+        execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd, env, encoding: "utf8", stdio: "pipe" }).trim();
+      run(root, ["init", "--quiet", "--bare", remote]);
+      run(repo, ["init", "--quiet"]);
+      run(repo, ["remote", "add", "origin", remote]);
+      run(repo, ["config", "core.hooksPath", ".github/hooks"]);
+      mkdirSync(join(repo, ".github/hooks"), { recursive: true });
+      const ran = join(root, "hook-ran");
+      writeFileSync(join(repo, ".github/hooks/pre-push"), `#!/bin/sh\ntouch "${ran}"\n`);
+      chmodSync(join(repo, ".github/hooks/pre-push"), 0o755);
+      run(repo, ["commit", "--quiet", "--allow-empty", "-m", "work"]);
+      const commit = run(repo, ["rev-parse", "HEAD"]);
+
+      const { args, env } = hostGitInvocation(repo, join(repo, ".git"), ["push", "--quiet", "origin", `${commit}:refs/heads/fix/1-x`]);
+      run(repo, args, env);
+
+      assert.equal(existsSync(ran), false, "the pre-push hook ran on the host");
+      assert.equal(run(root, ["--git-dir", remote, "rev-parse", "refs/heads/fix/1-x"]), commit);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
-describe("trustGitConfig", () => {
-	it("notices a commondir file that would point git at another config", () => {
-		const dir = mkdtempSync(join(tmpdir(), "sandcastle-repo-"));
-		try {
-			execFileSync("git", ["init", "--quiet", dir]);
-			trustGitConfig(dir);
-			assert.ok(gitConfigIntact());
-			mkdirSync(join(dir, ".git", "fake"));
-			writeFileSync(join(dir, ".git", "commondir"), "fake\n");
-			assert.equal(gitConfigIntact(), false);
-		} finally {
-			rmSync(dir, { recursive: true, force: true });
-		}
-	});
+describe("runHostGit", () => {
+  it("puts git's stderr in the error, so a caller can say why it failed", () => {
+    const dir = realpathSync(mkdtempSync(join(tmpdir(), "sandcastle-stderr-")));
+    try {
+      assert.throws(
+        () => runHostGit(dir, hostGitInvocation(dir, join(dir, ".git"), ["rev-parse", "HEAD"])),
+        /git rev-parse HEAD failed:\n.*(not a git repository|fatal)/s,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
-describe("worktreeIntact", () => {
-	const withWorktree = (test: (worktree: string, common: string, gitDir: string) => void) => {
-		const dir = mkdtempSync(join(tmpdir(), "sandcastle-wt-"));
-		try {
-			const common = join(dir, "repo", ".git");
-			const gitDir = join(common, "worktrees", "wt");
-			const worktree = join(dir, "wt");
-			mkdirSync(gitDir, { recursive: true });
-			mkdirSync(worktree);
-			writeFileSync(join(worktree, ".git"), `gitdir: ${gitDir}\n`);
-			writeFileSync(join(gitDir, "commondir"), "../..\n");
-			test(worktree, common, gitDir);
-		} finally {
-			rmSync(dir, { recursive: true, force: true });
-		}
-	};
+describe("forgetGatedHead", () => {
+  it("unsets the marker an earlier Sandcastle left", () => {
+    const calls: string[][] = [];
 
-	it("accepts the files git wrote", () => {
-		withWorktree((worktree, common) => assert.ok(worktreeIntact(worktree, common)));
-	});
+    forgetGatedHead((...args) => {
+      calls.push(args);
+      return "";
+    });
 
-	it("rejects a .git file pointing elsewhere", () => {
-		withWorktree((worktree, common) => {
-			writeFileSync(join(worktree, ".git"), "gitdir: /tmp/evil\n");
-			assert.equal(worktreeIntact(worktree, common), false);
-		});
-	});
+    assert.deepEqual(calls, [["config", "--local", "--unset-all", "sandcastle.gatedHead"]]);
+  });
 
-	it("rejects a changed commondir or an added config.worktree", () => {
-		withWorktree((worktree, common, gitDir) => {
-			writeFileSync(join(gitDir, "commondir"), "/tmp/evil\n");
-			assert.equal(worktreeIntact(worktree, common), false);
-		});
-		withWorktree((worktree, common, gitDir) => {
-			writeFileSync(join(gitDir, "config.worktree"), "[core]\n\tfsmonitor = touch /tmp/pwned\n");
-			assert.equal(worktreeIntact(worktree, common), false);
-		});
-	});
+  it("carries on when there's no marker to unset", () => {
+    assert.doesNotThrow(() =>
+      forgetGatedHead(() => {
+        throw new Error("exit 5");
+      }),
+    );
+  });
 });
