@@ -25,11 +25,12 @@ Use the commands for each stack the issue touches:
 
 ## The gate
 
-`scripts/gate.sh` is the one definition of "ready to push". It lints the Markdown, YAML, workflow and shell files the branch changed, runs the repo's own checks in
+In the sandbox, `.sandcastle/check.sh` is the definition of "ready to push". The sandbox has no Docker daemon, so it leaves out the test projects that start containers,
+which `scripts/gate.sh` and CI run. It lints the Markdown, YAML, workflow and shell files the branch changed, runs the repo's own checks in
 `.github/ci/gate-checks.sh` (Sandcastle's check among them, when `.sandcastle/` or its packages changed), builds the solution with warnings as errors, then runs every test
 project. Run it rather than the individual lint and test commands.
 
-- If you committed anything, run `scripts/gate.sh` once as your last step, before `<promise>COMPLETE</promise>`, and fix what it reports.
+- If you committed anything, run `.sandcastle/check.sh` once as your last step, before `<promise>COMPLETE</promise>`, and fix what it reports.
 - The tester is exempt, because its tests are red on purpose. It still lints the files it changed.
 - The architect is exempt too. It commits at most one ADR, and lints that file with `markdownlint-cli2 <file>`.
 - After you finish, the host runs the gate itself. Its exit code decides whether the branch is published, not what you report.

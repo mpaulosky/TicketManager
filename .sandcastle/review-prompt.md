@@ -76,7 +76,7 @@ If you find improvements to make:
 
 1. Make the changes directly on this branch
 2. Commit using `refactor(<scope>): <Summary>`
-3. Run `scripts/gate.sh` as your last step and confirm it passes
+3. Run `.sandcastle/check.sh` as your last step and confirm it passes
 
 If the code is already clean and well-structured, change nothing.
 

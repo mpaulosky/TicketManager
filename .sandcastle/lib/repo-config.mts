@@ -10,8 +10,10 @@
 
 import type { Role, RoleAgent } from "./config.mts";
 
-const opus = "claude-opus-5-5";
-const sonnet = "claude-sonnet-5-5";
+// The older pipeline ran every role on claude-opus-4-8; this repo keeps that
+// until it moves off it as its own follow-up.
+const opus = "claude-opus-4-8";
+const sonnet = "claude-opus-4-8";
 
 // Every role's agent and budget, from the "Roles, models and budgets" table in
 // Blazor-Server's docs/plans/sandcastle-workflow.md. Opus goes where a wrong
@@ -64,6 +66,12 @@ export const SANDBOX_SKILLS: readonly string[] = [];
 // Name the ci.yml jobs whose work scripts/gate.sh repeats, the repo's test
 // jobs included. A rename of one of those jobs must change this too.
 export const GATE_COVERED_CHECKS: readonly string[] = ["Build Solution"];
+
+// The command the host runs in the sandbox as the gate. The sandbox has no
+// Docker daemon, so this is .sandcastle/check.sh, which builds and runs the test
+// projects that don't start containers, keeps the lints, and runs this
+// directory's own tests, where scripts/gate.sh would run every test project.
+export const GATE_COMMAND = ".sandcastle/check.sh";
 
 // The Template's Owned folder and the Owned files the repo carries copies of
 // at the same path from its root, which lib/overlap.mts counts as one path

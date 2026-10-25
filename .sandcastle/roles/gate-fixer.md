@@ -1,6 +1,6 @@
 # TASK
 
-The gate (`scripts/gate.sh`) failed at checkpoint {{CHECKPOINT}} on branch {{BRANCH}}. Make it pass.
+The gate (`.sandcastle/check.sh`) failed at checkpoint {{CHECKPOINT}} on branch {{BRANCH}}. Make it pass.
 
 The host ran the gate itself, and its exit code is what counts. Here is its output:
 
@@ -51,7 +51,7 @@ When a test is wrong rather than the code, say so in your commit body instead of
 1. Read the gate output above and find the failing step. The gate stops at the first one that fails, so a later step may fail too once it's fixed.
 2. Fix the cause, running that step's command directly to check the fix.
 3. Commit the fix.
-4. Run `scripts/gate.sh`, and repeat until it passes or you can't make progress.
+4. Run `.sandcastle/check.sh`, and repeat until it passes or you can't make progress.
 
 If you can't make the gate pass, commit what you fixed and say in the last commit's body what still fails and why.
 
