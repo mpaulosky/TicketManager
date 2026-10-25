@@ -4,7 +4,7 @@
 # an agent reports. It builds the solution and runs every test project but the
 # ones that need Docker or a browser, which the sandbox doesn't have. CI runs
 # the full .NET suite on the pull request, and scripts/gate.sh does before a
-# push by hand. The host runs main's copy of this file (see lib/check.mts).
+# push by hand.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -70,6 +70,6 @@ for project in "${projects[@]}"; do
 done
 
 echo "▶ Sandcastle tests"
-pnpm run test:sandcastle
+pnpm run check:sandcastle
 
 echo "✅ Sandcastle check passed."

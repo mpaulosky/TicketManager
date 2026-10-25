@@ -38,7 +38,7 @@ behavior to [Project Maintainer](mailto:matthew.paulosky@outlook.com)
 3. Make your changes, following the code style and guidelines below, with tests.
    A branch that touches the Sandcastle code (`.sandcastle/`) or the root package files also needs Node 22.18 or later
    and pnpm (through `corepack enable`): the pre-push gate then type-checks and tests that code with
-   `pnpm run test:sandcastle`. `.github/ci/sandcastle.sh` lists the paths.
+   `pnpm run check:sandcastle`. `.github/ci/sandcastle.sh` lists the paths.
 4. Push your branch and open a Pull Request to `main` using the template.
 
 ## What should I know before I get started
