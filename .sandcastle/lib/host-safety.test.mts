@@ -1,10 +1,66 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { hostGitEnv, mainGitDir, protectedGitMounts, withoutGitHooks, worktreeLinkProblems, worktreePathFor } from "./host-safety.mts";
+import { pathToFileURL } from "node:url";
+import { hostGitEnv, mainGitDir, protectedGitMounts, withoutGitHooks, worktreeConfigProblem, worktreeLinkProblems, worktreePathFor } from "./host-safety.mts";
+
+describe("worktreeConfigProblem", () => {
+  const configIn = (setup: (gitDir: string) => void) => {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), "sandcastle-worktree-config-")));
+    try {
+      execFileSync("git", ["init", "--quiet", join(root, "repo")], { stdio: "ignore" });
+      setup(join(root, "repo", ".git"));
+      return worktreeConfigProblem(join(root, "repo", ".git"));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  };
+  const setExtension = (value: string) => (gitDir: string) =>
+    execFileSync("git", ["config", "--file", join(gitDir, "config"), "extensions.worktreeConfig", value]);
+
+  it("is undefined for a repository that doesn't turn it on", () => {
+    assert.equal(configIn(() => {}), undefined);
+    assert.equal(configIn(setExtension("false")), undefined);
+  });
+
+  it("names the config when extensions.worktreeConfig is on, however it is spelled", () => {
+    for (const value of ["true", "yes", "on", "1"]) {
+      assert.match(configIn(setExtension(value)) ?? "", /extensions\.worktreeConfig/, value);
+    }
+  });
+});
+
+describe("protectHostGit", () => {
+  // Runs in a child process: repoGitDir() caches process.cwd() and protectHostGit() changes process.env.
+  const protectIn = (setup: (gitDir: string) => void) => {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), "sandcastle-protect-")));
+    try {
+      execFileSync("git", ["init", "--quiet", join(root, "repo")], { stdio: "ignore" });
+      setup(join(root, "repo", ".git"));
+      const module = pathToFileURL(join(import.meta.dirname, "host-safety.mts")).href;
+      return spawnSync(process.execPath, [...process.execArgv, "--input-type=module", "-e", `import(${JSON.stringify(module)}).then((m) => m.protectHostGit())`], {
+        cwd: join(root, "repo"),
+        encoding: "utf8",
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  };
+
+  it("refuses a repository that has extensions.worktreeConfig on", () => {
+    const result = protectIn((gitDir) => execFileSync("git", ["config", "--file", join(gitDir, "config"), "extensions.worktreeConfig", "true"]));
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /extensions\.worktreeConfig/);
+  });
+
+  it("succeeds in a repository that doesn't", () => {
+    const result = protectIn(() => {});
+    assert.equal(result.status, 0, result.stderr);
+  });
+});
 
 describe("withoutGitHooks", () => {
   it("forces core.hooksPath to /dev/null through the environment", () => {
