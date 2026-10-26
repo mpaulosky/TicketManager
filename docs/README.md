@@ -142,6 +142,7 @@ notes) and then:
 
 | Version | Date | Title | Blog post |
 | ------- | ---- | ----- | --------- |
+| [v0.0.109](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.109) | 2026-10-26 | chore(sandcastle): Add the names the local review reads and deny Claude Code the ledgers and credential files | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-26-pr-244-chore-sandcastle-add-the-names-the-local-review-reads-and-deny-claude-code-the-ledgers-and-credential-files.md) |
 | [v0.0.108](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.108) | 2026-10-25 | chore(sandcastle): Migrate to the Baseline Template's full pipeline | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-25-pr-242-chore-sandcastle-migrate-to-the-baseline-template-s-full-pipeline.md) |
 | [v0.0.107](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.107) | 2026-10-20 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-20-pr-235-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.106](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.106) | 2026-10-20 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-20-pr-233-chore-re-apply-the-repo-ci-baseline-template.md) |
@@ -151,7 +152,6 @@ notes) and then:
 | [v0.0.102](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.102) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-225-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.101](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.101) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-220-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.100](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.100) | 2026-10-18 | chore(deps): Have Dependabot ignore claude-code-action | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-221-chore-deps-have-dependabot-ignore-claude-code-action.md) |
-| [v0.0.99](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.99) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-215-chore-re-apply-the-repo-ci-baseline-template.md) |
 
 <!-- RELEASES_END -->
 
