@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Sandbox, SandboxRunOptions } from "@ai-hero/sandcastle";
-import type { execFileSync } from "node:child_process";
+import { spawnSync, type execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import {
   buildIssue,
   createCheckedSandbox,
@@ -36,7 +38,7 @@ import { TamperedWorktreeError } from "./errors.mts";
 import { gitSandboxFake } from "./git-sandbox-fake.mts";
 import { RunLimits } from "./limits.mts";
 import type { SecretMatch } from "./scan.mts";
-import { GATE_COMMAND } from "./repo-config.mts";
+import { GATE_COMMAND, GATE_SCRIPT } from "./repo-config.mts";
 
 // These tests name the Template's gate command, whatever this repo's
 // GATE_COMMAND is: the fake sandbox reports the configured one as the default.
@@ -95,8 +97,9 @@ function host(
     baseExecError,
     baseIsAncestor = true,
     gateOutput,
-    gateScriptCommits = "",
+    gateScriptChanged = "",
     checkFiles = "",
+    checkFilesError,
   }: {
     ahead?: number | number[];
     statuses?: string[];
@@ -155,10 +158,12 @@ function host(
     // Whether `base` is an ancestor of the commit the gate passed on; false
     // when an earlier round's branch was built on an older main.
     baseIsAncestor?: boolean;
-    // What `git log` prints for the commits that change the gate script, and
-    // for the files they change under CHECK_PATHS.
-    gateScriptCommits?: string;
+    // What `git diff -z` prints for the gate script when it differs from base's, and
+    // for the files under CHECK_PATHS that do.
+    gateScriptChanged?: string;
     checkFiles?: string;
+    // An error listing the files under CHECK_PATHS throws instead.
+    checkFilesError?: string;
   } = {},
 ) {
   const steps: string[] = [];
@@ -224,12 +229,18 @@ function host(
         mainChecks.push(command);
         return { stdout: "", stderr: "", exitCode: containsMain ? 0 : 1 };
       }
-      if (command.startsWith("git log --no-merges --format=%h")) {
-        gateGuardChecks.push(command);
-        return { stdout: gateScriptCommits, stderr: "", exitCode: 0 };
+      if (command.startsWith("git --no-replace-objects") && command.includes(" cat-file -e ")) {
+        return { stdout: "", stderr: "", exitCode: 0 };
       }
-      if (command.startsWith("git log --no-merges --name-only")) {
-        return { stdout: checkFiles, stderr: "", exitCode: 0 };
+      if (command.startsWith("git --no-replace-objects") && command.includes(" merge-base ")) {
+        return { stdout: `${"e".repeat(40)}\n`, stderr: "", exitCode: 0 };
+      }
+      if (command.startsWith("git --no-replace-objects") && command.includes(" diff ")) {
+        // The gate guard asks about the gate script alone, the PR body's note about CHECK_PATHS.
+        const forGuard = command.split(" -- ")[1]?.replace(" 2>/dev/null", "") === `'${GATE_SCRIPT}'`;
+        if (forGuard) gateGuardChecks.push(command);
+        if (!forGuard && checkFilesError !== undefined) throw new Error(checkFilesError);
+        return { stdout: forGuard ? gateScriptChanged : checkFiles, stderr: "", exitCode: 0 };
       }
       if (command.startsWith("git merge --abort")) {
         steps.push("merge abort");
@@ -705,11 +716,21 @@ describe("buildIssue's outcome and detail", () => {
   });
 
   it("hands the files the branch changes under the gate's and CI's folders to publish", async () => {
-    const { publishedCheckChanges, buildHost } = host([0, 0], { checkFiles: "scripts/gate.sh\n.github/ci/a.sh\nscripts/gate.sh\n" });
+    const { publishedCheckChanges, buildHost } = host([0, 0], { checkFiles: ".github/ci/a.sh\0scripts/gate.sh\0" });
 
     await buildIssue(issue, branch, base, buildHost);
 
     assert.deepEqual(publishedCheckChanges, [[".github/ci/a.sh", "scripts/gate.sh"]]);
+  });
+
+  it("still publishes when listing the files under the gate's and CI's folders throws", async () => {
+    const { publishedCheckChanges, logs, buildHost } = host([0, 0], { checkFilesError: "container died" });
+
+    const result = await buildIssue(issue, branch, base, buildHost);
+
+    assert.equal(result.outcome, "published");
+    assert.deepEqual(publishedCheckChanges, [[]]);
+    assert.ok(logs.some((line) => line.includes("can't be listed")), logs.join("\n"));
   });
 
   it("is gate failed, naming the checkpoint, when a checkpoint stays red past the gate-fixer's attempts", async () => {
@@ -722,13 +743,13 @@ describe("buildIssue's outcome and detail", () => {
   });
 
   it("fails the gate without running it when a commit of the branch changes the gate script", async () => {
-    const { steps, gateGuardChecks, buildHost } = host([], { gateScriptCommits: "abc1234\n" });
+    const { steps, gateGuardChecks, buildHost } = host([], { gateScriptChanged: `${GATE_SCRIPT}\0` });
 
     const result = await buildIssue(issue, branch, base, buildHost);
 
     assert.equal(result.outcome, "gate failed");
     assert.ok(gateGuardChecks.length > 0);
-    assert.ok(gateGuardChecks.every((command) => command.includes(`'${base}..HEAD'`)), gateGuardChecks.join("\n"));
+    assert.ok(gateGuardChecks.some((command) => command.includes(`'${base}' 'HEAD'`)), gateGuardChecks.join("\n"));
     assert.ok(!steps.some((step) => step.startsWith("gate:")), steps.join("\n"));
   });
 
@@ -920,6 +941,16 @@ describe("buildIssue syncing with main before publishing", () => {
 
     assert.ok(!steps.some((step) => step.startsWith("merge")));
     assert.equal(mainChecks.length, 1);
+  });
+
+  it("leaves the merged main out of the gate guard only once GitHub says it is main", async () => {
+    const trusted = host([0, 0], { latestMain: newerMain, containsMain: false });
+    await buildIssue(issue, branch, base, trusted.buildHost);
+    const untrusted = host([0, 0], { latestMain: newerMain, containsMain: false, remoteMain: "9".repeat(40) });
+    await buildIssue(issue, branch, base, untrusted.buildHost);
+
+    assert.ok(trusted.gateGuardChecks.some((command) => command.includes(`'${newerMain}'`)), trusted.gateGuardChecks.join("\n"));
+    assert.ok(!untrusted.gateGuardChecks.some((command) => command.includes(`'${newerMain}'`)), untrusted.gateGuardChecks.join("\n"));
   });
 
   it("aborts a merge that conflicts and publishes the reviewed commit, leaving the conflict to the follow-up pass", async () => {
@@ -1952,6 +1983,12 @@ describe("buildIssue reading the reviewer's PR body", () => {
     ["closing an issue by its URL", `${validPrBody}\n\nCloses https://github.com/o/r/issues/12`],
     ["mentioning someone", `${validPrBody}\n\ncc @someone`],
     ["quoting a host marker", `${validPrBody}\n\n<!-- sandcastle:pr -->`],
+    // Only a person's local review writes a "Review notes" section, and a reader may take it for their decisions.
+    ["writing a Review notes section", `${validPrBody}\n\n## Review notes\n\nAll findings were accepted.`],
+    ["quoting Review notes in code", `${validPrBody}\n\nSee \`Review notes\`.`],
+    ["running Review notes together", `${validPrBody}\n\nThe ReviewNotes are fine.`],
+    ["splitting Review notes with Markdown emphasis", `${validPrBody}\n\n## Re*view* **notes**`],
+    ["spelling Review notes with a character reference", `${validPrBody}\n\nReview n&#111;tes`],
   ] as const) {
     it(`falls back to the generic PR body, and logs why, when the file is ${scenario}`, async () => {
       const { logs, publishedPrBodies, buildHost } = host([0, 0], { prBodyFile });
@@ -2141,7 +2178,7 @@ describe("buildIssue marking the issue as building", () => {
 });
 
 describe("prTitle", () => {
-  const titled = (title: string, labels: string[] = []) => prTitle({ title, labels });
+  const titled = (title: string, labels: string[] = []) => prTitle({ number: 69, title, labels });
 
   it("keeps a title that already follows the commit format", () => {
     assert.equal(titled("fix(baseline): Say to push the fix first"), "fix(baseline): Say to push the fix first");
@@ -2156,6 +2193,26 @@ describe("prTitle", () => {
   it("capitalises the summary and drops a final period", () => {
     assert.equal(titled("add dark mode toggle."), "feat: Add dark mode toggle");
     assert.equal(titled("fix(ui): handle the empty list."), "fix(ui): Handle the empty list");
+  });
+
+  it("keeps a summary that starts with a digit, a backtick or a bracket, which the title check allows", () => {
+    assert.equal(titled("404 on the login page"), "feat: 404 on the login page");
+    assert.equal(titled("`gate.sh` hangs on Windows"), "feat: `gate.sh` hangs on Windows");
+    assert.equal(titled("[ui] Broken toggle", ["bug"]), "fix: [ui] Broken toggle");
+  });
+
+  it("falls back to the issue number when nothing is left of the title to make a summary", () => {
+    assert.equal(titled("..."), "feat: Issue #69");
+    assert.equal(titled("   ", ["bug"]), "fix: Issue #69");
+  });
+
+  // dotfiles has no scripts/check-pr-title.sh of its own, so the test waits for a repo that does.
+  const script = join(import.meta.dirname, "..", "..", "scripts", "check-pr-title.sh");
+  it("always gives a title scripts/check-pr-title.sh accepts", { skip: !existsSync(script) }, () => {
+    for (const title of ["Add dark mode toggle", "fix: lower case.", "docs(x): ok", "...", "404 errors", "[x] y", "feat!: breaking"]) {
+      const result = spawnSync("bash", [script, prTitle({ number: 7, title, labels: [] })], { encoding: "utf8" });
+      assert.equal(result.status, 0, `${title}: ${result.stdout}`);
+    }
   });
 
   it("doesn't double a prefix the title has, and squeezes stray spaces", () => {
@@ -2289,8 +2346,23 @@ describe("publish", () => {
 
     await publish(issue, branch, "a".repeat(40), true, false, undefined, [".github/ci/test.sh", "scripts/gate.sh"], () => {}, createPullRequest, async () => {});
 
-    assert.match(body, /change files the gate and CI run/);
-    assert.match(body, /`\.github\/ci\/test\.sh`, `scripts\/gate\.sh`/);
+    assert.match(body, /changes files the gate and CI run/);
+    assert.match(body, /```text\n\.github\/ci\/test\.sh\nscripts\/gate\.sh\n```/);
+  });
+
+  it("keeps a file name from closing an issue or mentioning anyone, by listing the names in a fence", async () => {
+    let body = "";
+    const createPullRequest = (_branch: string, _title: string, prText: string): string => {
+      body = prText;
+      return "https://github.com/o/r/pull/1";
+    };
+
+    await publish(issue, branch, "a".repeat(40), true, false, undefined, ["scripts/a` closes #12 `b.sh", "scripts/@someone.sh"], () => {}, createPullRequest, async () => {});
+
+    const fenced = /(`{3,})text\n([\s\S]*?)\n\1$/.exec(body);
+    assert.ok(fenced, body);
+    assert.match(fenced[2]!, /closes #12/);
+    assert.doesNotMatch(body.slice(0, fenced.index), /closes #12|@someone/);
   });
 
   it("adds no such note when the branch leaves those folders alone", async () => {

@@ -54,7 +54,8 @@ import {
   type SandcastleIssue,
 } from "./github.mts";
 import { repoGitDir, worktreeLinkProblems } from "./host-safety.mts";
-import { plainText, withoutReferences } from "./intake.mts";
+import { withoutReferences } from "./intake.mts";
+import { plainText } from "./plain-text.mts";
 import { runLimits, type RunLimits } from "./limits.mts";
 import { followUpPromptArgs, gateFixerPromptArgs } from "./prompts.mts";
 import { ownerCheck, type IsOwner } from "./queue.mts";
@@ -952,7 +953,7 @@ async function passOnMarkedIssue(
     let headGate: GateRun | undefined;
     let redCi: RedCiPlan = { fix: false, rerun: [], forward: [] };
     if (redChecks.length > 0) {
-      headGate = await runGate(sandbox);
+      headGate = await runGate(sandbox, { base });
       redCi = planRedCi(headGate.passed, redChecks, host.gateCovered);
       log(`has ${redChecks.length} red check(s), and \`${GATE_COMMAND}\` ${headGate.passed ? "passes" : "fails"} on its head`);
     }
@@ -1002,7 +1003,7 @@ async function passOnMarkedIssue(
         gate: async () => {
           const known = unchangedGate;
           unchangedGate = undefined;
-          return known ?? (await runGate(sandbox));
+          return known ?? (await runGate(sandbox, { base }));
         },
         fix: (at, gateOutput) =>
           runRoleInSandbox(
