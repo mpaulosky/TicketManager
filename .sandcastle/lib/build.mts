@@ -8,18 +8,17 @@ import { setTimeout as sleep } from "node:timers/promises";
 import * as sandcastle from "@ai-hero/sandcastle";
 import { isRoleTimeout, runRoleInSandbox } from "./agents.mts";
 import { commitsAhead, fetchMain } from "./branches.mts";
-import { gateFailureComment, headOf, runCheckpoint, runGate, textBlock, type Checkpoint } from "./checkpoint.mts";
+import { changedFiles, gateFailureComment, headOf, runCheckpoint, runGate, textBlock, type Checkpoint } from "./checkpoint.mts";
 import {
   BASE_BRANCH,
   BUILD_FAILED_MARKER,
   BUILDING_LABEL,
-  CHECK_PATHS,
   DESIGN_MARKER,
   PR_MARKER,
   PUBLISH_RETRY_ATTEMPTS,
   type OptionalRole,
 } from "./config.mts";
-import { copyToWorktree, hooks } from "./repo-config.mts";
+import { CHECK_PATHS, copyToWorktree, hooks } from "./repo-config.mts";
 import { TamperedWorktreeError, UncountedStopError } from "./errors.mts";
 import { startFromMain as sweepStartFromMain } from "./follow-up.mts";
 import { claimBuildingLabel, releaseBuildingLabel } from "./building.mts";
@@ -32,23 +31,33 @@ import type { Outcome } from "./report.mts";
 import { containsSandboxSecret, containsSecret, sandboxSecrets } from "./sandbox-env.mts";
 import { describeSecretMatch, firstSecretMatch, type SecretMatch } from "./scan.mts";
 import { git } from "./shell.mts";
+import { visibleLetters } from "./plain-text.mts";
 import { agentSandbox } from "./skills.mts";
 
 // A conventional-commit prefix as scripts/check-pr-title.sh accepts it: a type,
 // an optional scope, an optional breaking-change marker, a colon and a space.
 const titlePrefix = /^(?:feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\([^)]+\))?!?: /;
 
+// Whether scripts/check-pr-title.sh would accept `title`: a prefix, then a
+// summary that doesn't start with a lowercase letter or end with a period.
+function followsTitleFormat(title: string): boolean {
+  const summary = new RegExp(`^${titlePrefix.source}(\\S(?:.*\\S)?)$`).exec(title)?.[1];
+  return summary !== undefined && !/^[a-z]/.test(summary) && !summary.endsWith(".");
+}
+
 // The title of the PR built from `issue`. The title becomes the squash commit's
 // subject, which scripts/check-pr-title.sh holds to `<type>(<scope>): <Summary>`
-// with a capital and no final period, and a PR that fails it never merges. An
-// issue title that already follows it is used as written. One that doesn't gets
-// `fix:` when the issue is labelled bug, else `feat:`, and its summary a
-// capital and no final period.
-export function prTitle(issue: Pick<SandcastleIssue, "title" | "labels">): string {
+// with no lowercase first letter and no final period, and a PR that fails it
+// never merges. An issue title that already follows it is used as written. One
+// that doesn't gets `fix:` when the issue is labelled bug, else `feat:`, and its
+// summary a capital and no final period. A title that still fails the check
+// (nothing left of it, say) becomes `<prefix>Issue #n`.
+export function prTitle(issue: Pick<SandcastleIssue, "number" | "title" | "labels">): string {
   const title = issue.title.trim().replace(/\s+/g, " ");
   const prefix = titlePrefix.exec(title)?.[0] ?? (issue.labels.includes("bug") ? "fix: " : "feat: ");
   const summary = (titlePrefix.test(title) ? title.slice(prefix.length) : title).replace(/\.+$/, "");
-  return `${prefix}${summary.charAt(0).toUpperCase()}${summary.slice(1)}`;
+  const candidate = `${prefix}${summary.charAt(0).toUpperCase()}${summary.slice(1)}`;
+  return followsTitleFormat(candidate) ? candidate : `${prefix}Issue #${issue.number}`;
 }
 
 // Re-exported for the callers and tests that already import it from here.
@@ -77,8 +86,8 @@ export { UncountedStopError };
 // Blazor-Server's docs/plans/sandcastle-workflow.md): the PR still publishes, with a note
 // that the documentation step failed.
 //
-// `checkChanges` are the files under CHECK_PATHS that the branch's own commits
-// change; the PR body lists them (see CHECK_PATHS).
+// `checkChanges` are the files under CHECK_PATHS that the branch changes; the PR
+// body lists them (see CHECK_PATHS in lib/repo-config.mts).
 //
 // `prBody` is the reviewer's `pr-body.md` (its Why, What changed and
 // Verification sections), already read from the sandbox and validated by the
@@ -114,8 +123,9 @@ export async function publish(
   // host published from a collaborator's on a matching branch.
   const checkNote =
     checkChanges.length > 0
-      ? "\n\n⚠️ The commits on this branch change files the gate and CI run, so they could have weakened a check. " +
-        `Look at these before merging: ${checkChanges.map((file) => `\`${file}\``).join(", ")}.`
+      ? "\n\n⚠️ This branch changes files the gate and CI run, so it could have weakened a check. Look at these before merging:\n\n" +
+        // File names are the agents' to choose, so they go in a fence that nothing in them can close.
+        textBlock(checkChanges.join("\n"))
       : "";
   const body = `${PR_MARKER}\nCloses #${issue.number}\n\n${description}${docsNote}${checkNote}`;
   // A retry after a create that GitHub carried out but answered with an error
@@ -832,6 +842,13 @@ async function buildMarkedIssue(
       // publicError also strips colour codes and URL credentials. Any change
       // means the file isn't safe to publish as written, so it isn't.
       problem = "holds a secret, a token shape or other text that isn't safe to publish";
+    } else if (visibleLetters(prBody).includes("reviewnotes")) {
+      // The local review's `## Review notes` are a person's acceptances
+      // (scripts/review.sh notes), which a reader such as Claude Review may take
+      // as decisions: text an agent wrote mustn't pass for them in any form, even
+      // quoted in code or run together in a name. A false refusal only costs the
+      // generic body.
+      problem = "holds the words Review notes, which only a person's local review writes";
     } else if (PR_BODY_CLOSING_REFERENCE.test(prBody) || PR_BODY_MENTION.test(prBody) || prBody.includes("<!--")) {
       problem = "closes an issue, mentions someone or quotes a host marker, which GitHub or the host would act on";
     }
@@ -985,7 +1002,7 @@ async function buildMarkedIssue(
     const synced = await syncWithMain();
     if (synced !== undefined) {
       const { reviewedHead, mergedMain } = synced;
-      const merged = await runGate(sandbox, { base, mergedMain });
+      const merged = await runGate(sandbox, { base, mergedMain: trustedMergedMain(mergedMain) });
       log(`checkpoint 2: gate ${merged.passed ? "passed" : "failed"} with main merged in`);
       if (merged.passed) return merged.head === undefined ? undefined : { gated: merged.head, mergedMain };
       if (!(await restoredTo(reviewedHead, `git reset --hard ${shellWord(reviewedHead)}`))) {
@@ -997,20 +1014,18 @@ async function buildMarkedIssue(
     return gated === undefined ? undefined : { gated };
   }
 
-  // The files under CHECK_PATHS that the branch's own commits change (main's
-  // merged-in history left out), for the PR body to list. Empty when git can't
-  // say: the note is a courtesy to the reviewer, and the gate and CI still run.
+  // The files under CHECK_PATHS that the branch changes (see changedFiles), for
+  // the PR body to list. Empty when git can't say: the note is a courtesy to the
+  // reviewer, and the gate and CI still run.
   async function changedCheckFiles(gated: string, mergedMain: string | undefined): Promise<string[]> {
-    const exclude = mergedMain === undefined ? "" : ` ${shellWord(`^${mergedMain}`)}`;
-    const paths = CHECK_PATHS.map(shellWord).join(" ");
-    const { stdout, exitCode } = await sandbox.exec(
-      `git log --no-merges --name-only --format= ${shellWord(`${base}..${gated}`)}${exclude} -- ${paths} 2>/dev/null`,
-    );
-    if (exitCode !== 0) {
-      log("the files the branch changes under the gate's and CI's folders can't be listed, so the PR body won't name them");
-      return [];
+    try {
+      const changed = await changedFiles(sandbox, { base, mergedMain }, CHECK_PATHS, gated);
+      if (changed !== undefined) return changed;
+    } catch (error) {
+      console.error(`  ⚠ #${issue.number}: listing the files ${branch} changes under the gate's and CI's folders failed: ${error}`);
     }
-    return [...new Set(stdout.split("\n").filter(Boolean))].sort();
+    log("the files the branch changes under the gate's and CI's folders can't be listed, so the PR body won't name them");
+    return [];
   }
 
   // GitHub judges the push of a branch it doesn't have yet against main's
