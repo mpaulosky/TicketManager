@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { OPTIONAL_ROLES } from "./config.mts";
+import { uiEnabled } from "./agents.mts";
 import { readyPicks, resolveFiles, resolveRoles } from "./plan.mts";
+import { withUiRole } from "./ui-role-fixture.mts";
 
 describe("readyPicks", () => {
   const ready = [{ number: 4 }, { number: 5 }];
@@ -47,19 +49,22 @@ describe("readyPicks", () => {
 // fallback, since the plan schema itself can't reject an invalid field
 // without aborting the whole plan (see plan.mts).
 describe("resolveRoles", () => {
+  // The roles a plan without a valid `roles` field runs: the optional ones, `ui` only when the repo opted in.
+  const everyOptionalRole = () => OPTIONAL_ROLES.filter((role) => role !== "ui" || uiEnabled());
+
   it("runs every optional role when the field is missing", () => {
-    assert.deepEqual(resolveRoles(undefined), [...OPTIONAL_ROLES]);
+    assert.deepEqual(resolveRoles(undefined), everyOptionalRole());
   });
 
   it("runs every optional role when the field isn't an array", () => {
-    assert.deepEqual(resolveRoles("architect"), [...OPTIONAL_ROLES]);
-    assert.deepEqual(resolveRoles(null), [...OPTIONAL_ROLES]);
-    assert.deepEqual(resolveRoles({ architect: true }), [...OPTIONAL_ROLES]);
+    assert.deepEqual(resolveRoles("architect"), everyOptionalRole());
+    assert.deepEqual(resolveRoles(null), everyOptionalRole());
+    assert.deepEqual(resolveRoles({ architect: true }), everyOptionalRole());
   });
 
   it("runs every optional role when the array names something resolveRoles doesn't recognise", () => {
-    assert.deepEqual(resolveRoles(["architect", "backend"]), [...OPTIONAL_ROLES]);
-    assert.deepEqual(resolveRoles(["frontend"]), [...OPTIONAL_ROLES]);
+    assert.deepEqual(resolveRoles(["architect", "backend"]), everyOptionalRole());
+    assert.deepEqual(resolveRoles(["frontend"]), everyOptionalRole());
   });
 
   it("keeps only the roles the planner picked, in build order", () => {
@@ -69,6 +74,22 @@ describe("resolveRoles", () => {
 
   it("deliberately picking none is valid: an empty array runs no optional role", () => {
     assert.deepEqual(resolveRoles([]), []);
+  });
+
+  it("leaves the ui role out of every optional role, and refuses a plan that picks it, in a repo that hasn't opted in", async () => {
+    await withUiRole(false, () => {
+      const everyOtherRole = OPTIONAL_ROLES.filter((role) => role !== "ui");
+      assert.deepEqual(resolveRoles(undefined), everyOtherRole);
+      assert.deepEqual(resolveRoles(["ui"]), everyOtherRole);
+      assert.deepEqual(resolveRoles(["architect"]), ["architect"]);
+    });
+  });
+
+  it("includes the ui role, in build order, in a repo that opted in", async () => {
+    await withUiRole(true, () => {
+      assert.deepEqual(resolveRoles(undefined), ["architect", "ui", "scribe"]);
+      assert.deepEqual(resolveRoles(["scribe", "ui", "architect"]), ["architect", "ui", "scribe"]);
+    });
   });
 
   it("drops a repeated role rather than running it twice", () => {
