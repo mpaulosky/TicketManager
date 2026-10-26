@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 | ---- | ----- | ---- |
+| 2026-10-26 | [chore: Re-apply the repo-ci-baseline Template](2026-10-26-pr-251-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-10-26 | [chore: Re-apply the repo-ci-baseline Template](2026-10-26-pr-249-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-10-26 | [chore: Re-apply the repo-ci-baseline Template](2026-10-26-pr-248-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-10-26 | [chore(sandcastle): Add GATE_SCRIPT and CHECK_PATHS to the repo config](2026-10-26-pr-246-chore-sandcastle-add-gate-script-and-check-paths-to-the-repo-config.md) | release,automation |
