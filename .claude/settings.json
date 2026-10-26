@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(//**/.git/review)",
+      "Read(//**/.git/review/**)",
+      "Read(//**/.env)",
+      "Read(//**/.env.local)",
+      "Read(//**/.env.*.local)",
+      "Read(//**/.env.production)",
+      "Read(//**/.env.prod)",
+      "Read(//**/.env.staging)",
+      "Read(//**/.env.development)",
+      "Read(//**/.env.dev)",
+      "Read(//**/.env.test)",
+      "Read(//**/.env.docker)",
+      "Read(//**/secrets/**)",
+      "Read(//**/*.pem)",
+      "Read(//**/*.key)",
+      "Read(//**/*.pfx)",
+      "Read(//**/*.p12)",
+      "Read(//**/.git/config)",
+      "Read(~/.ssh/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.git-credentials)",
+      "Read(~/.netrc)",
+      "Read(~/.aws/**)",
+      "Read(~/.azure/**)",
+      "Read(~/.microsoft/usersecrets/**)",
+      "Read(~/.claude/.credentials.json)"
+    ]
+  }
+}
