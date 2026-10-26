@@ -73,6 +73,20 @@ export const GATE_COVERED_CHECKS: readonly string[] = ["Build Solution"];
 // directory's own tests, where scripts/gate.sh would run every test project.
 export const GATE_COMMAND = ".sandcastle/check.sh";
 
+// The committed file GATE_COMMAND runs. It is written in the worktree by the
+// agents whose work it judges, so a gate whose branch changes it fails without
+// running (lib/checkpoint.mts#gateScriptChange); a file that isn't committed at
+// the branch's base fails too. Name the script, not the interpreter or
+// arguments: `.sandcastle/check.sh` for `bash .sandcastle/check.sh`.
+export const GATE_SCRIPT = ".sandcastle/check.sh";
+
+// The paths whose files the gate and CI run: the scripts, the tests, the build
+// definition, and the workflows a `Sandcastle:local` build can change. An agent that edits one can make its own checks pass, so a PR
+// whose branch changes a file under them lists it in its body for the reviewer
+// (lib/build.mts#publish). Folders end in a slash. List every place the gate
+// reads its checks from, not only where its script sits.
+export const CHECK_PATHS: readonly string[] = [".sandcastle/", "scripts/", ".github/ci/", ".github/workflows/", "package.json"];
+
 // This repository as OWNER/REPO, which the pre-push-review skill gives every gh
 // command as GH_REPO (`scripts/review.sh repo`): in a clone whose only remote is
 // a fork, gh's default repository is the fork. Keep both this and
