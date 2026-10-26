@@ -2,15 +2,27 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import type { Sandbox, SandboxRunOptions } from "@ai-hero/sandcastle";
-import { isRoleTimeout, roleOptions, runRoleInSandbox, runWithinLimits, withSharedRules } from "./agents.mts";
+import { isRoleTimeout, roleOptions, uiEnabled, runRoleInSandbox, runWithinLimits, withSharedRules } from "./agents.mts";
 import { UncountedStopError } from "./errors.mts";
 import { RunLimits } from "./limits.mts";
 import { ROLE_AGENTS } from "./repo-config.mts";
 import { usageReport } from "./report.mts";
+import { withUiRole } from "./ui-role-fixture.mts";
 
 const sharedRules = readFileSync(new URL("../roles/shared-rules.md", import.meta.url), "utf8");
 
 describe("roleOptions", () => {
+  it("builds the ui role's options from its ROLE_AGENTS entry, and refuses it when the repo has none", async () => {
+    await withUiRole(true, () => {
+      assert.equal(uiEnabled(), true);
+      assert.equal(roleOptions("ui").name, "ui");
+    });
+    await withUiRole(false, () => {
+      assert.equal(uiEnabled(), false);
+      assert.throws(() => roleOptions("ui"), /no ui entry/);
+    });
+  });
+
   it("names the run after the role and applies its iteration cap", () => {
     const options = roleOptions("tester");
 
