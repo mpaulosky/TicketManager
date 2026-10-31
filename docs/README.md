@@ -142,6 +142,7 @@ notes) and then:
 
 | Version | Date | Title | Blog post |
 | ------- | ---- | ----- | --------- |
+| [v0.0.114](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.114) | 2026-10-31 | chore(baseline): Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-31-pr-253-chore-baseline-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.113](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.113) | 2026-10-26 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-26-pr-251-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.112](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.112) | 2026-10-26 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-26-pr-249-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.111](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.111) | 2026-10-26 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-26-pr-248-chore-re-apply-the-repo-ci-baseline-template.md) |
@@ -151,7 +152,6 @@ notes) and then:
 | [v0.0.107](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.107) | 2026-10-20 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-20-pr-235-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.106](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.106) | 2026-10-20 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-20-pr-233-chore-re-apply-the-repo-ci-baseline-template.md) |
 | [v0.0.105](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.105) | 2026-10-19 | chore: Update favicon | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-19-pr-231-chore-update-favicon.md) |
-| [v0.0.104](https://github.com/mpaulosky/TicketManager/releases/tag/v0.0.104) | 2026-10-18 | chore: Re-apply the repo-ci-baseline Template | [Post](https://github.com/mpaulosky/TicketManager/blob/main/docs/blogs/2026-10-18-pr-229-chore-re-apply-the-repo-ci-baseline-template.md) |
 
 <!-- RELEASES_END -->
 
