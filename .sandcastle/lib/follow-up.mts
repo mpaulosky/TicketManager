@@ -8,36 +8,57 @@
 // itself published (see isSandcastlePullRequest), and acts on the ones that
 // need no agent: re-requesting a stale Copilot review, updating a branch
 // that's only behind main, and handing an issue back when its latest PR
-// closed without merging. A PR that needs more than that (DIRTY, a red
+// closed without merging. A PR the repository owner handed off with the
+// sandcastle:follow-up label is swept too, though Sandcastle didn't open it
+// (see sweepSubject). A PR that needs more than that (DIRTY, a red
 // check, an unresolved bot or owner thread the host hasn't answered) is
 // logged here and returned as a PassTarget: the agent pass that fixes it
 // lives in lib/follow-up-pass.mts.
 // ---------------------------------------------------------------------------
 
-import { discardClosedWork, isIssueBranch, type BranchRefs } from "./branches.mts";
-import { COPILOT_REREQUEST_AFTER_MS, FOLLOW_UP_REPLY_MARKER, PR_MARKER, withoutOwnCheck } from "./config.mts";
+import { discardClosedWork, isHandOffBranch, isIssueBranch, type BranchRefs } from "./branches.mts";
+import {
+  APPROVAL_LAPSED_MARKER,
+  APPROVED_HEAD_MARKER,
+  BUILDING_LABEL,
+  COPILOT_REREQUEST_AFTER_MS,
+  FOLLOW_UP_LABEL,
+  FOLLOW_UP_REPLY_MARKER,
+  PR_MARKER,
+  SESSION_REPLY_MARKER,
+  isDefaultQueueScope,
+  withoutOwnCheck,
+} from "./config.mts";
 import {
   addPullRequestLabel,
   closedPullRequests,
+  commentOnPullRequest,
   handBack,
   hasLabel,
   isCopilot,
+  issueComments,
   issueEvents,
   labelTimeline,
+  mainMergeOf,
   openPullRequestsForSweep,
+  pullRequestBodyEdits,
   pushAccess,
+  repositoryOwnerLogin,
   requestCopilotReview,
   reviewThreadsOf,
   signedInHostLogin,
   timestamp,
   updatePullRequestBranch,
   type ClosedPullRequest,
+  type ContentEdit,
   type IssueEvent,
   type PullRequestIdentity,
   type ReviewThread,
   type TimelineLabelEvent,
+  type TimestampedComment,
+  type MainMerge,
 } from "./github.mts";
-import { labelOriginFixes, loadQueue, ownerCheck, type IsOwner } from "./queue.mts";
+import { activeQueueScope, approval, labelOriginFixes, loadQueue, ownerCheck, type Approval, type IsOwner } from "./queue.mts";
 import { outcomeReport, waitingPrReport, type OutcomeReport, type WaitingPrEntry, type WaitingPrReport } from "./report.mts";
 
 // One check run or status on a PR's head commit, normalised from either
@@ -53,6 +74,7 @@ export { withoutOwnCheck };
 // paginated GraphQL query (lib/github.mts#openPullRequestsForSweep).
 export type SweepPullRequest = PullRequestIdentity & {
   id: string;
+  title: string;
   headRefOid: string;
   isDraft: boolean;
   labels: string[];
@@ -109,21 +131,192 @@ export function isSandcastlePullRequest(pr: PullRequestIdentity, host: string): 
 }
 
 // The first reason the sweep skips `pr`, checked in this order: a fork, not
-// into main, not an issue branch, the issue isn't open and in scope, a draft,
-// labelled sandcastle:needs-human, not the host's, no PR_MARKER, or
-// truncated. Undefined when none applies, so the sweep decides from it.
-export function sweepSkipReason(pr: SweepPullRequest, inScope: ReadonlySet<number>, host: string): string | undefined {
+// into main, not an issue branch, the issue isn't open and in scope, the
+// issue is being built (`building`: a full run builds it and answers its PR
+// itself, so a follow-up-only run beside it must not start a pass on the same
+// branch), a draft, labelled sandcastle:needs-human, not the host's, no
+// PR_MARKER, or truncated. Undefined when none applies, so the sweep decides
+// from it.
+export function sweepSkipReason(
+  pr: SweepPullRequest,
+  inScope: ReadonlySet<number>,
+  host: string,
+  building: ReadonlySet<number> = new Set(),
+): string | undefined {
   if (pr.isCrossRepository !== false) return "it's from a fork";
   if (pr.baseRefName !== "main") return `it's into ${pr.baseRefName}, not main`;
   const issueNumber = issueNumberOf(pr.headRefName);
   if (issueNumber === undefined) return `${pr.headRefName} isn't an issue branch`;
   if (!inScope.has(issueNumber)) return `#${issueNumber} isn't an open Sandcastle issue`;
+  if (building.has(issueNumber)) return `#${issueNumber} is labelled ${BUILDING_LABEL}, so a run is building it`;
   if (pr.isDraft) return "it's a draft";
   if (hasLabel(pr, NEEDS_HUMAN)) return `it's labelled ${NEEDS_HUMAN}`;
   if (pr.author !== host) return `${pr.author ?? "a deleted account"} opened it, not ${host}`;
   if (!pr.body.includes(PR_MARKER)) return "its body doesn't carry the Sandcastle PR marker";
   if (pr.truncated) return "it has more reviews, threads or checks than one read holds";
   return undefined;
+}
+
+// What a caller can switch off in sweepPullRequests. handBackClosed (default true): hand back an issue
+// whose latest PR closed without merging. A follow-up-only run turns it off.
+export type SweepOptions = { handBackClosed?: boolean };
+
+// Why a pull request is swept: it is a Sandcastle issue's PR, or the repository owner handed it off with the
+// sandcastle:follow-up label.
+export type SweepSubject = { kind: "issue"; issueNumber: number } | { kind: "hand-off" };
+
+// What the sweep decides whether `pr` is swept from, besides the pull request itself: the issues in this run's scope,
+// the host's login, the issues labelled sandcastle:building, and whether this run follows hand-off pull requests (only
+// the default queue scope does).
+export type SweepContext = {
+  inScope: ReadonlySet<number>;
+  host: string;
+  building: ReadonlySet<number>;
+  followsHandOffs: boolean;
+};
+
+// Whether `pr` is swept, and why, or why it isn't (the reason for the log). Implements the checks of sweepSkipReason for
+// a Sandcastle issue's PR, then, for a PR that is not one and carries the owner's sandcastle:follow-up label, the
+// hand-off rules. `handOffApproval` is read only when everything else lets the PR through.
+export function sweepSubject(
+  pr: SweepPullRequest,
+  context: SweepContext,
+  handOffApproval: () => Approval,
+): { subject: SweepSubject } | { skip: string } {
+  const { inScope, host, building, followsHandOffs } = context;
+  const reason = sweepSkipReason(pr, inScope, host, building);
+  if (reason === undefined) {
+    // sweepSkipReason let it through, so it is an issue branch.
+    return { subject: { kind: "issue", issueNumber: issueNumberOf(pr.headRefName) as number } };
+  }
+  // A Sandcastle PR that is a draft, needs a human, is being built, is truncated or is on an issue outside this run's scope
+  // stays skipped: the label doesn't turn it into a hand-off.
+  const issueNumber = issueNumberOf(pr.headRefName);
+  const isSandcastles = issueNumber !== undefined && isSandcastlePullRequest(pr, host);
+  if (isSandcastles || !hasLabel(pr, FOLLOW_UP_LABEL)) return { skip: reason };
+
+  if (pr.isCrossRepository !== false) return { skip: "it's from a fork" };
+  if (pr.baseRefName !== "main") return { skip: `it's into ${pr.baseRefName}, not main` };
+  if (!followsHandOffs) {
+    return { skip: `it carries ${FOLLOW_UP_LABEL}, which only a run with the default queue scope follows` };
+  }
+  if (!isHandOffBranch(pr.headRefName)) return { skip: "its branch name isn't one scripts/check-branch-name.sh accepts" };
+  if (issueNumber !== undefined && building.has(issueNumber)) {
+    return { skip: `#${issueNumber} is labelled ${BUILDING_LABEL}, so a run is building it` };
+  }
+  if (hasLabel(pr, BUILDING_LABEL)) return { skip: `it's labelled ${BUILDING_LABEL}, so a run is passing on it` };
+  if (pr.isDraft) return { skip: "it's a draft" };
+  if (hasLabel(pr, NEEDS_HUMAN)) return { skip: `it's labelled ${NEEDS_HUMAN}` };
+  if (pr.truncated) return { skip: "it has more reviews, threads or checks than one read holds" };
+  const approved = handOffApproval();
+  if (!approved.approved) return { skip: `its ${FOLLOW_UP_LABEL} label doesn't count: ${approved.reason}` };
+  return { subject: { kind: "hand-off" } };
+}
+
+// Whether `login` is `other`: GitHub logins are case-insensitive.
+const sameLogin = (login: string | null, other: string) => login !== null && login.toLowerCase() === other.toLowerCase();
+
+// The comment that records `head` as a head of a hand-off PR the owner approved, or reached from one through merges of main (see handOffApproval).
+export function approvedHeadComment(head: string): string {
+  return `${APPROVED_HEAD_MARKER} ${head} -->\nSandcastle follows this pull request up from ${head.slice(0, 7)}: the head the owner approved, or a merge of main made on top of it.`;
+}
+
+// The comment the sweep posts once on a hand-off PR skipped because `head` isn't one the host recorded as approved, so the owner sees why
+// it is no longer followed up and what to do.
+export function approvalLapsedComment(head: string): string {
+  return (
+    `${APPROVAL_LAPSED_MARKER} ${head} -->\n` +
+    `Sandcastle no longer follows this pull request up: its head ${head.slice(0, 7)} isn't one the host recorded as approved since the owner added ${FOLLOW_UP_LABEL}, ` +
+    `most likely because a commit was pushed after the label. Once the owner has looked at the branch, remove and re-add ${FOLLOW_UP_LABEL}.`
+  );
+}
+
+// Whether `comments` hold the host's own approvalLapsedComment for `head`. Only the host's counts, since anyone can post the same text.
+export function approvalLapsedPosted(comments: readonly TimestampedComment[], head: string, host: string): boolean {
+  return comments.some((comment) => sameLogin(comment.author, host) && comment.body.startsWith(`${APPROVAL_LAPSED_MARKER} ${head} -->`));
+}
+
+// The head a comment records as approved, or undefined when it doesn't open with the marker.
+export function approvedHeadOf(body: string): string | undefined {
+  return new RegExp(`^${APPROVED_HEAD_MARKER} ([0-9a-f]{40}) -->`).exec(body)?.[1];
+}
+
+// Records `head` as a head of PR `number` the owner approved, as the host: handOffApproval trusts the comment because of who posted it.
+export function recordApprovedHead(number: number, head: string, post: (number: number, body: string) => void = commentOnPullRequest): void {
+  post(number, approvedHeadComment(head));
+}
+
+// How many merges of main handOffApproval looks through from a head to reach a recorded one. More than this is not followed up. It only
+// binds when that many merges come between two records, since a head reached through merges is recorded as it is found (a sweep that
+// skips the PR, or a record that fails to post, leaves the count growing).
+export const MAX_MAIN_MERGES = 5;
+
+// A refused approval whose label counts and whose only fault is a head the host never recorded: `unrecordedHead` is that head, and the
+// sweep comments on the PR for it once (approvalLapsedComment). Any other refusal carries no such head, so nothing is posted for it.
+// `labelledAt` is when the owner's label was added (ms since the epoch), so the sweep can wait out the window in which the record isn't posted yet.
+export type LapsedApproval = { approved: false; reason: string; unrecordedHead: string; labelledAt: number };
+
+// How long after the owner's label the sweep waits before it comments that the approval lapsed. The Sandcastle workflow's record-head job
+// posts the head's record some time after the label (its own queueing, up to three post retries), and a head not yet recorded in that window
+// is not a lapse: a notice then would tell the owner to re-add a label that is working, and would stay on the PR.
+export const APPROVAL_LAPSED_GRACE_MS = 15 * 60 * 1000;
+
+// Whether the owner's sandcastle:follow-up label stands on `pr`: the repository's owner or the host opened it, the latest
+// labeled event is the owner's with no later edit of the title or description by anyone else (lib/queue.mts#approval),
+// and the head is one the owner approved: recorded by the Sandcastle workflow or the host, or reached from such a head
+// through at most MAX_MAIN_MERGES merges of main that GitHub made for the host (lib/github.mts#mainMergeOf; the sweep
+// records the head it reached). The model, and why each check is there, is in references/sandcastle.md#hand-off-prs.
+export function handOffApproval(
+  pr: Pick<SweepPullRequest, "number" | "author" | "headRefOid">,
+  github: Pick<FollowUpGitHub, "pullRequestEvents" | "pullRequestBodyEdits" | "pullRequestComments" | "mergeOfMain" | "recordApprovedHead" | "isOwner" | "repositoryOwner">,
+  host: string,
+): Approval | LapsedApproval {
+  if (!sameLogin(pr.author, host) && !sameLogin(pr.author, github.repositoryOwner())) {
+    return { approved: false, reason: `${pr.author ?? "a deleted account"} opened it, and is neither the repository's owner nor ${host}` };
+  }
+  const events = github.pullRequestEvents(pr.number);
+  const labelled = approval(FOLLOW_UP_LABEL, events, github.pullRequestBodyEdits(pr.number), github.isOwner);
+  if (!labelled.approved) return labelled;
+  // The latest by time, as approval() picks it. A time that doesn't parse makes this NaN, which no comment is at or after.
+  const since = Math.max(
+    ...events.filter((event) => event.event === "labeled" && event.label?.toLowerCase() === FOLLOW_UP_LABEL.toLowerCase()).map((event) => Date.parse(event.createdAt)),
+  );
+  const recorded = new Set(
+    github
+      .pullRequestComments(pr.number)
+      .filter((comment) => sameLogin(comment.author, host) && Date.parse(comment.createdAt) >= since && comment.updatedAt === comment.createdAt)
+      .map((comment) => approvedHeadOf(comment.body)),
+  );
+  let head = pr.headRefOid.toLowerCase();
+  let problem = "";
+  for (let merges = 0; merges <= MAX_MAIN_MERGES; merges++) {
+    if (recorded.has(head)) {
+      // The head was reached through merges of main: record the one the PR has now, so the next walk starts there and the cap
+      // counts merges since the last posted record rather than since the label. The sweep's recordApprovedHead logs a failed post
+      // and doesn't throw: the approval stands either way, and the next sweep walks the same merges and tries again.
+      if (merges > 0) github.recordApprovedHead(pr.number, pr.headRefOid.toLowerCase());
+      return labelled;
+    }
+    if (merges === MAX_MAIN_MERGES) {
+      problem = `more than ${MAX_MAIN_MERGES} merges of main on top of the last recorded head`;
+      break;
+    }
+    const merge: MainMerge = github.mergeOfMain(head);
+    if ("problem" in merge) {
+      problem = merge.problem;
+      break;
+    }
+    head = merge.firstParent.toLowerCase();
+  }
+  return {
+    approved: false,
+    unrecordedHead: pr.headRefOid.toLowerCase(),
+    labelledAt: since,
+    reason:
+      `its head ${pr.headRefOid.slice(0, 7)} isn't one ${host} recorded as approved since the owner added the label${problem === "" ? "" : ` (${problem})`}: ` +
+      `possible causes: a commit pushed after the label, the record edited after it was posted, more than ${MAX_MAIN_MERGES} merges of main since the last record, ` +
+      `or the record not posted yet (the next sweep may find it). Once the owner has looked at the branch, remove and re-add ${FOLLOW_UP_LABEL}`,
+  };
 }
 
 // What the sweep does about one PR, decided by `decide`.
@@ -268,7 +461,28 @@ export type FollowUpGitHub = {
   // A PR's review threads in full, comments included, so the sweep can tell a
   // thread the host has answered from one it hasn't.
   reviewThreads(number: number): ReviewThread[];
+  // Every edit to a PR's description, for the approval of a hand-off PR's label. live: pullRequestBodyEdits.
+  pullRequestBodyEdits(number: number): ContentEdit[];
+  // Whether this run follows hand-off PRs: only one with the default queue scope does. live:
+  // isDefaultQueueScope(activeQueueScope()).
+  followsHandOffs(): boolean;
+  // The login of the account the repository belongs to, whom a hand-off PR's author must be (or the host). live:
+  // repositoryOwnerLogin().
+  repositoryOwner(): string;
+  // Every comment on a PR, with when it was posted and last edited, for the heads the host recorded as approved. live: issueComments.
+  pullRequestComments(number: number): TimestampedComment[];
+  // Whether `commit` is a merge of main GitHub made for the host, and its first parent if so. live: mainMergeOf.
+  mergeOfMain(commit: string): MainMerge;
+  // Records a head that handOffApproval verified through merges of main, as the host. live: recordApprovedHead.
+  recordApprovedHead(number: number, head: string): void;
+  // Posts a comment on a PR, as the host. live: commentOnPullRequest.
+  commentOnPullRequest(number: number, body: string): void;
 };
+
+// mainMergeOf for the signed-in host: the merge must be authored by that login. `host` and `merge` are injectable for the test.
+export function liveMergeOfMain(commit: string, host: () => string = signedInHostLogin, merge: typeof mainMergeOf = mainMergeOf): MainMerge {
+  return merge(commit, host());
+}
 
 export const liveFollowUpGitHub: FollowUpGitHub = {
   hostLogin: () => signedInHostLogin(),
@@ -285,6 +499,13 @@ export const liveFollowUpGitHub: FollowUpGitHub = {
   // The head that comes with the threads is ignored: they don't depend on
   // it, and the pass checks the head itself.
   reviewThreads: (number) => reviewThreadsOf(number).threads,
+  pullRequestBodyEdits: (number) => pullRequestBodyEdits(number),
+  followsHandOffs: () => isDefaultQueueScope(activeQueueScope()),
+  repositoryOwner: () => repositoryOwnerLogin(),
+  pullRequestComments: (number) => issueComments(number),
+  mergeOfMain: (commit) => liveMergeOfMain(commit),
+  recordApprovedHead: (number, head) => recordApprovedHead(number, head),
+  commentOnPullRequest: (number, body) => commentOnPullRequest(number, body),
 };
 
 // How a review thread stands with the follow-up pass (threadStanding): the
@@ -295,12 +516,16 @@ export type ThreadStanding = "resolved" | "answered" | "bot" | "owner" | "human"
 // How `thread` stands, checked in this order. A resolved thread is
 // "resolved". A thread whose first comment's author is a bot is "bot",
 // unless the last comment by a bot, the owner or `hostLogin` is the host's
-// own reply (by `hostLogin`, opening with FOLLOW_UP_REPLY_MARKER): then it's
+// own reply (by `hostLogin`, opening with FOLLOW_UP_REPLY_MARKER, or a Claude Code
+// session's, which carries SESSION_REPLY_MARKER anywhere in its body, posted by
+// `hostLogin` or by a login `isOwner` confirms: a session posts under the owner's
+// token, which need not be the host's): then it's
 // "answered", open again only because resolving it failed (the pass summary
 // says so) or the owner unresolved it, and either way a person's now, not the
 // role's to answer twice. A thread the repository owner opened is "owner",
 // or "answered" when the last comment by the owner or the host is the host's
-// reply, so the host waits on the owner rather than answering again. Comments
+// reply, so the host waits on the owner rather than answering again; so is a
+// thread a session opened itself. Comments
 // by anyone else don't count either way, so a stranger can neither hide an
 // owner thread by quoting the marker nor reopen one by replying after the
 // host. Any other thread, including one with no author at all, is "human",
@@ -312,8 +537,13 @@ export function threadStanding(
   hostLogin: string,
 ): ThreadStanding {
   if (thread.resolved) return "resolved";
+  // The host's own reply, or a session's: the owner's token is the owner's login, which needn't be the host's.
+  // The marker counts anywhere in the body, by design: a host or owner comment that quotes it is taken for a session's
+  // reply too. That is the trade for a rule that needs no parsing of the body.
   const hostReply = (comment: ReviewThread["comments"][number] | undefined) =>
-    comment?.author === hostLogin && comment.body.startsWith(FOLLOW_UP_REPLY_MARKER);
+    comment !== undefined &&
+    ((comment.author === hostLogin && comment.body.startsWith(FOLLOW_UP_REPLY_MARKER)) ||
+      (comment.body.includes(SESSION_REPLY_MARKER) && (comment.author === hostLogin || isOwner(comment.author) === true)));
   const first = thread.comments[0];
   if (first?.byBot === true) {
     const last = thread.comments.findLast(
@@ -340,9 +570,9 @@ export function threadStanding(
 // threads are, so a failed read there leaves it flagged with nothing counted.
 // For any other PR a failed read throws, and the sweep leaves it alone this
 // round, still listing it as waiting on its people's threads.
-function withoutAnsweredThreads(
+export function withoutAnsweredThreads(
   pr: SweepPullRequest,
-  github: FollowUpGitHub,
+  github: Pick<FollowUpGitHub, "isOwner" | "reviewThreads">,
   host: string,
 ): { pr: SweepPullRequest; answered: number } {
   const mayFlag = pr.threads.some((thread) => !thread.resolved && (thread.byBot || github.isOwner(thread.author) === true));
@@ -365,6 +595,97 @@ function withoutAnsweredThreads(
   return { pr: { ...pr, threads }, answered: full.length - open.length };
 }
 
+// What the sweep decides each PR from, read once per sweep: the SweepContext, and the in-scope issues it came from.
+export function sweepContext(
+  github: Pick<FollowUpGitHub, "hostLogin" | "inScopeIssues" | "followsHandOffs">,
+): { context: SweepContext; issues: { number: number; labels: string[] }[] } {
+  const host = github.hostLogin();
+  const issues = github.inScopeIssues();
+  const inScope = new Set(issues.map((issue) => issue.number));
+  const building = new Set(issues.filter((issue) => hasLabel(issue, BUILDING_LABEL)).map((issue) => issue.number));
+  return { context: { inScope, host, building, followsHandOffs: github.followsHandOffs() }, issues };
+}
+
+// Tells the owner on PR `number` that its follow-up approval lapsed for `head`, once per head: the host's earlier comment for that head,
+// read back from the PR, stops a repeat. Nothing is posted until the owner's label (added at `labelledAt`) is APPROVAL_LAPSED_GRACE_MS
+// old, since the head may only be waiting for its record; the next sweep looks again. A failed read or post is logged and swallowed, so
+// the sweep goes on to the other PRs and the next sweep tries again.
+function commentApprovalLapsed(
+  number: number,
+  head: string,
+  labelledAt: number,
+  now: number,
+  github: Pick<FollowUpGitHub, "pullRequestComments" | "commentOnPullRequest">,
+  host: string,
+  log: (line: string) => void,
+): void {
+  // A label time that doesn't parse (NaN) is not known to be old enough.
+  if (!(now - labelledAt >= APPROVAL_LAPSED_GRACE_MS)) return;
+  try {
+    if (approvalLapsedPosted(github.pullRequestComments(number), head, host)) return;
+    github.commentOnPullRequest(number, approvalLapsedComment(head));
+    log(`  ✉ Commented on PR #${number} that its head ${head.slice(0, 7)} isn't one ${host} recorded as approved.`);
+  } catch (error) {
+    log(`  ⚠ Couldn't comment on PR #${number} that its head ${head.slice(0, 7)} isn't approved, so the next sweep tries again: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// What admitToSweep reads of GitHub besides the PR's events.
+export type AdmissionGitHub = Pick<
+  FollowUpGitHub,
+  "pullRequestBodyEdits" | "pullRequestComments" | "mergeOfMain" | "recordApprovedHead" | "isOwner" | "repositoryOwner"
+>;
+
+// Whether the sweep admits `pr`, and why not: sweepSubject with the hand-off approval wired to `github`. `events` is the
+// caller's memoised read of the PR's events, so the approval and the label-origin check share one read. A failed
+// recordApprovedHead is logged and swallowed: the approval stands, and the next sweep walks the same merges again.
+// `onUnrecordedHead` is told the head, and when the label was added, when the owner's label counts but the head isn't one the host recorded: the sweep comments on
+// the PR then. It is a callback so that admitToSweep itself never writes, and the status report that shares it stays read-only.
+export function admitToSweep(
+  pr: SweepPullRequest,
+  context: SweepContext,
+  github: AdmissionGitHub,
+  events: () => IssueEvent[],
+  log: (line: string) => void,
+  onUnrecordedHead: (head: string, labelledAt: number) => void = () => {},
+): { subject: SweepSubject } | { skip: string } {
+  return sweepSubject(pr, context, () => {
+    const approval = handOffApproval(pr, {
+      pullRequestEvents: events,
+      pullRequestBodyEdits: (number) => github.pullRequestBodyEdits(number),
+      pullRequestComments: (number) => github.pullRequestComments(number),
+      mergeOfMain: (commit) => github.mergeOfMain(commit),
+      recordApprovedHead: (number, head) => {
+        try {
+          github.recordApprovedHead(number, head);
+        } catch (error) {
+          log(`  ⚠ Couldn't record PR #${number}'s head ${head.slice(0, 7)}, so the next sweep walks the same merges again: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      },
+      isOwner: github.isOwner,
+      repositoryOwner: () => github.repositoryOwner(),
+    }, context.host);
+    if (!approval.approved && "unrecordedHead" in approval) onUnrecordedHead(approval.unrecordedHead, approval.labelledAt);
+    return approval;
+  });
+}
+
+// What to do about a stranger's change of the PR's hand-back label.
+export type LabelOriginHold = { kind: "unknown" } | { kind: "restore"; label: string; reason: string };
+
+// The label-origin step of the sweep, without the write: a stranger's removal of the PR's hand-back label isn't a
+// re-queue. Undefined when nothing holds the PR; an unknown check comes before a restore.
+export function labelOriginHold(
+  pr: Pick<SweepPullRequest, "labels">,
+  events: readonly IssueEvent[],
+  isOwner: IsOwner,
+): LabelOriginHold | undefined {
+  const origin = labelOriginFixes(pr.labels, events, isOwner, PR_LABEL_RULES);
+  if (origin.unknown.length > 0) return { kind: "unknown" };
+  const restore = origin.fixes.find((fix) => fix.action === "restore");
+  return restore === undefined ? undefined : { kind: "restore", label: restore.label, reason: restore.reason };
+}
+
 // What the sweep found that needs an agent: the numbers of the PRs it logged
 // as needing a follow-up pass (the early exit reads this, so a round with
 // one of these still has work), and those same PRs as PassTargets for
@@ -373,7 +694,7 @@ function withoutAnsweredThreads(
 export type SweepResult = { needsPass: number[]; passes: PassTarget[] };
 
 // Reads the host's login, the in-scope issues and the open PRs once, then
-// for each PR either skips it (sweepSkipReason) or applies `decide`, logging
+// for each PR either skips it (sweepSubject: sweepSkipReason for an issue's PR, the hand-off rules for another) or applies `decide`, logging
 // what happened. A PR with an unresolved bot or owner thread has its threads
 // read in full first, and the ones the host has answered are left out and
 // counted for `waiting` (withoutAnsweredThreads). A PR whose
@@ -388,17 +709,20 @@ export type SweepResult = { needsPass: number[]; passes: PassTarget[] };
 // report shows the latest sweep's view. Once that's done, hands
 // back any in-scope issue, not labelled sandcastle:needs-human and with no
 // open PR, whose latest Sandcastle PR closed without merging
-// (closedWithoutMerging), each in its own try/catch too.
+// (closedWithoutMerging), each in its own try/catch too, unless
+// `options.handBackClosed` is false (a follow-up-only run, which leaves that
+// to the full run beside it and doesn't even read the closed PRs). A PR whose
+// issue (or, for a hand-off PR, the PR itself) is labelled sandcastle:building is skipped (sweepSubject).
 export function sweepPullRequests(
   github: FollowUpGitHub = liveFollowUpGitHub,
   log: (line: string) => void = console.log,
   now: number = Date.now(),
   outcomes: OutcomeReport = outcomeReport,
   waiting: WaitingPrReport = waitingPrReport,
+  options: SweepOptions = {},
 ): SweepResult {
-  const host = github.hostLogin();
-  const issues = github.inScopeIssues();
-  const inScope = new Set(issues.map((issue) => issue.number));
+  const { context, issues } = sweepContext(github);
+  const { host } = context;
   const openPrs = github.openPullRequests();
   const needsPass: number[] = [];
   const passes: PassTarget[] = [];
@@ -412,22 +736,32 @@ export function sweepPullRequests(
 
   for (const pr of openPrs) {
     try {
-      const skip = sweepSkipReason(pr, inScope, host);
-      if (skip !== undefined) {
-        log(`  · PR #${pr.number} isn't swept: ${skip}.`);
+      // One read of the PR's events serves both the hand-off approval and the needs-human check below.
+      let events: IssueEvent[] | undefined;
+      const eventsOfPr = () => (events ??= github.pullRequestEvents(pr.number));
+      let lapsed: { head: string; labelledAt: number } | undefined;
+      const swept = admitToSweep(pr, context, github, eventsOfPr, log, (head, labelledAt) => {
+        lapsed = { head, labelledAt };
+      });
+      if ("skip" in swept) {
+        log(`  · PR #${pr.number} isn't swept: ${swept.skip}.`);
+        if (lapsed !== undefined) commentApprovalLapsed(pr.number, lapsed.head, lapsed.labelledAt, now, github, host, log);
         continue;
+      }
+      const { subject } = swept;
+      if (subject.kind === "hand-off") {
+        log(`  ⤷ PR #${pr.number} is followed up as a hand-off: the owner labelled it ${FOLLOW_UP_LABEL}.`);
       }
       // A stranger's removal of the PR's hand-back label isn't a re-queue:
       // put the label back and leave the PR alone this round.
-      const origin = labelOriginFixes(pr.labels, github.pullRequestEvents(pr.number), github.isOwner, PR_LABEL_RULES);
-      if (origin.unknown.length > 0) {
+      const hold = labelOriginHold(pr, eventsOfPr(), github.isOwner);
+      if (hold?.kind === "unknown") {
         log(`  · PR #${pr.number} isn't swept: couldn't check whether the repository owner removed ${NEEDS_HUMAN}.`);
         continue;
       }
-      const restore = origin.fixes.find((fix) => fix.action === "restore");
-      if (restore !== undefined) {
-        github.addPullRequestLabel(pr.number, restore.label);
-        log(`  ✋ PR #${pr.number}: ${restore.reason}, so it isn't swept.`);
+      if (hold?.kind === "restore") {
+        github.addPullRequestLabel(pr.number, hold.label);
+        log(`  ✋ PR #${pr.number}: ${hold.reason}, so it isn't swept.`);
         continue;
       }
       let thinned: ReturnType<typeof withoutAnsweredThreads>;
@@ -441,14 +775,14 @@ export function sweepPullRequests(
         if (waitingThreads > 0) waitingPrs.push({ pr: pr.number, threads: waitingThreads, answered: 0 });
         throw error;
       }
-      const { pr: swept, answered } = thinned;
-      const waitingThreads = countHumanThreads(swept.threads);
+      const { pr: thin, answered } = thinned;
+      const waitingThreads = countHumanThreads(thin.threads);
       if (waitingThreads > 0 || answered > 0) waitingPrs.push({ pr: pr.number, threads: waitingThreads, answered });
-      const decision = decide(swept, now, github.isOwner);
-      followUp(swept, decision, github, log, outcomes);
+      const decision = decide(thin, now, github.isOwner);
+      followUp(thin, decision, github, log, outcomes);
       if (decision.action === "needs-pass") {
         needsPass.push(pr.number);
-        passes.push(passTarget(swept, decision.reasons));
+        passes.push(passTarget(thin, subject, decision.reasons));
       }
     } catch (error) {
       log(`  ⚠ Couldn't follow up PR #${pr.number}, so it's swept again next round: ${error}`);
@@ -461,6 +795,7 @@ export function sweepPullRequests(
   const withOpenPr = new Set(
     openPrs.filter((pr) => pr.isCrossRepository === false).flatMap((pr) => issueNumberOf(pr.headRefName) ?? []),
   );
+  if (options.handBackClosed === false) return { needsPass, passes };
   const candidates = issues.filter((issue) => !hasLabel(issue, NEEDS_HUMAN) && !withOpenPr.has(issue.number));
   if (candidates.length === 0) return { needsPass, passes };
   const closed = github.closedPullRequests(host);
@@ -487,28 +822,29 @@ export type PassTarget = {
   id: string;
   headRefName: string;
   headRefOid: string;
-  issueNumber: number;
   reasons: string[];
   // GitHub said the PR conflicts with main (DIRTY), so a pass merges main
   // in. A PR that's only behind isn't merged by a pass: the sweep updates it
   // on GitHub once it's settled.
   conflicted: boolean;
-};
+} & ({ issueNumber: number; handOff?: undefined } | { handOff: HandOffTarget; issueNumber?: undefined });
 
-// What lib/follow-up-pass.mts#runPass reads of a needs-pass PR. Only an
-// issue branch gets this far (sweepSkipReason), so the issue number is there.
-function passTarget(pr: SweepPullRequest, reasons: string[]): PassTarget {
-  const issueNumber = issueNumberOf(pr.headRefName);
-  if (issueNumber === undefined) throw new Error(`PR #${pr.number}'s branch ${pr.headRefName} names no issue`);
-  return {
+// A hand-off PR's own title and description, which stand in for an issue's in the pass's prompt.
+export type HandOffTarget = { title: string; body: string };
+
+// What lib/follow-up-pass.mts#runPass reads of a needs-pass PR: for an issue's PR the issue number, which its branch
+// names (sweepSubject), and for a hand-off PR its own title and description.
+function passTarget(pr: SweepPullRequest, subject: SweepSubject, reasons: string[]): PassTarget {
+  const common = {
     number: pr.number,
     id: pr.id,
     headRefName: pr.headRefName,
     headRefOid: pr.headRefOid,
-    issueNumber,
     reasons,
     conflicted: pr.mergeStateStatus === "DIRTY",
   };
+  if (subject.kind === "hand-off") return { ...common, handOff: { title: pr.title, body: pr.body } };
+  return { ...common, issueNumber: subject.issueNumber };
 }
 
 // Carries out one PR's decision and logs it, recording an updated branch in

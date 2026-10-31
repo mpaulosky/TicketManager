@@ -6,6 +6,9 @@
 # the full .NET suite on the pull request, and scripts/gate.sh does before a
 # push by hand.
 set -euo pipefail
+# Under a git hook git sets these, and a GATE_COMMAND naming this script runs it without scripts/gate.sh,
+# which unsets them before every check: the tests' scratch repos and git commands would act on the wrong repo.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
 
 cd "$(git rev-parse --show-toplevel)"
 root="$PWD"

@@ -90,6 +90,24 @@ export function budgetMinutesFrom(env: Record<string, string | undefined>): numb
   return Number(value);
 }
 
+// What one run does: every phase (`full`, the default), or only the follow-up sweep and passes, once
+// (`follow-up`, lib/follow-up-run.mts).
+export type RunMode = "full" | "follow-up";
+
+// Thrown by runModeFrom for a SANDCASTLE_MODE that names no run mode.
+export class RunModeError extends Error {}
+
+// SANDCASTLE_MODE from `env`: unset or blank gives "full". Otherwise it must be "full" or "follow-up"
+// after trim. Anything else ("followup") throws RunModeError rather than falling back to a full run,
+// which builds issues, when the workflow asked for a follow-up-only one. Allowed in GitHub Actions too,
+// unlike the scope variables: the workflow sets it.
+export function runModeFrom(env: Record<string, string | undefined>): RunMode {
+  const value = env.SANDCASTLE_MODE?.trim();
+  if (!value || value === "full") return "full";
+  if (value === "follow-up") return "follow-up";
+  throw new RunModeError(`SANDCASTLE_MODE must be "full" or "follow-up", not "${value}".`);
+}
+
 // How many issues one intake run judges. A malformed or truncated <intake>
 // block costs every verdict in it, so a large backlog is judged in several
 // runs of this many issues each.
@@ -172,8 +190,8 @@ Set it on the command line, not in .sandcastle/.env. In GitHub Actions the queue
 // and its PR) or SANDCASTLE_LABEL (a local run working a label of the
 // owner's choosing, so it doesn't compete with Actions over the whole
 // queue) must be set. Throws QueueScopeError for anything else, including a
-// SANDCASTLE_LABEL naming a label the host manages (SANDCASTLE_LABELS or
-// bug), compared case-insensitively.
+// SANDCASTLE_LABEL naming a label the host manages (SANDCASTLE_LABELS or bug)
+// or the owner's hand-off label (FOLLOW_UP_LABEL), compared case-insensitively.
 export function queueScopeFrom(env: Record<string, string | undefined>): QueueScope {
   const issue = env.SANDCASTLE_ISSUE?.trim() || undefined;
   const label = env.SANDCASTLE_LABEL?.trim() || undefined;
@@ -194,6 +212,9 @@ export function queueScopeFrom(env: Record<string, string | undefined>): QueueSc
   // quote would fail gh's parse.
   if (/[,"]/.test(label)) throw scopeError(`SANDCASTLE_LABEL can't contain a comma or a double quote, which gh reads as a list: "${label}".`);
   const managed = [...SANDCASTLE_LABELS.map((managedLabel) => managedLabel.name), "bug"];
+  if (label.toLowerCase() === FOLLOW_UP_LABEL.toLowerCase()) {
+    throw scopeError(`SANDCASTLE_LABEL can't be "${label}": it is the owner's hand-off label for a pull request, not a queue.`);
+  }
   if (managed.some((name) => name.toLowerCase() === label.toLowerCase())) {
     throw scopeError(`SANDCASTLE_LABEL can't be "${label}": Sandcastle adds and removes that label itself.`);
   }
@@ -217,9 +238,9 @@ export function describeQueueScope(scope: QueueScope): string {
   return scope.kind === "label" ? `issues labelled ${scope.label}` : `issue #${scope.number} and its PR`;
 }
 
-// Marks an issue while a sandbox is building it (see lib/build.mts#buildIssue
-// and lib/gate.mts), so a second Sandcastle run doesn't start building the
-// same issue too (a near-miss once).
+// Marks an issue, or a hand-off pull request (lib/building.mts), while a
+// sandbox is working on it (see lib/build.mts#buildIssue and lib/gate.mts), so
+// a second Sandcastle run doesn't start on the same one too (a near-miss once).
 export const BUILDING_LABEL = "sandcastle:building";
 
 // How old a sandcastle:building label must be before startup clears it as a
@@ -239,7 +260,7 @@ export const SANDCASTLE_LABELS: readonly SandcastleLabel[] = [
   {
     name: BUILDING_LABEL,
     color: "1D76DB",
-    description: "Sandcastle is building this issue right now. Leave it alone until the label clears.",
+    description: "Sandcastle is working on this issue or pull request now. Leave it alone until the label clears.",
   },
   {
     name: "sandcastle:needs-info",
@@ -253,6 +274,42 @@ export const SANDCASTLE_LABELS: readonly SandcastleLabel[] = [
   },
   { name: "bug", color: "d73a4a", description: "Something isn't working" },
 ];
+
+// The label the repository owner puts on a pull request Sandcastle didn't open, to have Sandcastle follow it up like one
+// of its own (lib/follow-up.mts#sweepSubject). Not one of SANDCASTLE_LABELS: it is a person's to add, and a run never
+// adds or removes it.
+export const FOLLOW_UP_LABEL = "sandcastle:follow-up";
+
+// How the host creates FOLLOW_UP_LABEL at startup. GitHub refuses a label description over 100 characters.
+export const FOLLOW_UP_LABEL_DEFINITION: SandcastleLabel = {
+  name: FOLLOW_UP_LABEL,
+  color: "C5DEF5",
+  description: "Sandcastle follows this pull request up. Counts only from the owner, at the head they labelled.",
+};
+
+// Every label the host creates at startup (lib/github.mts#ensureLabels): SANDCASTLE_LABELS, the local queue's label and
+// the hand-off label.
+export const HOST_LABELS: readonly SandcastleLabel[] = [...SANDCASTLE_LABELS, LOCAL_QUEUE_LABEL_DEFINITION, FOLLOW_UP_LABEL_DEFINITION];
+
+// The marker a Claude Code session ends every reply and comment with (docs/PROCESS.md): it posts under the owner's token,
+// so nothing else tells its comments from the owner's.
+export const SESSION_REPLY_MARKER = "<!-- claude-session -->";
+
+// What opens the comment that records a head of a hand-off PR as approved (lib/follow-up.mts#approvedHeadComment): the Sandcastle
+// workflow posts it when the owner adds the hand-off label, the host posts it after each push it makes to the branch, and the sweep posts it for a head it reached through merges of main. The
+// workflow's own copy of the text is pinned to this one by the Template's test.sh.
+export const APPROVED_HEAD_MARKER = "<!-- sandcastle:approved-head";
+
+// What opens the comment the sweep posts once on a hand-off PR whose head the host never recorded as approved, so the owner sees on the
+// PR why it is no longer followed up (lib/follow-up.mts#approvalLapsedComment). The head follows, as in APPROVED_HEAD_MARKER, and the
+// next sweep reads the comment back to post it only once for that head.
+export const APPROVAL_LAPSED_MARKER = "<!-- sandcastle:approval-lapsed";
+
+// Whether `scope` is the queue GitHub Actions always runs, every issue labelled QUEUE_LABEL. Only that run follows
+// hand-off pull requests.
+export function isDefaultQueueScope(scope: QueueScope): boolean {
+  return scope.kind === "label" && scope.label.toLowerCase() === QUEUE_LABEL.toLowerCase();
+}
 
 // The HTML comment marking an issue comment as a failed build attempt, so the
 // count survives a restart (see lib/github.mts#markerCommentsSince).
@@ -288,14 +345,18 @@ export const COPILOT_REVIEWER = "copilot-pull-request-reviewer[bot]";
 // (lib/follow-up.mts#decide).
 export const COPILOT_REREQUEST_AFTER_MS = 60 * 60 * 1000;
 
-// The check run the Sandcastle workflow's own job reports
-// (.github/workflows/sandcastle.yml's `name:` for its one job), together with
+// The check run the Sandcastle workflow's sandcastle job reports
+// (.github/workflows/sandcastle.yml's `name:` for that job), together with
 // SANDCASTLE_WORKFLOW below. A run started
 // by a pull_request_review or unlabeled event reports it on the head of the
 // PR it sweeps, so the sweep and the follow-up pass leave it out
 // (withoutOwnCheck below): running, it would hold the PR that
 // started the run, and red after a hand-back, it would send the follow-up
-// role Sandcastle's own job log.
+// role Sandcastle's own job log. The workflow's record-head job, "Record the approved head", is a different check and is not
+// left out. It runs on pull_request_target, whose checks report on the PR's head (PR Auto-Merge's own does: its pull_request_target
+// run on mpaulosky/dotfiles#342 had the PR's head as its head_sha), so a record the job can't make (a head that isn't a SHA or has
+// moved, a read of the head that fails, or three failed posts) leaves a red "Record the approved head" check on the PR until the
+// owner removes and adds the label and the job passes.
 export const SANDCASTLE_CHECK = "Sandcastle";
 
 // The Sandcastle workflow's name (the top-level `name:` of
@@ -323,6 +384,14 @@ export const FOLLOW_UP_MARKER = "<!-- sandcastle:follow-up -->";
 // role again: the host posts replies from the same login the owner may be,
 // so an author check alone can't tell the two apart.
 export const FOLLOW_UP_REPLY_MARKER = "<!-- sandcastle:follow-up-reply -->";
+
+// Marks the PR comment the host posts when the follow-up passes give up on a PR. Sandcastle posts under the owner's token, so
+// without a marker the comment would wake `scripts/watch-pr.sh` for nothing; the watcher skips every comment that starts with one.
+export const GIVE_UP_MARKER = "<!-- sandcastle:give-up -->";
+
+// Marks the PR comment the host posts when a worktree was left in place because it no longer points at this repository, for the
+// same reason as GIVE_UP_MARKER.
+export const WORKTREE_TAMPERED_MARKER = "<!-- sandcastle:worktree-tampered -->";
 
 // Passes per PR, counted by FOLLOW_UP_MARKER comments since
 // sandcastle:needs-human was last removed from it (lib/follow-up-pass.mts,

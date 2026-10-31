@@ -1,19 +1,33 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   BUILD_ROLES,
   BUILDING_LABEL_MAX_AGE_MS,
   BudgetError,
   DEFAULT_BUDGET_MINUTES,
+  FOLLOW_UP_LABEL,
+  FOLLOW_UP_LABEL_DEFINITION,
   GATE_FIXER_ATTEMPTS,
+  HOST_LABELS,
+  LOCAL_QUEUE_LABEL,
+  LOCAL_QUEUE_LABEL_DEFINITION,
   OPTIONAL_ROLES,
+  QUEUE_LABEL,
   QUEUE_SCOPE_USAGE,
   QueueScopeError,
   ROLES,
+  RunModeError,
+  SANDCASTLE_LABELS,
+  SESSION_REPLY_MARKER,
   budgetMinutesFrom,
+  isDefaultQueueScope,
   queueScopeFrom,
+  runModeFrom,
 } from "./config.mts";
+import * as config from "./config.mts";
 import { roleAgent, uiEnabled } from "./agents.mts";
 import { ROLE_AGENTS } from "./repo-config.mts";
 
@@ -38,6 +52,20 @@ describe("ROLE_AGENTS", () => {
     assert.ok(existsSync(file("roles/ui.md")), "roles/ui.md is missing");
     assert.match(readFileSync(file("roles/backend.md"), "utf8"), /\{\{UI_DEVELOPER\}\}/);
     assert.match(readFileSync(file("plan-prompt.md"), "utf8"), /^- `ui`:/m);
+  });
+});
+
+// The Seed review-prompt.md is never overwritten, so a repo whose copy lacks the placeholder never tells its reviewer
+// what the host refuses in a PR description.
+describe("review-prompt.md", () => {
+  it("has {{PR_BODY_RULES}} where the PR description's rules go", () => {
+    const prompt = readFileSync(new URL("../review-prompt.md", import.meta.url), "utf8");
+
+    assert.match(
+      prompt,
+      /\{\{PR_BODY_RULES\}\}/,
+      "add `{{PR_BODY_RULES}}` where the PR description's rules go; the Template's Seed review-prompt.md shows where",
+    );
   });
 });
 
@@ -112,6 +140,18 @@ describe("queueScopeFrom", () => {
     });
   }
 
+  // The hand-off label is the owner's to add, and a run follows hand-off pull requests only on the default queue: a
+  // SANDCASTLE_LABEL naming it would queue the issues that carry it and run the local scope's follow-ups on them.
+  for (const handOff of ["sandcastle:follow-up", "Sandcastle:Follow-Up"]) {
+    it(`throws when SANDCASTLE_LABEL names the hand-off label "${handOff}", saying it is the owner's, not a queue`, () => {
+      assert.throws(() => queueScopeFrom({ SANDCASTLE_LABEL: handOff }), (error: unknown) => {
+        assert.ok(error instanceof QueueScopeError);
+        assert.match(error.message, /the owner's hand-off label for a pull request, not a queue/);
+        return true;
+      });
+    });
+  }
+
   it("resolves SANDCASTLE_ISSUE to an issue scope", () => {
     assert.deepEqual(queueScopeFrom({ SANDCASTLE_ISSUE: "146" }), { kind: "issue", number: 146 });
   });
@@ -162,5 +202,173 @@ describe("budgetMinutesFrom", () => {
   // GitHub Actions too.
   it("accepts the variable when GITHUB_ACTIONS is set", () => {
     assert.equal(budgetMinutesFrom({ GITHUB_ACTIONS: "true", SANDCASTLE_BUDGET_MINUTES: "90" }), 90);
+  });
+});
+
+// A run that only answers its PRs' reviews and red checks (follow-up) runs beside a full run, which is
+// busy building an issue and would answer them only after the build.
+describe("runModeFrom", () => {
+  it("is a full run when SANDCASTLE_MODE is unset", () => {
+    assert.equal(runModeFrom({}), "full");
+  });
+
+  it("is a full run when SANDCASTLE_MODE is blank", () => {
+    assert.equal(runModeFrom({ SANDCASTLE_MODE: "" }), "full");
+    assert.equal(runModeFrom({ SANDCASTLE_MODE: "  " }), "full");
+  });
+
+  it("reads full", () => {
+    assert.equal(runModeFrom({ SANDCASTLE_MODE: "full" }), "full");
+  });
+
+  it("reads follow-up", () => {
+    assert.equal(runModeFrom({ SANDCASTLE_MODE: "follow-up" }), "follow-up");
+  });
+
+  it("ignores whitespace around the value", () => {
+    assert.equal(runModeFrom({ SANDCASTLE_MODE: " follow-up\n" }), "follow-up");
+  });
+
+  // A typo must not silently start a full run, which builds issues, when the workflow asked for a follow-up-only one.
+  for (const bad of ["followup", "follow_up", "follow-up-only", "builds", "0"]) {
+    it(`throws RunModeError for "${bad}", naming the variable and the value`, () => {
+      assert.throws(
+        () => runModeFrom({ SANDCASTLE_MODE: bad }),
+        (error: unknown) => error instanceof RunModeError && /SANDCASTLE_MODE/.test(error.message) && error.message.includes(`"${bad}"`),
+      );
+    });
+  }
+
+  // Unlike SANDCASTLE_ISSUE and SANDCASTLE_LABEL, the mode is how the workflow asks for a follow-up-only run in GitHub Actions.
+  it("accepts the variable when GITHUB_ACTIONS is set", () => {
+    assert.equal(runModeFrom({ GITHUB_ACTIONS: "true", SANDCASTLE_MODE: "follow-up" }), "follow-up");
+  });
+});
+
+// The hand-off label (lib/follow-up.mts#sweepSubject): created at startup, never a queue or a managed label.
+describe("FOLLOW_UP_LABEL", () => {
+  it("is sandcastle:follow-up", () => {
+    assert.equal(FOLLOW_UP_LABEL, "sandcastle:follow-up");
+  });
+
+  it("is kept out of SANDCASTLE_LABELS, which the host adds and removes itself", () => {
+    assert.ok(!SANDCASTLE_LABELS.some((label) => label.name.toLowerCase() === FOLLOW_UP_LABEL));
+  });
+
+  it("is created at startup: HOST_LABELS holds it exactly once", () => {
+    assert.equal(HOST_LABELS.filter((label) => label.name === FOLLOW_UP_LABEL).length, 1);
+  });
+
+  it("is created beside the managed labels and the local queue's label, which HOST_LABELS still holds", () => {
+    const names = HOST_LABELS.map((label) => label.name);
+
+    for (const label of [...SANDCASTLE_LABELS, LOCAL_QUEUE_LABEL_DEFINITION]) assert.ok(names.includes(label.name), label.name);
+    assert.ok(names.includes(LOCAL_QUEUE_LABEL));
+  });
+
+  it("is defined with a description GitHub accepts (at most 100 characters) and a six-digit colour", () => {
+    assert.equal(FOLLOW_UP_LABEL_DEFINITION.name, FOLLOW_UP_LABEL);
+    assert.ok(FOLLOW_UP_LABEL_DEFINITION.description.length > 0);
+    assert.ok(FOLLOW_UP_LABEL_DEFINITION.description.length <= 100);
+    assert.match(FOLLOW_UP_LABEL_DEFINITION.color, /^[0-9A-Fa-f]{6}$/);
+  });
+});
+
+// Only the run GitHub Actions starts follows hand-off pull requests.
+describe("isDefaultQueueScope", () => {
+  for (const label of [QUEUE_LABEL, "sandcastle", "SANDCASTLE"]) {
+    it(`is true for the label scope "${label}", compared as GitHub compares labels`, () => {
+      assert.equal(isDefaultQueueScope({ kind: "label", label }), true);
+    });
+  }
+
+  for (const label of [LOCAL_QUEUE_LABEL, "Sandcastle:dev", "Sandcastle "]) {
+    it(`is false for the label scope "${label}"`, () => {
+      assert.equal(isDefaultQueueScope({ kind: "label", label }), false);
+    });
+  }
+
+  it("is false for an issue scope", () => {
+    assert.equal(isDefaultQueueScope({ kind: "issue", number: 146 }), false);
+  });
+
+  it("is true for the scope queueScopeFrom gives in GitHub Actions, and false for a local one", () => {
+    assert.equal(isDefaultQueueScope(queueScopeFrom({ GITHUB_ACTIONS: "true" })), true);
+    assert.equal(isDefaultQueueScope(queueScopeFrom({ SANDCASTLE_ISSUE: "5" })), false);
+    assert.equal(isDefaultQueueScope(queueScopeFrom({ SANDCASTLE_LABEL: "Sandcastle:dev" })), false);
+  });
+});
+
+// A Claude Code session posts under the owner's token, so this is how its replies are told from the owner's.
+describe("SESSION_REPLY_MARKER", () => {
+  it("is the marker docs/PROCESS.md tells a Claude Code session to end every reply with", () => {
+    assert.equal(SESSION_REPLY_MARKER, "<!-- claude-session -->");
+  });
+});
+
+describe("the PR watcher", () => {
+  // scripts/watch-pr.sh skips a PR comment that starts with a Sandcastle marker, because Sandcastle posts under the owner's token.
+  // Every marker config.mts exports must be one it skips, so a new marker is covered with no edit here.
+  const watcher = fileURLToPath(new URL("../../scripts/watch-pr.sh", import.meta.url));
+  const hasJq = spawnSync("jq", ["--version"]).status === 0;
+  const skip = hasJq ? false : "jq is not installed";
+
+  // Whether the watcher skips a comment with this body: exit 0 when it does, 1 when it wouldn't.
+  const wouldSkip = (body: string): number | null =>
+    spawnSync("bash", [watcher, "--would-skip"], { input: body, encoding: "utf8" }).status;
+
+  const sandcastleMarkers = Object.entries(config as Record<string, unknown>).filter(
+    (entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].startsWith("<!-- sandcastle:"),
+  );
+
+  // A comment as Sandcastle posts it: the marker whole when it closes itself, else (the prefix markers) with the data it carries.
+  const samples = (marker: string): string[] =>
+    marker.endsWith("-->")
+      ? [marker, `${marker}\nThe rest of the comment.`]
+      : [`${marker} ${"a".repeat(40)} -->`, `${marker} issue#12 -->`, `${marker} ${"a".repeat(40)} -->\nThe rest of the comment.`];
+
+  it("finds the markers it is meant to check, so an emptied scan can't pass", () => {
+    const names = sandcastleMarkers.map(([name]) => name);
+
+    for (const name of [
+      "PR_MARKER",
+      "DESIGN_MARKER",
+      "FOLLOW_UP_MARKER",
+      "FOLLOW_UP_REPLY_MARKER",
+      "APPROVED_HEAD_MARKER",
+      "OVERLAP_MARKER",
+      "BUILD_FAILED_MARKER",
+      "UMBRELLA_MARKER",
+      "GIVE_UP_MARKER",
+      "WORKTREE_TAMPERED_MARKER",
+    ]) {
+      assert.ok(names.includes(name), `${name} is exported by config.mts and starts <!-- sandcastle:`);
+    }
+  });
+
+  it("defines the give-up and worktree-tampered markers in the form the watcher matches", () => {
+    assert.equal(config.GIVE_UP_MARKER, "<!-- sandcastle:give-up -->");
+    assert.equal(config.WORKTREE_TAMPERED_MARKER, "<!-- sandcastle:worktree-tampered -->");
+  });
+
+  for (const [name, marker] of sandcastleMarkers) {
+    it(`skips a comment that starts with ${name}`, { skip }, () => {
+      for (const body of samples(marker)) {
+        assert.equal(wouldSkip(body), 0, `a comment starting ${JSON.stringify(body.slice(0, 80))} is skipped`);
+      }
+    });
+  }
+
+  it("skips a comment with the session's marker in the middle of its body", { skip }, () => {
+    assert.equal(wouldSkip(`Fixed in abc123.\n\n${SESSION_REPLY_MARKER}`), 0);
+  });
+
+  it("doesn't skip a person's comment", { skip }, () => {
+    assert.equal(wouldSkip("Please fix this"), 1);
+  });
+
+  it("doesn't skip a comment that quotes a Sandcastle marker without starting with it", { skip }, () => {
+    assert.equal(wouldSkip("> <!-- sandcastle:pr -->\n\nWhy is this here?"), 1);
+    assert.equal(wouldSkip("Look at <!-- sandcastle:give-up --> in the log."), 1);
   });
 });

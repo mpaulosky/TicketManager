@@ -26,13 +26,14 @@ import { commentOnIssue, markerComments, openPullRequest, repoName, type Sandcas
 import { handBackWorkflowChange, moveToLocalQueue, recordFailedAttempt, type WorkflowChange } from "./handback.mts";
 import { repoGitDir, worktreeLinkProblems, worktreePathFor } from "./host-safety.mts";
 import { runLimits, type RunLimits } from "./limits.mts";
-import { architectPromptArgs, backendPromptArgs, gateFixerPromptArgs, issuePromptArgs } from "./prompts.mts";
+import { architectPromptArgs, backendPromptArgs, gateFixerPromptArgs, issuePromptArgs, reviewerPromptArgs } from "./prompts.mts";
 import type { Outcome } from "./report.mts";
 import { containsSandboxSecret, containsSecret, sandboxSecrets } from "./sandbox-env.mts";
 import { describeSecretMatch, firstSecretMatch, type SecretMatch } from "./scan.mts";
 import { git } from "./shell.mts";
 import { visibleLetters } from "./plain-text.mts";
 import { agentSandbox } from "./skills.mts";
+import { terminalText } from "./status.mts";
 
 // A conventional-commit prefix as scripts/check-pr-title.sh accepts it: a type,
 // an optional scope, an optional breaking-change marker, a colon and a space.
@@ -163,7 +164,7 @@ export async function retryOnServerError<T>(step: () => T, wait: (ms: number) =>
     } catch (error) {
       if (attempt >= PUBLISH_RETRY_ATTEMPTS || !isGitHubServerError(error)) throw error;
       const delay = PUBLISH_RETRY_DELAY_MS * 2 ** (attempt - 1);
-      console.error(`  ⚠ GitHub server error, retrying in ${delay / 1000}s (attempt ${attempt + 1} of ${PUBLISH_RETRY_ATTEMPTS}): ${error}`);
+      console.error(`  ⚠ GitHub server error, retrying in ${delay / 1000}s (attempt ${attempt + 1} of ${PUBLISH_RETRY_ATTEMPTS}): ${terminalText(String(error))}`);
       await wait(delay);
     }
   }
@@ -630,7 +631,7 @@ export async function buildIssue(
       host.unmarkBuilding(issue.number);
     } catch (error) {
       console.error(
-        `  ⚠ #${issue.number}: removing ${BUILDING_LABEL} failed, so it's tried again when this run exits: ${error}`,
+        `  ⚠ #${issue.number}: removing ${BUILDING_LABEL} failed, so it's tried again when this run exits: ${terminalText(String(error))}`,
       );
     }
   }
@@ -677,7 +678,7 @@ async function buildMarkedIssue(
     // The sandbox was left in place for a person, as the finally below does
     // for a worktree it finds tampered with, so the issue says so too.
     if (error instanceof TamperedWorktreeError) {
-      console.error(`  ✗ #${issue.number}: ${error.message}`);
+      console.error(`  ✗ #${issue.number}: ${terminalText(error.message)}`);
       host.commentOnIssue(issue.number, tamperedWorktreeComment(branch));
     }
     throw error;
@@ -751,7 +752,7 @@ async function buildMarkedIssue(
         ? unpublished("timed out", `the ${role} timed out`)
         : unpublished("role failed", `the ${role} failed`);
     }
-    console.error(`  ✗ #${issue.number}: ${logged ?? failure}, so ${branch} isn't published.`);
+    console.error(`  ✗ #${issue.number}: ${terminalText(logged ?? failure)}, so ${branch} isn't published.`);
     host.recordBuildFailure(issue.number, branch, developerFailureComment(failure, branch, error));
     return result;
   }
@@ -812,7 +813,7 @@ async function buildMarkedIssue(
     try {
       host.commentOnIssue(issue.number, body);
     } catch (error) {
-      console.error(`  ⚠ #${issue.number}: posting the design note failed: ${error}`);
+      console.error(`  ⚠ #${issue.number}: posting the design note failed: ${terminalText(String(error))}`);
     }
   }
 
@@ -823,12 +824,14 @@ async function buildMarkedIssue(
   // commit, the Release's notes, the release blog), so anything it can't be
   // trusted with as it is returns undefined, for publish()'s generic body,
   // and the log says why: a missing description never blocks publishing.
+  // Keep PR_BODY_RULES in lib/prompts.mts in step: it tells the reviewer each
+  // of these refusals.
   async function reviewerPrBody(): Promise<string | undefined> {
     let read: { stdout: string; exitCode: number };
     try {
       read = await sandbox.exec(`cat ${prBodyPath} 2>/dev/null`);
     } catch (error) {
-      log(`reading the reviewer's PR body failed, so the PR gets the generic body: ${error}`);
+      log(`reading the reviewer's PR body failed, so the PR gets the generic body: ${terminalText(String(error))}`);
       return undefined;
     }
     const prBody = read.exitCode === 0 ? read.stdout.replace(/\r\n?/g, "\n").trim() : "";
@@ -886,7 +889,7 @@ async function buildMarkedIssue(
       console.error(`  ⚠ #${issue.number}: the scribe ran out of iterations unfinished, publishing with a note.`);
     } catch (error) {
       if (error instanceof UncountedStopError) throw error;
-      console.error(`  ⚠ #${issue.number}: scribe failed, publishing with a note: ${error}`);
+      console.error(`  ⚠ #${issue.number}: scribe failed, publishing with a note: ${terminalText(String(error))}`);
     }
     return false;
   }
@@ -920,7 +923,7 @@ async function buildMarkedIssue(
       if (host.isRemoteMain(mergedMain)) return mergedMain;
       log("the merged main commit is no longer GitHub's main, so the scan reads main's commits too");
     } catch (error) {
-      console.error(`  ⚠ #${issue.number}: asking GitHub for main failed, so the scan reads main's commits too: ${error}`);
+      console.error(`  ⚠ #${issue.number}: asking GitHub for main failed, so the scan reads main's commits too: ${terminalText(String(error))}`);
     }
     return undefined;
   }
@@ -944,7 +947,7 @@ async function buildMarkedIssue(
     try {
       main = host.latestMain();
     } catch (error) {
-      console.error(`  ⚠ #${issue.number}: fetching main failed, so ${branch} is published without merging it in: ${error}`);
+      console.error(`  ⚠ #${issue.number}: fetching main failed, so ${branch} is published without merging it in: ${terminalText(String(error))}`);
       log("fetching main failed, so main isn't merged in");
       return undefined;
     }
@@ -971,7 +974,7 @@ async function buildMarkedIssue(
       try {
         mainWorkflowFiles = host.workflowFiles(reviewedHead, main);
       } catch (error) {
-        console.error(`  ⚠ #${issue.number}: listing the workflow files main changes failed: ${error}`);
+        console.error(`  ⚠ #${issue.number}: listing the workflow files main changes failed: ${terminalText(String(error))}`);
         log("main's workflow changes can't be listed, so main isn't merged in");
         return undefined;
       }
@@ -1024,7 +1027,7 @@ async function buildMarkedIssue(
       const changed = await changedFiles(sandbox, { base, mergedMain }, CHECK_PATHS, gated);
       if (changed !== undefined) return changed;
     } catch (error) {
-      console.error(`  ⚠ #${issue.number}: listing the files ${branch} changes under the gate's and CI's folders failed: ${error}`);
+      console.error(`  ⚠ #${issue.number}: listing the files ${branch} changes under the gate's and CI's folders failed: ${terminalText(String(error))}`);
     }
     log("the files the branch changes under the gate's and CI's folders can't be listed, so the PR body won't name them");
     return [];
@@ -1056,7 +1059,7 @@ async function buildMarkedIssue(
       if (main === base) return undefined;
       mainWorkflowFiles = host.workflowFiles(base, main);
     } catch (error) {
-      console.error(`  ⚠ #${issue.number}: listing the workflow files main changed since ${base} failed: ${error}`);
+      console.error(`  ⚠ #${issue.number}: listing the workflow files main changed since ${base} failed: ${terminalText(String(error))}`);
       log("main's workflow changes since the build started can't be listed, so the branch is published as usual");
       return undefined;
     }
@@ -1064,7 +1067,7 @@ async function buildMarkedIssue(
     try {
       if (host.remoteBranchExists(branch)) return undefined;
     } catch (error) {
-      console.error(`  ⚠ #${issue.number}: asking GitHub whether ${branch} exists failed: ${error}`);
+      console.error(`  ⚠ #${issue.number}: asking GitHub whether ${branch} exists failed: ${terminalText(String(error))}`);
       log(`GitHub can't be asked whether ${branch} exists, so it's published as usual`);
       return undefined;
     }
@@ -1072,7 +1075,7 @@ async function buildMarkedIssue(
     try {
       descends = await sandbox.exec(`git merge-base --is-ancestor ${shellWord(base)} ${shellWord(gated)}`);
     } catch (error) {
-      console.error(`  ⚠ #${issue.number}: checking that ${base} is an ancestor of ${gated} failed: ${error}`);
+      console.error(`  ⚠ #${issue.number}: checking that ${base} is an ancestor of ${gated} failed: ${terminalText(String(error))}`);
       log(`${base} can't be checked as an ancestor of the commit the gate passed on, so ${branch} is published as usual`);
       return undefined;
     }
@@ -1088,7 +1091,7 @@ async function buildMarkedIssue(
       log(`main changed ${mainWorkflowFiles.join(", ")} since the build started, so ${branch} was created at ${base} before the push`);
       return { created: true };
     } catch (error) {
-      console.error(`  ⚠ #${issue.number}: creating ${branch} at ${base} failed, so it's pushed as a new branch: ${error}`);
+      console.error(`  ⚠ #${issue.number}: creating ${branch} at ${base} failed, so it's pushed as a new branch: ${terminalText(String(error))}`);
       log(`creating ${branch} at the build's base failed, so it's pushed as a new branch`);
       return { created: false };
     }
@@ -1138,7 +1141,7 @@ async function buildMarkedIssue(
         "reviewer",
         {
           promptFile: "./.sandcastle/review-prompt.md",
-          promptArgs,
+          promptArgs: reviewerPromptArgs(issue, branch),
         },
         host.limits,
       );
@@ -1150,7 +1153,7 @@ async function buildMarkedIssue(
       if (error instanceof UncountedStopError) throw error;
       // A failed review shouldn't strand finished work: publish anyway and
       // say so in the PR, which gets a human review regardless.
-      console.error(`  ⚠ #${issue.number}: reviewer failed, publishing unreviewed: ${error}`);
+      console.error(`  ⚠ #${issue.number}: reviewer failed, publishing unreviewed: ${terminalText(String(error))}`);
       reviewed = false;
     }
 
@@ -1194,7 +1197,7 @@ async function buildMarkedIssue(
       const prUrl = await host.publish(issue, branch, gated, reviewed, docsFailed, prBody, checkChanges);
       return { commits, prUrl, publishFailed: false, outcome: "published", detail: prUrl };
     } catch (error) {
-      console.error(`  ✗ #${issue.number}: publishing ${branch} failed: ${error}`);
+      console.error(`  ✗ #${issue.number}: publishing ${branch} failed: ${terminalText(String(error))}`);
       const detail = host.publicError(error);
       // Sandcastle's token can't push a .github/workflows/** change, so no
       // retry or rebuild will get it through: a person has to make it, or,
@@ -1206,7 +1209,7 @@ async function buildMarkedIssue(
         try {
           files = host.workflowFiles(base, gated, mergedMain);
         } catch (listError) {
-          console.error(`  ⚠ #${issue.number}: listing the workflow files ${branch} changes failed: ${listError}`);
+          console.error(`  ⚠ #${issue.number}: listing the workflow files ${branch} changes failed: ${terminalText(String(listError))}`);
         }
         const change = { head: gated, files };
         if (branchAtBase !== undefined) {
@@ -1217,7 +1220,7 @@ async function buildMarkedIssue(
             try {
               host.deleteBranchAt(branch, base);
             } catch (deleteError) {
-              console.error(`  ⚠ #${issue.number}: deleting the stray ${branch} at ${base} failed: ${deleteError}`);
+              console.error(`  ⚠ #${issue.number}: deleting the stray ${branch} at ${base} failed: ${terminalText(String(deleteError))}`);
             }
           }
           let moved = false;
@@ -1227,7 +1230,7 @@ async function buildMarkedIssue(
             log(`GitHub refused the push even as an update from ${base}, so the issue moved to Sandcastle:local`);
           } catch (moveError) {
             console.error(
-              `  ⚠ #${issue.number}: moving it to Sandcastle:local failed, so the next round tries again: ${moveError}`,
+              `  ⚠ #${issue.number}: moving it to Sandcastle:local failed, so the next round tries again: ${terminalText(String(moveError))}`,
             );
           }
           return {
@@ -1244,7 +1247,7 @@ async function buildMarkedIssue(
           host.handBackWorkflowChange(issue.number, branch, detail, change);
         } catch (handBackError) {
           console.error(
-            `  ⚠ #${issue.number}: handing it back for its workflow change failed, so the next round tries again: ${handBackError}`,
+            `  ⚠ #${issue.number}: handing it back for its workflow change failed, so the next round tries again: ${terminalText(String(handBackError))}`,
           );
         }
         return {
@@ -1280,7 +1283,7 @@ async function buildMarkedIssue(
     // points at this repository, with its sandbox, for a person to look at.
     const problems = host.worktreeProblems(sandbox.worktreePath);
     if (problems.length > 0) {
-      console.error(`  ✗ #${issue.number}: left ${sandbox.worktreePath} and its sandbox in place: ${problems.join("; ")}`);
+      console.error(`  ✗ #${issue.number}: left ${sandbox.worktreePath} and its sandbox in place: ${terminalText(problems.join("; "))}`);
       host.commentOnIssue(issue.number, tamperedWorktreeComment(branch));
     } else {
       await sandbox.close();
