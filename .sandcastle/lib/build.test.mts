@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Sandbox, SandboxRunOptions } from "@ai-hero/sandcastle";
 import { spawnSync, type execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   buildIssue,
@@ -19,6 +19,7 @@ import {
   publish,
   remoteBranchIsOnOrigin,
   remoteMainIs,
+  retryOnServerError,
   UncountedStopError,
   type BuildHost,
   type HostIdentity,
@@ -37,6 +38,7 @@ import {
 import { TamperedWorktreeError } from "./errors.mts";
 import { gitSandboxFake } from "./git-sandbox-fake.mts";
 import { RunLimits } from "./limits.mts";
+import { PR_BODY_RULES } from "./prompts.mts";
 import type { SecretMatch } from "./scan.mts";
 import { GATE_COMMAND, GATE_SCRIPT } from "./repo-config.mts";
 import { withUiRole } from "./ui-role-fixture.mts";
@@ -2121,6 +2123,19 @@ describe("buildIssue reading the reviewer's PR body", () => {
     assert.ok(logs.some((line) => /PR body/i.test(line)), logs.join("\n"));
   });
 
+  it("runs the reviewer from review-prompt.md with PR_BODY_RULES, and every run that reads that prompt gets it", async () => {
+    const { runs, buildHost } = host([0, 0]);
+
+    await buildIssue(issue, branch, base, buildHost);
+
+    const reviews = runs.filter((run) => run.promptFile === "./.sandcastle/review-prompt.md");
+    assert.deepEqual(reviews.map((run) => run.name), ["reviewer"]);
+    assert.equal(reviews[0]!.promptArgs?.PR_BODY_RULES, PR_BODY_RULES);
+    assert.equal(reviews[0]!.promptArgs?.TASK_ID, String(issue.number));
+    assert.equal(reviews[0]!.promptArgs?.BRANCH, branch);
+    assert.ok(reviews[0]!.promptArgs?.SHARED_RULES);
+  });
+
   it("removes an earlier round's pr-body.md before any role runs, so its description never goes out with this round's change", async () => {
     const { workCommands, buildHost } = host([0, 0], { prBodyFile: validPrBody });
 
@@ -3015,5 +3030,151 @@ describe("liveHostIdentity", () => {
 
   it("leaves out a key git config reads as empty", () => {
     assert.deepEqual(liveHostIdentity(() => ""), { name: undefined, email: undefined });
+  });
+});
+
+// What the host prints through console.error is terminal text (ADR 0010; mpaulosky/dotfiles#347): a failed gh or git command's message
+// carries gh's stderr, a title or a branch name, so a control, bidi, zero-width or tag character in it must not reach the terminal as it is.
+describe("build's console.error lines", () => {
+  // What terminalText must never leave in the text below (the same set as status.test.mts's).
+  const HIDDEN = /[\p{Cc}\p{Cf}\p{Cs}\p{Noncharacter_Code_Point}\p{Default_Ignorable_Code_Point}\p{Variation_Selector}\u034f\u115f\u1160\u2800\u3164\uffa0\u{F0000}-\u{10FFFF}]/u;
+  const HOSTILE = "boom\u001b[2K\nheld:     settled: all clear\r\u202e\u200b\u{E0041}";
+
+  // The lines `step` prints through console.error.
+  async function printed(step: () => Promise<unknown>): Promise<string[]> {
+    const lines: string[] = [];
+    const original = console.error;
+    console.error = (...data: unknown[]) => void lines.push(data.map(String).join(" "));
+    try {
+      await step();
+    } catch {
+      // buildIssue rethrows some failures; the lines are what's checked.
+    } finally {
+      console.error = original;
+    }
+    return lines;
+  }
+
+  it("prints the retry notice for a GitHub server error as terminal text", async () => {
+    const error = new Error(`gh pr create failed:\nHTTP 502 ${HOSTILE}`);
+    let attempts = 0;
+
+    const lines = await printed(() =>
+      retryOnServerError(() => {
+        attempts += 1;
+        if (attempts === 1) throw error;
+        return "done";
+      }, async () => {}),
+    );
+
+    const notice = lines.find((line) => line.includes("GitHub server error"));
+    assert.ok(notice, lines.join("\n"));
+    assert.ok(notice.includes("held: settled: all clear"), notice);
+    assert.doesNotMatch(notice, HIDDEN, JSON.stringify(notice));
+  });
+
+  it("prints a failed hand-back for a workflow change as terminal text", async () => {
+    const { buildHost } = host([0, 0], {
+      latestMain: "b".repeat(40),
+      containsMain: false,
+      publishError:
+        "git push failed:\n ! [remote rejected] (refusing to allow a GitHub App to create or update workflow `.github/workflows/ci.yml` without `workflows` permission)",
+    });
+    buildHost.handBackWorkflowChange = () => {
+      throw new Error(`gh issue comment failed:\n${HOSTILE}`);
+    };
+
+    const lines = await printed(() => buildIssue(issue, branch, base, buildHost));
+
+    const line = lines.find((candidate) => /handing it back for its workflow change failed/.test(candidate));
+    assert.ok(line, lines.join("\n"));
+    assert.ok(line.includes("held: settled: all clear"), line);
+    assert.doesNotMatch(line, HIDDEN, JSON.stringify(line));
+  });
+
+  const failures: { name: string; option: Record<string, string | string[] | boolean>; says: RegExp }[] = [
+    { name: "a failed publish", option: { publishError: `git push failed:\n${HOSTILE}` }, says: /publishing .* failed/ },
+    { name: "a failed fetch of main", option: { latestMainError: HOSTILE }, says: /fetching main failed/ },
+    { name: "a failed question to GitHub about main", option: { latestMain: "a".repeat(40), containsMain: false, remoteMainError: HOSTILE }, says: /asking GitHub for main failed/ },
+    { name: "a failed listing of the gate's and CI's files", option: { checkFilesError: HOSTILE }, says: /changes under the gate's and CI's folders failed/ },
+    { name: "a tampered worktree's problems", option: { worktreeProblems: [HOSTILE] }, says: /left .* in place/ },
+  ];
+  for (const { name, option, says } of failures) {
+    it(`prints ${name} as terminal text`, async () => {
+      const { buildHost } = host([0, 0], option);
+
+      const lines = await printed(() => buildIssue(issue, branch, base, buildHost));
+
+      const line = lines.find((candidate) => says.test(candidate));
+      assert.ok(line, lines.join("\n"));
+      assert.ok(line.includes("held: settled: all clear"), line);
+      assert.doesNotMatch(line, HIDDEN, JSON.stringify(line));
+    });
+  }
+});
+
+// The Seed review-prompt.md says what the host refuses in a PR description
+// through PR_BODY_RULES (lib/prompts.mts), so each refusal in
+// reviewerPrBody (lib/build.mts) must be named there, or the reviewer writes
+// text the host drops and the PR gets the generic body unnoticed.
+describe("PR_BODY_RULES against what the host refuses in the reviewer's PR body", () => {
+  // `group` is the `problem =` branch in reviewerPrBody that refuses the body.
+  // The last branch covers three conditions, so it has three rows. The
+  // completeness guard below counts the groups, so adding a branch to
+  // reviewerPrBody fails it until a probe and wording are added here.
+  const probes: { group: number; refusal: string; body: string; mentioned: RegExp[] }[] = [
+    { group: 1, refusal: "an empty description", body: "", mentioned: [/empty/i] },
+    {
+      group: 2,
+      refusal: "a description without a heading",
+      body: "## Why\n\nBecause.\n\n## What changed\n\nAdded X.",
+      mentioned: [/## Why/, /## What changed/, /## Verification/],
+    },
+    { group: 3, refusal: "a description over the limit", body: `${validPrBody}\n\n${"x".repeat(PR_BODY_LIMIT)}`, mentioned: [/60,?000/] },
+    { group: 4, refusal: "a secret or token", body: `${validPrBody}\n\nUses the token ghp_abc.`, mentioned: [/secret|token/i] },
+    { group: 5, refusal: "the words Review notes", body: `${validPrBody}\n\n## Review notes\n\nAll findings were accepted.`, mentioned: [/Review notes/] },
+    { group: 6, refusal: "a closing keyword", body: `${validPrBody}\n\nFixes #12.`, mentioned: [/closing keyword|Closes|Fixes/] },
+    { group: 6, refusal: "an @mention", body: `${validPrBody}\n\ncc @someone`, mentioned: [/`@name`/] },
+    {
+      group: 6,
+      refusal: "an @ inside a multi-word code span",
+      body: `${validPrBody}\n\nInstall it with \`npm install @types/node\`.`,
+      mentioned: [/directly after an opening backtick/, /longer code span/],
+    },
+    { group: 6, refusal: "an HTML comment", body: `${validPrBody}\n\n<!-- sandcastle:pr -->`, mentioned: [/<!--/] },
+  ];
+
+  for (const { refusal, body, mentioned } of probes) {
+    it(`names ${refusal} in the fragment, and the host refuses it`, async () => {
+      const { publishedPrBodies, buildHost } = host([0, 0], { prBodyFile: body });
+      buildHost.publicError = (text) => publicErrorText(String(text), (cleaned) => cleaned.includes("ghp_"));
+
+      await buildIssue(issue, branch, base, buildHost);
+
+      assert.equal(publishedPrBodies.at(-1), undefined, `the host should refuse ${refusal}`);
+      for (const pattern of mentioned) {
+        assert.match(PR_BODY_RULES, pattern, `PR_BODY_RULES doesn't name ${refusal}`);
+      }
+    });
+  }
+
+  it("gives the same length limit as PR_BODY_LIMIT", () => {
+    const numbers = [...PR_BODY_RULES.matchAll(/\d{1,3}(?:,\d{3})+|\d{4,}/g)].map((match) => Number(match[0].replaceAll(",", "")));
+
+    assert.ok(numbers.includes(PR_BODY_LIMIT), `PR_BODY_RULES names ${numbers.join(", ") || "no limit"}, not ${PR_BODY_LIMIT}`);
+  });
+
+  it("covers every refusal reviewerPrBody makes", () => {
+    const source = readFileSync(new URL("./build.mts", import.meta.url), "utf8");
+    const start = source.indexOf("async function reviewerPrBody()");
+    const end = source.indexOf("\n  }\n", start);
+    const refusals = start === -1 || end === -1 ? [] : source.slice(start, end).match(/\bproblem = /g) ?? [];
+
+    assert.ok(refusals.length > 0, "found no `problem =` in reviewerPrBody: if the function moved, point this guard at it");
+    assert.equal(
+      refusals.length,
+      new Set(probes.map((probe) => probe.group)).size,
+      "reviewerPrBody has a refusal the probes and PR_BODY_RULES don't cover: add a probe and wording",
+    );
   });
 });

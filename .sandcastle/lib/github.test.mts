@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { execFileSync } from "node:child_process";
-import { COPILOT_REVIEWER, LOCAL_QUEUE_LABEL, LOCAL_QUEUE_LABEL_DEFINITION, SANDCASTLE_LABELS } from "./config.mts";
+import { COPILOT_REVIEWER, FOLLOW_UP_LABEL, FOLLOW_UP_MARKER, FOLLOW_UP_LABEL_DEFINITION, HOST_LABELS, LOCAL_QUEUE_LABEL, SANDCASTLE_LABELS } from "./config.mts";
 import {
+  addBlockedBy,
   addIssueLabel,
   addPullRequestLabel,
   addSubIssue,
@@ -11,6 +12,7 @@ import {
   type ClosedPullRequest,
   closedPullRequests,
   closeIssueAsCompleted,
+  followUpPassCount,
   commentOnIssue,
   commentOnPullRequest,
   type ContentEdit,
@@ -22,6 +24,7 @@ import {
   hasLabel,
   headChecksOf,
   hostLogin,
+  issueBody,
   issueEvents,
   issueLabels,
   type IssueEvent,
@@ -32,11 +35,19 @@ import {
   markerCommentsSince,
   openIssuesWithComment,
   openPullRequest,
+  openPullRequests,
+  openPullRequestsIntoMain,
   openPullRequestsForSweep,
   ownerApproved,
+  pullRequestBodyEdits,
   pullRequestFiles,
+  pullRequestLabels,
+  pullRequestsWithLabel,
   pushAccess,
+  readRepoName,
+  repositoryOwnerLogin,
   removeIssueLabel,
+  removePullRequestLabel,
   replaceIssueLabel,
   replyToReviewThread,
   requestCopilotReview,
@@ -45,13 +56,19 @@ import {
   reviewThreadsOf,
   sameRepoBlockers,
   sameRepository,
+  sandcastleWorkflowRuns,
   signedInHostLogin,
   subIssuesOf,
   type TimelineLabelEvent,
   type TimestampedComment,
+  type WorkflowRun,
   updatePullRequestBranch,
+  issueComments,
+  mainMergeOf,
+  type MainMerge,
 } from "./github.mts";
 import { HandBackReport, targetUrl } from "./report.mts";
+import { isGitHubServerError } from "./build.mts";
 
 describe("ownerApproved", () => {
   // An issue carrying `comments`, each an [author, body] pair.
@@ -302,6 +319,76 @@ describe("ownerApproved", () => {
   });
 });
 
+describe("readRepoName", () => {
+  it("returns the name gh printed, asking gh with its stderr captured", () => {
+    const asked: { file: string; args: readonly string[]; stdio: unknown }[] = [];
+    const run = ((file: string, args: readonly string[], options: { stdio?: unknown }) => {
+      asked.push({ file, args, stdio: options.stdio });
+      return "o/r\n";
+    }) as unknown as typeof execFileSync;
+
+    assert.equal(readRepoName(run), "o/r");
+    assert.deepEqual(asked.map((call) => [call.file, ...call.args]), [["gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]]);
+    assert.deepEqual(asked[0]?.stdio, ["ignore", "pipe", "pipe"]);
+  });
+
+  it("throws with gh's stderr in the message, so the caller prints it as plain text", () => {
+    const run = (() => {
+      throw Object.assign(new Error("exit 1"), { stderr: "gh: not signed in\n" });
+    }) as unknown as typeof execFileSync;
+
+    assert.throws(() => readRepoName(run), /gh repo view failed:\ngh: not signed in/);
+  });
+
+  it("names why gh couldn't run when it printed no stderr, and keeps the original error as the cause", () => {
+    const original = Object.assign(new Error("spawnSync gh ENOENT"), { code: "ENOENT" });
+    const run = (() => {
+      throw original;
+    }) as unknown as typeof execFileSync;
+
+    assert.throws(() => readRepoName(run), (error: Error) => error.message === "gh repo view failed:\ngh couldn't run (ENOENT)" && error.cause === original);
+  });
+
+  it("never puts the command line in the message when gh printed nothing: a title in it could pass for gh's own output", () => {
+    const commandLine = "Command failed: gh pr create --repo o/r --title Fix Internal Server Error page --body-file -";
+    const exited = Object.assign(new Error(commandLine), { status: 1, stderr: "  \n" });
+    const killed = Object.assign(new Error(commandLine), { signal: "SIGKILL", stderr: "" });
+    const odd = "not an error";
+    const timedOut = Object.assign(new Error(commandLine), { code: "ETIMEDOUT", signal: "SIGTERM", status: null, stderr: "" });
+    const overflowed = Object.assign(new Error(commandLine), { code: "ENOBUFS", signal: "SIGTERM", status: null, stderr: "" });
+    const denied = Object.assign(new Error(commandLine), { code: "EACCES", status: null, stderr: "" });
+    const notPermitted = Object.assign(new Error(commandLine), { code: "EPERM", signal: "SIGTERM", status: null, stderr: "" });
+    const otherCode = Object.assign(new Error(commandLine), { code: "EMFILE", status: null, stderr: "" });
+    const numericCode = Object.assign(new Error(commandLine), { code: 5, status: null });
+
+    for (const [thrown, expected] of [
+      [exited, "gh exited with status 1 and printed nothing"],
+      [killed, "gh was killed by SIGKILL"],
+      [timedOut, "gh was killed by SIGTERM (ETIMEDOUT)"],
+      [overflowed, "gh's output outgrew its buffer (ENOBUFS)"],
+      [denied, "gh couldn't run (EACCES)"],
+      [notPermitted, "gh couldn't run (EPERM)"],
+      [otherCode, "gh stopped (EMFILE)"],
+      [numericCode, "gh failed and printed nothing"],
+      [odd, "gh failed and printed nothing"],
+      [null, "gh failed and printed nothing"],
+      [undefined, "gh failed and printed nothing"],
+    ] as const) {
+      const run = (() => {
+        throw thrown;
+      }) as unknown as typeof execFileSync;
+
+      assert.throws(() => readRepoName(run), (error: Error) => error.message === `gh repo view failed:\n${expected}` && error.cause === thrown && !isGitHubServerError(error));
+    }
+  });
+
+  it("throws when gh prints no name", () => {
+    const run = (() => "\n") as unknown as typeof execFileSync;
+
+    assert.throws(() => readRepoName(run), /printed no repository name/);
+  });
+});
+
 describe("commentOnIssue", () => {
   it("sends the issue number as an argument and the whole body through stdin", () => {
     const calls: { cmd: string; args: readonly string[]; input: unknown }[] = [];
@@ -318,7 +405,7 @@ describe("commentOnIssue", () => {
 
   it("throws when gh fails, so a failed comment isn't mistaken for a posted one", () => {
     const run = (() => {
-      throw new Error("gh: HTTP 502");
+      throw Object.assign(new Error("Command failed: gh issue comment"), { stderr: "gh: HTTP 502" });
     }) as unknown as typeof execFileSync;
 
     assert.throws(() => commentOnIssue(69, "body", run, "o/r"), /HTTP 502/);
@@ -528,11 +615,35 @@ describe("ensureLabels", () => {
     ensureLabels(undefined, run, "o/r");
 
     const created = calls.filter((call) => call.args[1] === "create").map((call) => call.args[2]);
-    assert.deepEqual(created, [...SANDCASTLE_LABELS.map((label) => label.name), LOCAL_QUEUE_LABEL]);
+    assert.ok(created.includes(LOCAL_QUEUE_LABEL));
+    assert.deepEqual(created, HOST_LABELS.map((label) => label.name));
+  });
+
+  it("creates sandcastle:follow-up by default when the repository lacks it, with its colour and description", () => {
+    const { calls, run } = recordingGh(["[]"]);
+
+    ensureLabels(undefined, run, "o/r");
+
+    const call = calls.find((candidate) => candidate.args[1] === "create" && candidate.args[2] === FOLLOW_UP_LABEL);
+    assert.ok(call, "no label create call for the hand-off label");
+    assert.deepEqual(call.args, [
+      "label", "create", FOLLOW_UP_LABEL, "--repo", "o/r", "--color", FOLLOW_UP_LABEL_DEFINITION.color,
+      "--description", FOLLOW_UP_LABEL_DEFINITION.description,
+    ]);
+  });
+
+  it("doesn't recreate sandcastle:follow-up when the repository has it, in any case", () => {
+    const { calls, run } = recordingGh([JSON.stringify(["Sandcastle:Follow-Up"])]);
+
+    ensureLabels(undefined, run, "o/r");
+
+    const created = calls.filter((call) => call.args[1] === "create").map((call) => call.args[2]);
+    assert.ok(!created.includes(FOLLOW_UP_LABEL));
+    assert.ok(created.includes("sandcastle:ready"));
   });
 
   it("gives every label it creates by default a description GitHub accepts, at most 100 characters", () => {
-    for (const label of [...SANDCASTLE_LABELS, LOCAL_QUEUE_LABEL_DEFINITION]) {
+    for (const label of HOST_LABELS) {
       assert.ok(label.description.length <= 100, `${label.name}'s description is ${label.description.length} characters`);
     }
   });
@@ -675,13 +786,13 @@ describe("issue labels", () => {
     assert.deepEqual(calls[0]!.args, ["issue", "view", "150", "--repo", "o/r", "--json", "labels", "--jq", "[.labels[].name]"]);
   });
 
-  it("lists the open issues carrying a label", () => {
+  it("lists the issues carrying a label, closed ones too", () => {
     const { calls, run } = recordingGh(["[71,150]\n"]);
 
     const numbers = issuesWithLabel("sandcastle:building", run, "o/r");
 
     assert.deepEqual(numbers, [71, 150]);
-    assert.deepEqual(calls[0]!.args.slice(0, 8), ["issue", "list", "--repo", "o/r", "--state", "open", "--label", "sandcastle:building"]);
+    assert.deepEqual(calls[0]!.args.slice(0, 8), ["issue", "list", "--repo", "o/r", "--state", "all", "--label", "sandcastle:building"]);
   });
 });
 
@@ -925,6 +1036,13 @@ describe("hasLabel", () => {
   });
 });
 
+describe("repositoryOwnerLogin", () => {
+  it("is the first part of the repository's owner/name", () => {
+    assert.equal(repositoryOwnerLogin("o/r"), "o");
+    assert.equal(repositoryOwnerLogin("some-org/the-repo"), "some-org");
+  });
+});
+
 // The follow-up sweep's own login, read and cached the same way
 // hostLogin's other callers already do (see cacheHostLogin and
 // markerComments above).
@@ -984,6 +1102,105 @@ describe("updatePullRequestBranch", () => {
     assert.deepEqual(calls[0]!.args, [
       "api", "--method", "PUT", "repos/o/r/pulls/42/update-branch", "-f", `expected_head_sha=${"a".repeat(40)}`,
     ]);
+  });
+});
+
+describe("issueComments", () => {
+  it("pages through the comments of the issue or PR with their author and time", () => {
+    const { calls, run } = recordingGh([[JSON.stringify({ body: "a", createdAt: "2026-01-01T00:00:00Z", author: "o" }), "", JSON.stringify({ body: "b", createdAt: "2026-01-02T00:00:00Z", author: "p" })].join("\n")]);
+
+    const comments = issueComments(7, run, "o/r");
+
+    assert.deepEqual(comments.map((comment) => comment.body), ["a", "b"]);
+    assert.deepEqual(calls[0]!.args.slice(0, 3), ["api", "--paginate", "repos/o/r/issues/7/comments"]);
+    assert.match(calls[0]!.args.join(" "), /updatedAt: \.updated_at/);
+  });
+});
+
+describe("mainMergeOf", () => {
+  const COMMIT = "b".repeat(40);
+  const FIRST = "a".repeat(40);
+  const SECOND = "c".repeat(40);
+  const TIP = "d".repeat(40);
+  const merge = (overrides: Partial<{ parents: string[]; committer: string | null; author: string | null; verified: boolean }> = {}) =>
+    JSON.stringify({ parents: [FIRST, SECOND], committer: "web-flow", author: "the-host", verified: true, ...overrides });
+
+  // A gh stub: `commit` answers the commit lookup, `tip` main's ref, `status` the compare of the second parent with main's tip.
+  const stub = (commit: string, status = "ahead") => {
+    const calls: string[] = [];
+    const run = ((_cmd: string, args: readonly string[]) => {
+      calls.push(args.join(" "));
+      const path = args[1]!;
+      if (path.includes("/commits/")) return commit;
+      if (path.endsWith("/git/ref/heads/main")) return `${TIP}\n`;
+      if (path.includes("/compare/")) return `${status}\n`;
+      throw new Error(`unexpected gh call: ${args.join(" ")}`);
+    }) as unknown as typeof execFileSync;
+    return { run, calls };
+  };
+  const check = (commit: string, status?: string, host = "the-host") => {
+    const { run, calls } = stub(commit, status);
+    return { result: mainMergeOf(COMMIT, host, run, "o/r"), calls };
+  };
+
+  it("returns the first parent of GitHub's own merge of main, made for the host", () => {
+    assert.deepEqual(check(merge()).result, { firstParent: FIRST });
+  });
+
+  it("compares the second parent with main's tip as a commit, never with the bare name main, which can name a tag", () => {
+    const { calls } = check(merge());
+
+    assert.ok(calls.some((call) => call.includes("git/ref/heads/main")), calls.join("\n"));
+    assert.ok(calls.some((call) => call.includes(`compare/${SECOND}...${TIP}`)), calls.join("\n"));
+    assert.ok(!calls.some((call) => call.includes("...main")), calls.join("\n"));
+  });
+
+  it("looks the commit up by its hash", () => {
+    assert.ok(check(merge()).calls[0]!.includes(`repos/o/r/commits/${COMMIT}`));
+  });
+
+  it("accepts a second parent that is main's own tip", () => {
+    assert.deepEqual(check(merge(), "identical").result, { firstParent: FIRST });
+  });
+
+  it("matches the host's login whatever its case", () => {
+    assert.deepEqual(check(merge({ author: "The-Host" })).result, { firstParent: FIRST });
+  });
+
+  for (const [what, commit, status] of [
+    ["a commit someone else committed", merge({ committer: "a-collaborator" }), "ahead"],
+    ["a commit with no committer account", merge({ committer: null }), "ahead"],
+    ["a commit GitHub didn't verify", merge({ verified: false }), "ahead"],
+    ["a merge made for someone else, such as through the web conflict editor", merge({ author: "a-collaborator" }), "ahead"],
+    ["a merge with no author account", merge({ author: null }), "ahead"],
+    ["a commit with one parent, such as a push on top of the head", merge({ parents: [FIRST] }), "ahead"],
+    ["a commit with three parents", merge({ parents: [FIRST, SECOND, TIP] }), "ahead"],
+    ["a commit with no parents", merge({ parents: [] }), "ahead"],
+    ["a merge of something main doesn't contain", merge(), "diverged"],
+    ["a merge of something main is behind", merge(), "behind"],
+  ] as const) {
+    it(`refuses ${what}`, () => {
+      const result: MainMerge = check(commit, status).result;
+
+      assert.ok("problem" in result, JSON.stringify(result));
+    });
+  }
+
+  it("names the short hash and the reason in a problem", () => {
+    assert.deepEqual(check(merge({ verified: false })).result, { problem: `${COMMIT.slice(0, 7)} isn't a commit GitHub made and signed itself` });
+    assert.deepEqual(check(merge({ author: "a-collaborator" })).result, { problem: `${COMMIT.slice(0, 7)} wasn't made for the-host` });
+  });
+
+  it("makes no more calls than it needs for a commit it refuses early", () => {
+    assert.equal(check(merge({ committer: "a-collaborator" })).calls.length, 1);
+  });
+
+  it("lets a failed lookup through", () => {
+    const run = (() => {
+      throw new Error("HTTP 404");
+    }) as unknown as typeof execFileSync;
+
+    assert.throws(() => mainMergeOf(COMMIT, "the-host", run, "o/r"));
   });
 });
 
@@ -1091,6 +1308,18 @@ describe("openPullRequestsForSweep", () => {
     ]);
     assert.deepEqual(pr!.checks, [{ name: "build", completed: true, green: true, completedAt: "2026-10-01T00:00:00Z", workflow: "CI" }]);
     assert.equal(pr!.truncated, false);
+  });
+
+  it("asks for each pull request's title and returns it, which a hand-off pull request's prompt shows", () => {
+    const titled = page();
+    (titled.data.repository.pullRequests.nodes[0] as unknown as Record<string, unknown>).title = "feat: Add search";
+    const { calls, run } = recordingGh([JSON.stringify(titled)]);
+
+    const [pr] = openPullRequestsForSweep(run, "o/r");
+
+    const query = calls[0]!.args.find((arg) => arg.startsWith("query="))!;
+    assert.match(query, /\bnumber title\b|\btitle\b[^{]*\bisDraft\b|\bisDraft\b[^{]*\btitle\b/);
+    assert.equal(pr!.title, "feat: Add search");
   });
 
   // Each list is read from the end it pages from: reviews and timelineItems
@@ -1575,6 +1804,85 @@ describe("bodyEdits", () => {
   });
 });
 
+// A pull request's body edits come from pullRequest(number:): issue(number:) answers null for a pull request.
+describe("pullRequestBodyEdits", () => {
+  it("reads every page of the pull request's title and body edits through the pull request query", () => {
+    const first = { editor: "stranger", editedAt: "2026-10-01T00:00:00Z" };
+    const second = { editor: null, editedAt: "2026-10-02T00:00:00Z" };
+    const { calls, run } = recordingGh([`${JSON.stringify(first)}\n${JSON.stringify(second)}\n`]);
+
+    assert.deepEqual(pullRequestBodyEdits(70, run, "o/r"), [first, second]);
+
+    const args = calls[0]!.args;
+    assert.deepEqual(args.slice(0, 3), ["api", "graphql", "--paginate"]);
+    const query = args.find((arg) => arg.startsWith("query="))!;
+    assert.match(query, /pullRequest\(number: \$number\)/);
+    assert.doesNotMatch(query, /issue\(number/);
+    assert.match(query, /userContentEdits/);
+    assert.ok(args.includes("owner=o") && args.includes("name=r") && args.includes("number=70"));
+    const jq = args[args.indexOf("--jq") + 1]!;
+    assert.match(jq, /\.data\.repository\.pullRequest /);
+    assert.doesNotMatch(jq, /\.data\.repository\.issue/);
+  });
+
+  it("returns no edits for a pull request nobody has edited", () => {
+    const { run } = recordingGh([""]);
+
+    assert.deepEqual(pullRequestBodyEdits(70, run, "o/r"), []);
+  });
+
+  it("throws on an answer that isn't edit lines, rather than reading it as unedited", () => {
+    const run = (() => JSON.stringify({ data: { repository: { pullRequest: null } } })) as unknown as typeof execFileSync;
+
+    assert.throws(() => pullRequestBodyEdits(70, run, "o/r"), /no such pull request|pull request 70/i);
+  });
+
+  it("throws on an edit that doesn't fit ContentEdit", () => {
+    const { run } = recordingGh([`${JSON.stringify({ editor: 5, editedAt: "2026-10-01T00:00:00Z" })}\n`]);
+
+    assert.throws(() => pullRequestBodyEdits(70, run, "o/r"), /pull request 70|body edits/i);
+  });
+
+  it("leaves bodyEdits asking for the issue", () => {
+    const { calls, run } = recordingGh([""]);
+
+    bodyEdits(146, run, "o/r");
+
+    const query = calls[0]!.args.find((arg) => arg.startsWith("query="))!;
+    assert.match(query, /issue\(number: \$number\)/);
+  });
+});
+
+describe("pull request labels", () => {
+  it("lists the open pull requests carrying a label with gh pr list, which gh issue list leaves out", () => {
+    const { calls, run } = recordingGh(["[71,150]\n"]);
+
+    const numbers = pullRequestsWithLabel("sandcastle:building", run, "o/r");
+
+    assert.deepEqual(numbers, [71, 150]);
+    assert.deepEqual(calls[0]!.args.slice(0, 8), ["pr", "list", "--repo", "o/r", "--state", "open", "--label", "sandcastle:building"]);
+    assert.ok(calls[0]!.args.includes("--json"));
+    assert.ok(calls[0]!.args.includes("number"));
+  });
+
+  it("reads a pull request's labels fresh with gh pr view", () => {
+    const { calls, run } = recordingGh(['["sandcastle:follow-up","sandcastle:building"]\n']);
+
+    const labels = pullRequestLabels(70, run, "o/r");
+
+    assert.deepEqual(labels, ["sandcastle:follow-up", "sandcastle:building"]);
+    assert.deepEqual(calls[0]!.args, ["pr", "view", "70", "--repo", "o/r", "--json", "labels", "--jq", "[.labels[].name]"]);
+  });
+
+  it("removes a label from a pull request with gh pr edit, not gh issue edit", () => {
+    const { calls, run } = recordingGh();
+
+    removePullRequestLabel(70, "sandcastle:building", run, "o/r");
+
+    assert.deepEqual(calls.map((call) => call.args), [["pr", "edit", "70", "--repo", "o/r", "--remove-label", "sandcastle:building"]]);
+  });
+});
+
 describe("addPullRequestLabel", () => {
   it("adds the label to the pull request with gh pr edit, not gh issue edit", () => {
     const { calls, run } = recordingGh();
@@ -1636,5 +1944,177 @@ describe("pullRequestFiles", () => {
     }) as unknown as typeof execFileSync;
 
     assert.throws(() => pullRequestFiles(7, run, "o/r"), /HTTP 502|failed/);
+  });
+});
+
+// `pnpm run sandcastle:status` shows the passes a PR has used the way the follow-up pass counts them, and the Sandcastle
+// workflow's runs.
+describe("followUpPassCount", () => {
+  it("counts the host's follow-up marker comments since sandcastle:needs-human was last removed", () => {
+    cacheHostLogin(recordingGh(["host\n"]).run);
+    const comment = (body: string, createdAt: string, author: string) => JSON.stringify({ body, createdAt, author });
+    const { calls, run } = recordingGh([
+      [
+        comment(`${FOLLOW_UP_MARKER} pass 1`, "2026-01-01T00:00:00Z", "host"),
+        comment(`${FOLLOW_UP_MARKER} pass 2`, "2026-01-05T00:00:00Z", "host"),
+        comment(`${FOLLOW_UP_MARKER} pass 3`, "2026-01-06T00:00:00Z", "host"),
+        comment(`${FOLLOW_UP_MARKER} pasted by a stranger`, "2026-01-07T00:00:00Z", "stranger"),
+        comment("a plain comment", "2026-01-08T00:00:00Z", "host"),
+      ].join("\n"),
+      [
+        JSON.stringify({ event: "labeled", label: "sandcastle:needs-human", createdAt: "2026-01-02T00:00:00Z" }),
+        JSON.stringify({ event: "unlabeled", label: "sandcastle:needs-human", createdAt: "2026-01-03T00:00:00Z" }),
+      ].join("\n"),
+      "2025-12-01T00:00:00Z\n",
+    ]);
+
+    assert.equal(followUpPassCount(69, run, "o/r"), 2);
+    assert.deepEqual(calls.map((call) => call.args.find((arg) => arg.startsWith("repos/"))), ["repos/o/r/issues/69/comments", "repos/o/r/issues/69/timeline", "repos/o/r/issues/69"]);
+  });
+
+  it("is 0 for a PR with no pass comment", () => {
+    cacheHostLogin(recordingGh(["host\n"]).run);
+    const { run } = recordingGh(["", "", "2025-12-01T00:00:00Z\n"]);
+
+    assert.equal(followUpPassCount(69, run, "o/r"), 0);
+  });
+});
+
+describe("sandcastleWorkflowRuns", () => {
+  const raw = (overrides: Record<string, unknown> = {}) => ({
+    databaseId: 9001,
+    status: "completed",
+    conclusion: "success",
+    event: "schedule",
+    headBranch: "main",
+    createdAt: "2026-10-28T08:00:00Z",
+    url: "https://github.com/o/r/actions/runs/9001",
+    ...overrides,
+  });
+
+  it("lists the Sandcastle workflow's latest runs, newest first as gh prints them, in the shape status shows", () => {
+    const { calls, run } = recordingGh([
+      JSON.stringify([
+        raw(),
+        raw({ databaseId: 9000, status: "in_progress", conclusion: null, event: "workflow_dispatch", headBranch: "feature/315-x", createdAt: "2026-10-28T06:00:00Z", url: "https://github.com/o/r/actions/runs/9000" }),
+      ]),
+    ]);
+
+    const runs: WorkflowRun[] = sandcastleWorkflowRuns(5, run, "o/r");
+
+    assert.deepEqual(runs, [
+      { id: 9001, status: "completed", conclusion: "success", event: "schedule", branch: "main", createdAt: "2026-10-28T08:00:00Z", url: "https://github.com/o/r/actions/runs/9001" },
+      { id: 9000, status: "in_progress", conclusion: null, event: "workflow_dispatch", branch: "feature/315-x", createdAt: "2026-10-28T06:00:00Z", url: "https://github.com/o/r/actions/runs/9000" },
+    ]);
+    assert.deepEqual(calls.map((call) => call.args), [
+      ["run", "list", "--workflow", "sandcastle.yml", "--limit", "5", "--json", "databaseId,status,conclusion,event,headBranch,createdAt,url", "--repo", "o/r"],
+    ]);
+  });
+
+  it("asks for ten runs by default", () => {
+    const { calls, run } = recordingGh(["[]"]);
+
+    assert.deepEqual(sandcastleWorkflowRuns(undefined, run, "o/r"), []);
+    assert.equal(calls[0]!.args[calls[0]!.args.indexOf("--limit") + 1], "10");
+  });
+
+  for (const limit of [0, -1, 1.5, Number.NaN]) {
+    it(`refuses the limit ${limit} without calling gh`, () => {
+      const { calls, run } = recordingGh(["[]"]);
+
+      assert.throws(() => sandcastleWorkflowRuns(limit, run, "o/r"));
+      assert.deepEqual(calls, []);
+    });
+  }
+
+  // Fail closed: a shape the status doesn't expect is an error, not a guess.
+  for (const [name, output] of [
+    ["not JSON", "oops"],
+    ["not an array", JSON.stringify({ runs: [] })],
+    ["a run with no id", JSON.stringify([raw({ databaseId: undefined })])],
+    ["a run with a non-string url", JSON.stringify([raw({ url: 7 })])],
+    ["a run with a non-string status", JSON.stringify([raw({ status: null })])],
+  ] as const) {
+    it(`throws on ${name}`, () => {
+      const { run } = recordingGh([output]);
+
+      assert.throws(() => sandcastleWorkflowRuns(10, run, "o/r"));
+    });
+  }
+
+  it("throws, with gh's stderr, when gh fails", () => {
+    const run = (() => {
+      throw Object.assign(new Error("exit 1"), { stderr: "HTTP 404: workflow sandcastle.yml not found" });
+    }) as unknown as typeof execFileSync;
+
+    assert.throws(() => sandcastleWorkflowRuns(10, run, "o/r"), /workflow sandcastle\.yml not found/);
+  });
+});
+
+// The callers that ran gh with stderr inherited or let Node's message through (mpaulosky/dotfiles#347), under ADR 0010: gh's stderr is
+// captured, so it reaches the terminal only through the thrown message, and that message is built from the error's fields, never Node's
+// own, which holds the whole command line and so can quote a title or a branch name.
+describe("gh callers that follow ADR 0010's stderr convention", () => {
+  const STDERR = "HTTP 500: Internal Server Error\u001b[2K\u200b\u{E0041}";
+  const COMMAND_LINE = "Command failed: gh issue comment 7 --repo o/r --body-file - [title: Hostile Title\u001b[2K]";
+
+  // A run that records each call and answers `answer`, or throws as execFileSync does: Node's message (the command line) and the
+  // child's stderr as a field. `failOn` is the 1-based call that fails (none by default).
+  const runner = (answer: string, failOn?: number) => {
+    const calls: { args: readonly string[]; options: { stdio?: unknown } }[] = [];
+    const run = ((_cmd: string, args: readonly string[], options: { stdio?: unknown } = {}) => {
+      calls.push({ args, options });
+      if (calls.length === failOn) throw Object.assign(new Error(COMMAND_LINE), { stderr: STDERR, status: 1 });
+      return answer;
+    }) as unknown as typeof execFileSync;
+    return { calls, run };
+  };
+
+  const callers: { name: string; calls: number; call: (run: typeof execFileSync) => unknown; answer: string }[] = [
+    { name: "commentOnIssue", calls: 1, answer: "", call: (run) => commentOnIssue(7, "body", run, "o/r") },
+    { name: "issueBody", calls: 1, answer: "the body", call: (run) => issueBody(7, run, "o/r") },
+    { name: "addBlockedBy", calls: 2, answer: "123", call: (run) => addBlockedBy(7, 8, run, "o/r") },
+    { name: "openPullRequests", calls: 1, answer: "[]", call: (run) => openPullRequests(run, "o/r") },
+    { name: "openPullRequestsIntoMain", calls: 1, answer: "[]", call: (run) => openPullRequestsIntoMain(run, "o/r") },
+  ];
+
+  for (const { name, calls: callCount, call, answer } of callers) {
+    it(`${name} captures gh's stderr instead of letting it through to the terminal`, () => {
+      const { calls, run } = runner(answer);
+
+      call(run);
+
+      assert.equal(calls.length, callCount);
+      for (const { options } of calls) assert.equal((options.stdio as unknown[])[2], "pipe", JSON.stringify(options.stdio));
+    });
+
+    for (let failing = 1; failing <= callCount; failing++) {
+      it(`${name} throws gh's stderr, not Node's command line, when call ${failing} fails`, () => {
+        const { run } = runner(answer, failing);
+
+        assert.throws(
+          () => call(run),
+          (error: Error) => {
+            assert.match(error.message, /^gh [^\n]* failed:\n/);
+            assert.ok(error.message.includes(STDERR), error.message);
+            assert.doesNotMatch(error.message, /Command failed|Hostile Title/);
+            return true;
+          },
+        );
+      });
+    }
+  }
+
+  it("openPullRequests and openPullRequestsIntoMain still name the repository and drop fork pull requests", () => {
+    const listed = JSON.stringify([
+      { number: 1, headRefName: "feature/1-a", isCrossRepository: false },
+      { number: 2, headRefName: "feature/2-b", isCrossRepository: true },
+    ]);
+    for (const list of [openPullRequests, openPullRequestsIntoMain]) {
+      const { calls, run } = runner(listed);
+
+      assert.deepEqual(list(run, "o/r"), [{ number: 1, headRefName: "feature/1-a" }]);
+      assert.deepEqual(calls[0]!.args.slice(0, 4), ["pr", "list", "--repo", "o/r"]);
+    }
   });
 });

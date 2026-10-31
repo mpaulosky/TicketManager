@@ -6,10 +6,9 @@
 
 import { execFileSync } from "node:child_process";
 import { endOf } from "./checkpoint.mts";
-import { BASE_BRANCH, COPILOT_REVIEWER, LOCAL_QUEUE_LABEL_DEFINITION, QUEUE_LABEL, SANDCASTLE_LABELS, withoutOwnCheck, type QueueScope, type SandcastleLabel } from "./config.mts";
+import { BASE_BRANCH, COPILOT_REVIEWER, FOLLOW_UP_MARKER, HOST_LABELS, QUEUE_LABEL, withoutOwnCheck, type QueueScope, type SandcastleLabel } from "./config.mts";
 import type { CheckState, SweepPullRequest } from "./follow-up.mts";
 import { handBackReport, targetUrl, type HandBackReport } from "./report.mts";
-import { sh } from "./shell.mts";
 
 let repo: string | undefined;
 
@@ -17,8 +16,22 @@ let repo: string | undefined;
 // Read on first use rather than at import, so importing a module never shells
 // out to gh.
 export function repoName(): string {
-  repo ??= sh(process.cwd(), "gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner");
+  repo ??= readRepoName();
   return repo;
+}
+
+// One read of the name, with gh's stderr captured: a failure reaches the terminal only through the thrown message, where a caller
+// can print it as plain text, never written by gh itself. Takes the runner, for a test.
+export function readRepoName(run: typeof execFileSync = execFileSync): string {
+  const name = ghWithStderr(run, ["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]).trim();
+  if (name === "") throw new Error("gh repo view failed: it printed no repository name");
+  return name;
+}
+
+// The login in `repoName()`'s "owner/name": the account the repository belongs to. For an organisation's repository it
+// is the organisation's, which never opens a pull request.
+export function repositoryOwnerLogin(repo: string = repoName()): string {
+  return repo.split("/")[0] as string;
 }
 
 export type GhIssue = {
@@ -197,8 +210,8 @@ export function sameRepository<T extends Pick<ListedPullRequest, "isCrossReposit
 // The open pull requests from this repository's branches, and their head
 // branches. gh pages through results up to --limit, so the cap sits far above
 // any real queue: a PR missed here would let its issue be built twice.
-export function openPullRequests(): OpenPullRequest[] {
-  return openSameRepositoryPullRequests();
+export function openPullRequests(run: typeof execFileSync = execFileSync, repo: string = repoName()): OpenPullRequest[] {
+  return openSameRepositoryPullRequests(run, repo);
 }
 
 // The open pull requests into main from this repository's branches, from any
@@ -207,28 +220,40 @@ export function openPullRequests(): OpenPullRequest[] {
 // reads each one's files with pullRequestFiles. Fork PRs are left out, as
 // sameRepository explains: counting them would let anyone with a fork hold the
 // whole queue back.
-export function openPullRequestsIntoMain(): OpenPullRequest[] {
-  return openSameRepositoryPullRequests("--base", BASE_BRANCH.replace(/^origin\//, ""));
+export function openPullRequestsIntoMain(run: typeof execFileSync = execFileSync, repo: string = repoName()): OpenPullRequest[] {
+  return openSameRepositoryPullRequests(run, repo, "--base", BASE_BRANCH.replace(/^origin\//, ""));
 }
 
 // The open pull requests from this repository's branches that gh pr list
 // returns with `filters`, and their head branches.
-function openSameRepositoryPullRequests(...filters: string[]): OpenPullRequest[] {
+function openSameRepositoryPullRequests(run: typeof execFileSync, repo: string, ...filters: string[]): OpenPullRequest[] {
   const listed = JSON.parse(
-    sh(
-      process.cwd(), "gh", "pr", "list", "--repo", repoName(), "--state", "open", ...filters, "--limit", "1000",
+    ghWithStderr(run, [
+      "pr", "list", "--repo", repo, "--state", "open", ...filters, "--limit", "1000",
       "--json", "number,headRefName,isCrossRepository",
-    ),
+    ]),
   ) as ListedPullRequest[];
   return sameRepository(listed).map(({ number, headRefName }) => ({ number, headRefName }));
 }
 
-// The open pull request from this repository's `branch`, or a new one for it
-// with the title and body, as its URL. A fork's PR from a branch of the same
-// name doesn't count.
+// Why gh stopped when it printed nothing, built from the error's own fields: Node's message holds the whole command line, which quotes
+// titles and branch names. A spawn failure (gh missing or not executable) is "couldn't run"; ENOBUFS (its output outgrew maxBuffer, which
+// Node also ends with SIGTERM) says so; a signal, with the code Node set beside it (ETIMEDOUT) if any, is "killed"; any other string code
+// only says gh stopped.
+function whyGhStopped(error: unknown): string {
+  const { code, signal, status } = (error ?? {}) as { code?: unknown; signal?: unknown; status?: unknown };
+  const named = typeof code === "string" ? ` (${code})` : "";
+  if (typeof code === "string" && ["ENOENT", "EACCES", "EPERM"].includes(code)) return `gh couldn't run${named}`;
+  if (code === "ENOBUFS") return `gh's output outgrew its buffer${named}`;
+  if (typeof signal === "string") return `gh was killed by ${signal}${named}`;
+  if (typeof code === "string") return `gh stopped${named}`;
+  if (typeof status === "number") return `gh exited with status ${status} and printed nothing`;
+  return "gh failed and printed nothing";
+}
+
 // Run gh with its stderr captured, and throw with that stderr in the message,
 // so a caller can say why it failed.
-function ghWithStderr(run: typeof execFileSync, args: string[], input?: string, maxBuffer?: number): string {
+export function ghWithStderr(run: typeof execFileSync, args: string[], input?: string, maxBuffer?: number): string {
   try {
     return run("gh", args, {
       cwd: process.cwd(),
@@ -238,12 +263,17 @@ function ghWithStderr(run: typeof execFileSync, args: string[], input?: string, 
       ...(maxBuffer === undefined ? {} : { maxBuffer }),
     });
   } catch (error) {
-    const stderr = (error as { stderr?: unknown }).stderr;
-    const detail = typeof stderr === "string" ? stderr.trim() : "";
-    throw new Error(`gh ${args.slice(0, 2).join(" ")} failed${detail ? `:\n${detail}` : ""}`, { cause: error });
+    const { stderr } = (error ?? {}) as { stderr?: unknown };
+    // gh's own text when it printed some; else why it stopped, so the text after "failed:" (all build.mts's commandOutput reads) never holds
+    // Node's command line, which quotes titles and branch names.
+    const detail = (typeof stderr === "string" ? stderr.trim() : "") || whyGhStopped(error);
+    throw new Error(`gh ${args.slice(0, 2).join(" ")} failed:\n${detail}`, { cause: error });
   }
 }
 
+// The open pull request from this repository's `branch`, or a new one for it
+// with the title and body, as its URL. A fork's PR from a branch of the same
+// name doesn't count.
 export function openPullRequest(
   branch: string,
   title: string,
@@ -314,7 +344,7 @@ query($owner: String!, $name: String!, $cursor: String) {
     pullRequests(states: OPEN, baseRefName: "main", first: 50, after: $cursor) {
       pageInfo { hasNextPage endCursor }
       nodes {
-        id number isDraft isCrossRepository baseRefName headRefName headRefOid body mergeStateStatus
+        id number title isDraft isCrossRepository baseRefName headRefName headRefOid body mergeStateStatus
         author { login }
         labels(first: 50) { pageInfo { hasNextPage } nodes { name } }
         reviewRequests(first: 20) {
@@ -369,6 +399,7 @@ type CheckContext = {
 type SweepNode = {
   id: string;
   number: number;
+  title: string;
   isDraft: boolean;
   isCrossRepository: boolean;
   baseRefName: string;
@@ -426,6 +457,7 @@ function sweepPullRequest(node: SweepNode): SweepPullRequest {
   return {
     id: node.id,
     number: node.number,
+    title: node.title,
     author: authorLogin(node.author),
     body: node.body ?? "",
     baseRefName: node.baseRefName,
@@ -513,6 +545,38 @@ export function updatePullRequestBranch(
   repo: string = repoName(),
 ): void {
   ghWithStderr(run, ["api", "--method", "PUT", `repos/${repo}/pulls/${number}/update-branch`, "-f", `expected_head_sha=${expectedHeadSha}`]);
+}
+
+// What mainMergeOf found: the first parent of a merge GitHub made of main into a branch the host updated, or why the commit is not one.
+export type MainMerge = { firstParent: string } | { problem: string };
+
+// Whether `commit` is GitHub's own merge of main into a branch, made for the host: committed by web-flow with a signature GitHub
+// verified, authored by `host` (a merge someone else makes, through the web conflict editor or the merges API, carries their
+// login, and so does one built by hand, which can't be signed as web-flow), with two parents, the second a commit main
+// contains. Main's tip is read as a commit first, since a bare `main` in the compare API can resolve to a tag. Used by
+// lib/follow-up.mts#handOffApproval to accept the heads that update-branch makes under the host's login: PR Auto-Merge's when its RELEASE_PR_PAT is the host's account, and the
+// owner's Update branch click when the owner is the host. A merge under any other login, or by GITHUB_TOKEN, is refused.
+export function mainMergeOf(
+  commit: string,
+  host: string,
+  run: typeof execFileSync = execFileSync,
+  repo: string = repoName(),
+): MainMerge {
+  const info = JSON.parse(
+    ghWithStderr(run, [
+      "api", `repos/${repo}/commits/${commit}`,
+      "--jq", "{parents: [.parents[].sha], committer: .committer.login, author: .author.login, verified: .commit.verification.verified}",
+    ]),
+  ) as { parents: string[]; committer: string | null; author: string | null; verified: boolean };
+  const short = commit.slice(0, 7);
+  if (info.committer !== "web-flow" || info.verified !== true) return { problem: `${short} isn't a commit GitHub made and signed itself` };
+  if (info.author === null || info.author.toLowerCase() !== host.toLowerCase()) return { problem: `${short} wasn't made for ${host}` };
+  const [first, second] = info.parents;
+  if (info.parents.length !== 2 || first === undefined || second === undefined) return { problem: `${short} isn't a merge` };
+  const tip = ghWithStderr(run, ["api", `repos/${repo}/git/ref/heads/main`, "--jq", ".object.sha"]).trim();
+  const status = ghWithStderr(run, ["api", `repos/${repo}/compare/${second}...${tip}`, "--jq", ".status"]).trim();
+  if (status !== "ahead" && status !== "identical") return { problem: `${short} merges ${second.slice(0, 7)}, which main doesn't contain` };
+  return { firstParent: first };
 }
 
 // One comment in a review thread, first comment first (lib/github.mts#reviewThreadsOf).
@@ -792,9 +856,9 @@ export function resolveReviewThread(threadId: string, run: typeof execFileSync =
   ghWithStderr(run, ["api", "graphql", "-f", `query=${mutation}`, "-f", `threadId=${threadId}`]);
 }
 
-// Posts the follow-up pass's summary comment on a pull request
-// (lib/follow-up-pass.mts#runPass#passSummaryComment), through gh pr comment,
-// with the body on stdin.
+// Posts a comment on a pull request through gh pr comment, with the body on stdin: the follow-up pass's summary
+// (lib/follow-up-pass.mts#runPass#passSummaryComment) and the record of an approved head (lib/follow-up.mts#recordApprovedHead).
+// It posts as the signed-in login, the host's, and handOffApproval trusts a record only from that login.
 export function commentOnPullRequest(
   number: number,
   body: string,
@@ -829,18 +893,20 @@ export function pullRequestFiles(pr: number, run: typeof execFileSync = execFile
 }
 
 // Any issue's body, or "" when it has none.
-export function issueBody(number: number): string {
-  return sh(process.cwd(), "gh", "api", `repos/${repoName()}/issues/${number}`, "--jq", '.body // ""');
+export function issueBody(number: number, run: typeof execFileSync = execFileSync, repo: string = repoName()): string {
+  return ghWithStderr(run, ["api", `repos/${repo}/issues/${number}`, "--jq", '.body // ""']).trim();
 }
 
 // Add the native "#issue blocked by #blocker" link. The API names the blocker
 // by its id, not its number.
-export function addBlockedBy(issue: number, blocker: number): void {
-  const id = sh(process.cwd(), "gh", "api", `repos/${repoName()}/issues/${blocker}`, "--jq", ".id");
-  sh(
-    process.cwd(), "gh", "api", "--method", "POST", `repos/${repoName()}/issues/${issue}/dependencies/blocked_by`,
-    "-F", `issue_id=${id}`,
-  );
+export function addBlockedBy(
+  issue: number,
+  blocker: number,
+  run: typeof execFileSync = execFileSync,
+  repo: string = repoName(),
+): void {
+  const id = ghWithStderr(run, ["api", `repos/${repo}/issues/${blocker}`, "--jq", ".id"]).trim();
+  ghWithStderr(run, ["api", "--method", "POST", `repos/${repo}/issues/${issue}/dependencies/blocked_by`, "-F", `issue_id=${id}`]);
 }
 
 // The numbers of `issue`'s native "blocked by" links to issues in this
@@ -963,22 +1029,17 @@ export function commentOnIssue(
   run: typeof execFileSync = execFileSync,
   repo: string = repoName(),
 ): void {
-  run("gh", ["issue", "comment", String(issue), "--repo", repo, "--body-file", "-"], {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    stdio: ["pipe", "pipe", "inherit"],
-    input: body,
-  });
+  ghWithStderr(run, ["issue", "comment", String(issue), "--repo", repo, "--body-file", "-"], body);
 }
 
 // Creates any of `labels` this repository doesn't already have, with its
 // colour and description. Run once at the host's startup, before the first
 // round, so a fresh repository (or one whose labels were deleted) always has
 // them (see Blazor-Server's docs/plans/sandcastle-workflow.md, "Labels"). By default that's
-// SANDCASTLE_LABELS and `Sandcastle:local`, which isn't one of them but must
-// exist before an issue moves to it.
+// HOST_LABELS: SANDCASTLE_LABELS, `Sandcastle:local` (not one of them, but it must exist
+// before an issue moves to it) and the owner's hand-off label.
 export function ensureLabels(
-  labels: readonly SandcastleLabel[] = [...SANDCASTLE_LABELS, LOCAL_QUEUE_LABEL_DEFINITION],
+  labels: readonly SandcastleLabel[] = HOST_LABELS,
   run: typeof execFileSync = execFileSync,
   repo: string = repoName(),
 ): void {
@@ -1061,7 +1122,8 @@ export function issueLabels(
   ) as string[];
 }
 
-// The numbers of the open issues carrying `label`. As with
+// The numbers of the issues carrying `label`, open or closed: a hand-off pass can label the closed issue its branch
+// names (lib/follow-up-pass.mts#runPass), and a run killed meanwhile must not leave the label there. As with
 // listSandcastleIssues, the cap sits far above any real queue.
 export function issuesWithLabel(
   label: string,
@@ -1070,7 +1132,7 @@ export function issuesWithLabel(
 ): number[] {
   return JSON.parse(
     ghWithStderr(run, [
-      "issue", "list", "--repo", repo, "--state", "open", "--label", label, "--limit", "1000", "--json", "number", "--jq", "[.[].number]",
+      "issue", "list", "--repo", repo, "--state", "all", "--label", label, "--limit", "1000", "--json", "number", "--jq", "[.[].number]",
     ]),
   ) as number[];
 }
@@ -1159,26 +1221,16 @@ export function bodyEdits(
   run: typeof execFileSync = execFileSync,
   repo: string = repoName(),
 ): ContentEdit[] {
-  const [owner, name] = repo.split("/") as [string, string];
-  return jsonLines(
-    ghWithStderr(run, [
-      "api", "graphql", "--paginate", "-f", `query=${BODY_EDITS_QUERY}`, "-f", `owner=${owner}`, "-f", `name=${name}`,
-      "-F", `number=${number}`,
-      // A missing issue prints null, which the check below throws on, rather
-      // than nothing, which would read as an issue nobody has edited.
-      "--jq",
-      ".data.repository.issue | if . == null then null | @json" +
-        " else .userContentEdits.nodes[] | {editor: .editor.login, editedAt} | @json end",
-    ]),
-  ).map((edit) => {
-    if (!isContentEdit(edit)) throw new Error(`GitHub's answer names no issue ${number}'s body edits: ${JSON.stringify(edit)}`);
-    return edit;
-  });
+  return contentEdits("issue", number, run, repo);
 }
 
-const BODY_EDITS_QUERY = `query($owner: String!, $name: String!, $number: Int!, $endCursor: String) {
+// The edits to the issue's or pull request's body behind bodyEdits and pullRequestBodyEdits. `kind` is the GraphQL field:
+// issue(number:) answers null for a pull request, so a pull request is asked as pullRequest(number:).
+function contentEdits(kind: "issue" | "pullRequest", number: number, run: typeof execFileSync, repo: string): ContentEdit[] {
+  const [owner, name] = repo.split("/") as [string, string];
+  const query = `query($owner: String!, $name: String!, $number: Int!, $endCursor: String) {
   repository(owner: $owner, name: $name) {
-    issue(number: $number) {
+    ${kind}(number: $number) {
       userContentEdits(first: 100, after: $endCursor) {
         nodes { editedAt editor { login } }
         pageInfo { hasNextPage endCursor }
@@ -1186,6 +1238,70 @@ const BODY_EDITS_QUERY = `query($owner: String!, $name: String!, $number: Int!, 
     }
   }
 }`;
+  return jsonLines(
+    ghWithStderr(run, [
+      "api", "graphql", "--paginate", "-f", `query=${query}`, "-f", `owner=${owner}`, "-f", `name=${name}`,
+      "-F", `number=${number}`,
+      // A missing issue or pull request prints null, which the check below throws on, rather
+      // than nothing, which would read as one nobody has edited.
+      "--jq",
+      `.data.repository.${kind} | if . == null then null | @json` +
+        " else .userContentEdits.nodes[] | {editor: .editor.login, editedAt} | @json end",
+    ]),
+  ).map((edit) => {
+    if (!isContentEdit(edit)) {
+      const subject = kind === "issue" ? "issue" : "pull request";
+      throw new Error(`GitHub's answer names no ${subject} ${number}'s body edits: ${JSON.stringify(edit)}`);
+    }
+    return edit;
+  });
+}
+
+// Every edit to the pull request `number`'s title-and-body, every page, as bodyEdits reads an issue's (GraphQL
+// issue(number:) answers null for a PR, so this asks pullRequest(number:)). Throws when the answer names no such pull
+// request, or any edit doesn't fit ContentEdit.
+export function pullRequestBodyEdits(
+  number: number,
+  run: typeof execFileSync = execFileSync,
+  repo: string = repoName(),
+): ContentEdit[] {
+  return contentEdits("pullRequest", number, run, repo);
+}
+
+// The numbers of the open pull requests carrying `label` (gh issue list leaves pull requests out, so
+// issuesWithLabel can't see them). The cap sits far above any real number of open pull requests.
+export function pullRequestsWithLabel(
+  label: string,
+  run: typeof execFileSync = execFileSync,
+  repo: string = repoName(),
+): number[] {
+  return JSON.parse(
+    ghWithStderr(run, [
+      "pr", "list", "--repo", repo, "--state", "open", "--label", label, "--limit", "1000", "--json", "number", "--jq", "[.[].number]",
+    ]),
+  ) as number[];
+}
+
+// The names of the labels the pull request `number` carries now, read fresh.
+export function pullRequestLabels(
+  number: number,
+  run: typeof execFileSync = execFileSync,
+  repo: string = repoName(),
+): string[] {
+  return JSON.parse(
+    ghWithStderr(run, ["pr", "view", String(number), "--repo", repo, "--json", "labels", "--jq", "[.labels[].name]"]),
+  ) as string[];
+}
+
+// Removes `label` from the pull request `number` (gh issue edit refuses a pull request's number).
+export function removePullRequestLabel(
+  number: number,
+  label: string,
+  run: typeof execFileSync = execFileSync,
+  repo: string = repoName(),
+): void {
+  ghWithStderr(run, ["pr", "edit", String(number), "--repo", repo, "--remove-label", label]);
+}
 
 function isContentEdit(value: unknown): value is ContentEdit {
   const edit = value as Partial<Record<keyof ContentEdit, unknown>> | null;
@@ -1198,7 +1314,9 @@ function isContentEdit(value: unknown): value is ContentEdit {
 
 // One comment, with when it was posted, so markerCommentsSince can tell
 // which side of a label's removal it falls on, and who posted it.
-export type TimestampedComment = { body: string; createdAt: string; author: string };
+// `updatedAt` is when the comment was last edited (GitHub sets it to the creation time for one never edited). Only issueComments fills it in,
+// and lib/follow-up.mts#handOffApproval counts a head record only when it equals createdAt, so a comment without it counts for no record.
+export type TimestampedComment = { body: string; createdAt: string; updatedAt?: string; author: string };
 
 // The comments in `comments` that `poster` posted and that carry `marker`,
 // posted after `label` was last removed from this issue or PR (its most
@@ -1276,15 +1394,20 @@ export function markerComments(
   run: typeof execFileSync = execFileSync,
   poster: string = (signedInLogin ??= hostLogin(run)),
 ): TimestampedComment[] {
-  const comments = jsonLines(
-    ghWithStderr(run, [
-      "api", "--paginate", `repos/${repo}/issues/${number}/comments`,
-      "--jq", ".[] | {body, createdAt: .created_at, author: .user.login} | @json",
-    ]),
-  ) as TimestampedComment[];
+  const comments = issueComments(number, run, repo);
   const timeline = labelTimeline(number, run, repo);
   const createdAt = ghWithStderr(run, ["api", `repos/${repo}/issues/${number}`, "--jq", ".created_at"]).trim();
   return markerCommentsSince(comments, timeline, label, marker, createdAt, poster);
+}
+
+// Every comment on the issue or PR `number`, oldest first (PRs share the issues API).
+export function issueComments(number: number, run: typeof execFileSync = execFileSync, repo: string = repoName()): TimestampedComment[] {
+  return jsonLines(
+    ghWithStderr(run, [
+      "api", "--paginate", `repos/${repo}/issues/${number}/comments`,
+      "--jq", ".[] | {body, createdAt: .created_at, updatedAt: .updated_at, author: .user.login} | @json",
+    ]),
+  ) as TimestampedComment[];
 }
 
 // A label only the host or a human applies to hand work back: the issue's or
@@ -1316,4 +1439,62 @@ export function handBack(
   ghWithStderr(run, [target.kind, "comment", number, "--repo", repo, "--body-file", "-"], body);
   ghWithStderr(run, [target.kind, "edit", number, "--repo", repo, "--add-label", label, ...removeReady]);
   report.record({ kind: target.kind, number: target.number, label, reason, url: targetUrl(repo, target) });
+}
+
+// Passes a PR has had since sandcastle:needs-human was last removed: the host's FOLLOW_UP_MARKER comments. The follow-up
+// pass and `pnpm run sandcastle:status` both count them here, so the status shows the number the cap is checked against.
+export function followUpPassCount(number: number, run: typeof execFileSync = execFileSync, repo: string = repoName()): number {
+  return markerComments(number, "sandcastle:needs-human", FOLLOW_UP_MARKER, repo, run).length;
+}
+
+// One run of the Sandcastle workflow, as `gh run list` reports it.
+export type WorkflowRun = {
+  id: number;
+  status: string;
+  conclusion: string | null;
+  event: string;
+  branch: string;
+  createdAt: string;
+  url: string;
+};
+
+// The Sandcastle workflow's latest `limit` runs, newest first. Throws on a shape it doesn't expect, so the status
+// reports the runs as unreadable rather than guessing, and on a limit that isn't a positive whole number.
+export function sandcastleWorkflowRuns(
+  limit: number = 10,
+  run: typeof execFileSync = execFileSync,
+  repo: string = repoName(),
+): WorkflowRun[] {
+  if (!Number.isInteger(limit) || limit < 1) throw new Error(`The number of workflow runs to list must be a positive whole number, not ${limit}.`);
+  const listed: unknown = JSON.parse(
+    ghWithStderr(run, [
+      "run", "list", "--workflow", "sandcastle.yml", "--limit", String(limit),
+      "--json", "databaseId,status,conclusion,event,headBranch,createdAt,url", "--repo", repo,
+    ]),
+  );
+  if (!Array.isArray(listed)) throw new Error("gh run list didn't return a list of runs.");
+  return listed.map((entry: Record<string, unknown> | null) => {
+    if (
+      entry === null ||
+      typeof entry !== "object" ||
+      typeof entry.databaseId !== "number" ||
+      typeof entry.status !== "string" ||
+      !(entry.conclusion === null || typeof entry.conclusion === "string") ||
+      typeof entry.event !== "string" ||
+      typeof entry.headBranch !== "string" ||
+      typeof entry.createdAt !== "string" ||
+      typeof entry.url !== "string"
+    ) {
+      throw new Error("gh run list returned a run in a shape the status doesn't expect.");
+    }
+    return {
+      id: entry.databaseId,
+      status: entry.status,
+      conclusion: entry.conclusion,
+      event: entry.event,
+      branch: entry.headBranch,
+      createdAt: entry.createdAt,
+      url: entry.url,
+    };
+  });
 }

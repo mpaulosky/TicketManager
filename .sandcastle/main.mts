@@ -4,7 +4,9 @@
 //   Phase 0 (Housekeeping):     Two steps that need no agent. First the
 //                               follow-up sweep (lib/follow-up.mts): for each
 //                               open PR the host published for an in-scope
-//                               issue, it re-requests a Copilot review that
+//                               issue, or that the owner handed off with the
+//                               sandcastle:follow-up label (default queue
+//                               scope only), it re-requests a Copilot review that
 //                               never came, updates a settled PR that's only
 //                               behind main on GitHub, and logs one that needs
 //                               a follow-up pass; and it hands back an issue
@@ -121,9 +123,15 @@
 // else is skipped and logged. An untrusted sandcastle:ready is removed, and
 // a hand-back label someone else removed is put back.
 //
+// SANDCASTLE_MODE=follow-up makes the run a follow-up-only one (lib/follow-up-run.mts): it sweeps the open PRs
+// and runs the follow-up passes once, with no intake, builds or rounds, so it answers a review or a red check
+// in minutes while a full run is busy building. The default, full, does every phase. A full run and a follow-up
+// run stay off each other's PRs through sandcastle:building.
+//
 // Usage:
 //   SANDCASTLE_ISSUE=<n> pnpm run sandcastle         (only issue #n and its PR)
 //   SANDCASTLE_LABEL=<label> pnpm run sandcastle     (the issues labelled <label>, e.g. Sandcastle:dev)
+//   SANDCASTLE_MODE=follow-up SANDCASTLE_ISSUE=<n> pnpm run sandcastle   (only answer the PRs' reviews and red checks, once)
 
 import { existsSync, readFileSync } from "node:fs";
 import { buildIssue } from "./lib/build.mts";
@@ -136,11 +144,15 @@ import {
   describeQueueScope,
   QueueScopeError,
   queueScopeFrom,
+  RunModeError,
+  runModeFrom,
+  type RunMode,
   type QueueScope,
 } from "./lib/config.mts";
 import { critiqueRound } from "./lib/critique.mts";
 import { UncountedStopError } from "./lib/errors.mts";
 import { followUpPassPhase } from "./lib/follow-up-pass.mts";
+import { followUpOnlyRun } from "./lib/follow-up-run.mts";
 import { followUpPhase } from "./lib/follow-up.mts";
 import { gateIssues } from "./lib/gate.mts";
 import { cacheHostLogin, ensureLabels, openPullRequests, repoName } from "./lib/github.mts";
@@ -182,6 +194,17 @@ try {
 }
 useQueueScope(scope);
 console.log(`Queue: ${describeQueueScope(scope)}`);
+
+// The run mode is read just as early, so a typo exits the same way rather than start a full run.
+let runMode: RunMode;
+try {
+  runMode = runModeFrom(process.env);
+} catch (error) {
+  if (!(error instanceof RunModeError)) throw error;
+  console.error(error.message);
+  process.exit(2);
+}
+console.log(`Mode: ${runMode}`);
 
 // The time budget is read just as early, so a bad value exits the same way.
 // Its clock starts here, as close to the job's own start as it gets.
@@ -244,13 +267,19 @@ try {
   // lib/building.mts).
   installBuildingLabelRelease(process);
 
-  // A run that crashed left sandcastle:building on the issue it was building.
+  // A run that crashed left sandcastle:building on the issue (or hand-off pull request) it was building.
   // Only a label older than any real build is cleared, so a live run's stays.
   for (const issueNumber of clearStaleBuildingLabels()) {
-    console.log(`  🧹 #${issueNumber}: cleared a stale ${BUILDING_LABEL} label left by a run that didn't finish.`);
+    console.log(`  🧹 #${issueNumber} (an issue or a hand-off pull request): cleared a stale ${BUILDING_LABEL} label left by a run that didn't finish.`);
   }
 
   startedUp = true;
+
+  // A follow-up-only run does its one sweep and its passes here, then skips the round loop below: no intake,
+  // builds or rounds.
+  if (runMode === "follow-up") {
+    await followUpOnlyRun();
+  }
 
   // The issues the overlap check held back this run, which the planner doesn't
   // see again until the next run. A held pick gets no "blocked by" link, so
@@ -261,7 +290,7 @@ try {
   // or whose build opened no PR is released once that's known.
   const heldForFiles = new Set<number>();
 
-  for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
+  for (let iteration = 1; runMode === "full" && iteration <= MAX_ITERATIONS; iteration++) {
     // No new round once the budget has passed or the usage limit was hit.
     const stopReason = runLimits.stopReason();
     if (stopReason !== undefined) {
@@ -287,7 +316,7 @@ try {
     // and the gate, which would otherwise hold the issue back for the rest
     // of the run.
     for (const issueNumber of releaseAllBuildingLabels()) {
-      console.log(`  🧹 #${issueNumber}: removed ${BUILDING_LABEL}, which an earlier round couldn't.`);
+      console.log(`  🧹 #${issueNumber} (an issue or a hand-off pull request): removed ${BUILDING_LABEL}, which an earlier round couldn't.`);
     }
 
     // The early exit: before intake, the first step that can start Claude,
