@@ -76,7 +76,8 @@ export const GATE_COMMAND = ".sandcastle/sandbox-gate.sh";
 // How long the gate may run in the sandbox, in minutes, before the host kills it and counts the checkpoint
 // red (lib/step-limit.mts). Parallel builds share one host, so size it for the slowest gate under that load;
 // lib/config.test.mts adds it to the longest build when it checks BUILDING_LABEL_MAX_AGE_MS. A repo whose gate
-// takes a few minutes keeps the default.
+// takes a few minutes keeps the default. .sandcastle/sandbox-gate.sh ran in 52 seconds on a warm worktree
+// (measured 2026-11-06 on the dev machine), so 10 leaves a wide margin for a cold build under load.
 export const GATE_LIMIT_MINUTES = 10;
 
 // The committed file GATE_COMMAND runs. It is written in the worktree by the

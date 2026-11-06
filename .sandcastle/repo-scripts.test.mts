@@ -43,3 +43,17 @@ describe("the Sandcastle check watches what the tests read", () => {
     }
   });
 });
+
+// The Owned role prompts say to run scripts/gate.sh, which needs Docker and a browser; the sandbox has neither, so this
+// repo-owned file tells every role what that command means here.
+describe("the role rules name this repo's sandbox gate", () => {
+  it("shared-rules.md says scripts/gate.sh in a role prompt means .sandcastle/sandbox-gate.sh in the sandbox", () => {
+    assert.ok(
+      read(".sandcastle/roles/shared-rules.md").includes("every `scripts/gate.sh` in a role prompt means `.sandcastle/sandbox-gate.sh`"),
+    );
+  });
+
+  it("check-paths.txt says this repo's gate reads SANDCASTLE_PATHS in .github/ci/sandcastle.sh", () => {
+    assert.match(read(".sandcastle/check-paths.txt"), /SANDCASTLE_PATHS in \.github\/ci\/sandcastle\.sh/);
+  });
+});
