@@ -1,0 +1,6 @@
+# This repo's gate does not call .sandcastle/check.sh: it reads SANDCASTLE_PATHS in .github/ci/sandcastle.sh, so add a watched path there
+# (with a test in .sandcastle/repo-scripts.test.mts); a line here only matters if gate-checks.sh is wired to call check.sh.
+# Files, besides the Template's own list, whose change makes .sandcastle/check.sh run Sandcastle's
+# check: the files this repo's .sandcastle/ tests read (CLAUDE.md, .github/workflows, the solution
+# file and so on). One git pathspec per line; blank lines and # lines are ignored. An exclude line (:(exclude), :^, :!) only trims the other lines.
+# A line that matches no tracked file watches nothing until one is added: check.sh names it on stderr on every run.
