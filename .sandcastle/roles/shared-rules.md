@@ -29,7 +29,7 @@ Use the commands for each stack the issue touches:
 
 In the sandbox, `.sandcastle/sandbox-gate.sh` is the definition of "ready to push". The sandbox has no Docker daemon, so it leaves out the test projects that start containers,
 which `scripts/gate.sh` and CI run. It builds the solution with warnings as errors, runs every test project that needs neither Docker nor a browser, and runs Sandcastle's own type check and tests.
-It does not lint: lint the Markdown, YAML and shell files you change yourself (below). Run it rather than the individual build and test commands.
+It does not lint: lint the Markdown, YAML and shell files you change yourself (see Build and tests above). Run it rather than the individual build and test commands.
 
 - If you committed anything, run `.sandcastle/sandbox-gate.sh` once as your last step, before `<promise>COMPLETE</promise>`, and fix what it reports.
 - The tester is exempt, because its tests are red on purpose. It still lints the files it changed.

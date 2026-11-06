@@ -86,8 +86,9 @@ export const GATE_LIMIT_MINUTES = 10;
 // arguments: `.sandcastle/sandbox-gate.sh` for `bash .sandcastle/sandbox-gate.sh`.
 export const GATE_SCRIPT = ".sandcastle/sandbox-gate.sh";
 
-// The paths whose files the gate and CI run: the scripts, the tests, the build
-// definition, and the workflows a `Sandcastle:local` build can change. An agent that edits one can make its own checks pass, so a PR
+// The paths whose files the gate and CI run: the scripts and git hooks, the tests, the build
+// definition, the workflows a `Sandcastle:local` build can change, and the local review's
+// skills and agent (`.claude/`), which the Template's review tests read. An agent that edits one can make its own checks pass, so a PR
 // whose branch changes a file under them lists it in its body for the reviewer
 // (lib/build.mts#publish). Folders end in a slash. List every place the gate
 // reads its checks from, not only where its script sits.
