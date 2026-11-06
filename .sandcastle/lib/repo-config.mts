@@ -68,17 +68,17 @@ export const SANDBOX_SKILLS: readonly string[] = [];
 export const GATE_COVERED_CHECKS: readonly string[] = ["Build Solution"];
 
 // The command the host runs in the sandbox as the gate. The sandbox has no
-// Docker daemon, so this is .sandcastle/check.sh, which builds and runs the test
+// Docker daemon, so this is .sandcastle/sandbox-gate.sh, which builds and runs the test
 // projects that don't start containers, keeps the lints, and runs this
 // directory's own tests, where scripts/gate.sh would run every test project.
-export const GATE_COMMAND = ".sandcastle/check.sh";
+export const GATE_COMMAND = ".sandcastle/sandbox-gate.sh";
 
 // The committed file GATE_COMMAND runs. It is written in the worktree by the
 // agents whose work it judges, so a gate whose branch changes it fails without
 // running (lib/checkpoint.mts#gateScriptChange); a file that isn't committed at
 // the branch's base fails too. Name the script, not the interpreter or
-// arguments: `.sandcastle/check.sh` for `bash .sandcastle/check.sh`.
-export const GATE_SCRIPT = ".sandcastle/check.sh";
+// arguments: `.sandcastle/sandbox-gate.sh` for `bash .sandcastle/sandbox-gate.sh`.
+export const GATE_SCRIPT = ".sandcastle/sandbox-gate.sh";
 
 // The paths whose files the gate and CI run: the scripts, the tests, the build
 // definition, and the workflows a `Sandcastle:local` build can change. An agent that edits one can make its own checks pass, so a PR

@@ -12,8 +12,8 @@ describe("Seed files kept by hand", () => {
     assert.equal(scripts["sandcastle:status"], "tsx .sandcastle/status.mts");
   });
 
-  it("check.sh unsets the GIT_* variables a git hook sets before it runs anything", () => {
-    const script = read(".sandcastle/check.sh");
+  it("sandbox-gate.sh unsets the GIT_* variables a git hook sets before it runs anything", () => {
+    const script = read(".sandcastle/sandbox-gate.sh");
     const unset = script.indexOf("unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX");
     assert.notEqual(unset, -1);
     assert.ok(unset < script.indexOf("git rev-parse"), "the unset must come before the first git command");
