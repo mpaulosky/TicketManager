@@ -21,14 +21,15 @@ Use the commands for each stack the issue touches:
 | pnpm workspace | `package.json`, `pnpm-workspace.yaml` | run `pnpm install` after changing `package.json` | commit `pnpm-lock.yaml` in the same commit |
 
 - Tests must pass by the end of the last developer run, not on every commit.
+- Lint what you change: `markdownlint-cli2 <file>` for Markdown, `yamllint -c .yamllint.yml <file>` for YAML, `shellcheck <file>` for shell.
+- Tests live where the code does: `tests/<Project>.Tests.*` mirrors `src/`, and `.sandcastle/lib/<module>.test.mts` sits beside its module.
 - Shell scripts pass `shellcheck`. The code standards are in `.sandcastle/CODING_STANDARDS.md`.
 
 ## The gate
 
 In the sandbox, `.sandcastle/sandbox-gate.sh` is the definition of "ready to push". The sandbox has no Docker daemon, so it leaves out the test projects that start containers,
-which `scripts/gate.sh` and CI run. It lints the Markdown, YAML, workflow and shell files the branch changed, runs the repo's own checks in
-`.github/ci/gate-checks.sh` (Sandcastle's check among them, when `.sandcastle/` or its packages changed), builds the solution with warnings as errors, then runs every test
-project. Run it rather than the individual lint and test commands.
+which `scripts/gate.sh` and CI run. It builds the solution with warnings as errors, runs every test project that needs neither Docker nor a browser, and runs Sandcastle's own type check and tests.
+It does not lint: lint the Markdown, YAML and shell files you change yourself (below). Run it rather than the individual build and test commands.
 
 - If you committed anything, run `.sandcastle/sandbox-gate.sh` once as your last step, before `<promise>COMPLETE</promise>`, and fix what it reports.
 - The tester is exempt, because its tests are red on purpose. It still lints the files it changed.

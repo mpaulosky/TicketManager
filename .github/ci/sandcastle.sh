@@ -8,7 +8,9 @@
 # branches.test.mts and publish.test.mts run, the
 # scripts that run the tests (this one included) and the Template-owned files
 # that call them: scripts/gate.sh, and ci.yml, which also picks the runner and
-# so the Node the tests run on.
+# so the Node the tests run on. The last five are what the Template's review
+# tests read: the local review's script, skills and agent, and Claude Review's
+# workflow (the same paths the Template's .sandcastle/check.sh watches).
 SANDCASTLE_PATHS=(
   .sandcastle
   package.json
@@ -22,6 +24,11 @@ SANDCASTLE_PATHS=(
   .github/ci/prepare.sh
   scripts/gate.sh
   .github/workflows/ci.yml
+  scripts/review.sh
+  .claude/skills/pre-push-review
+  .claude/skills/hardening-review
+  .claude/agents/pre-push-reviewer.md
+  .github/workflows/claude-review.yml
 )
 
 # sandcastle_changed_since <base>: true when any of SANDCASTLE_PATHS changed

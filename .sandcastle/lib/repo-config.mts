@@ -69,8 +69,8 @@ export const GATE_COVERED_CHECKS: readonly string[] = ["Build Solution"];
 
 // The command the host runs in the sandbox as the gate. The sandbox has no
 // Docker daemon, so this is .sandcastle/sandbox-gate.sh, which builds and runs the test
-// projects that don't start containers, keeps the lints, and runs this
-// directory's own tests, where scripts/gate.sh would run every test project.
+// projects that don't start containers, and runs this
+// directory's own tests, where scripts/gate.sh would run every test project and the lints.
 export const GATE_COMMAND = ".sandcastle/sandbox-gate.sh";
 
 // How long the gate may run in the sandbox, in minutes, before the host kills it and counts the checkpoint
@@ -91,7 +91,7 @@ export const GATE_SCRIPT = ".sandcastle/sandbox-gate.sh";
 // whose branch changes a file under them lists it in its body for the reviewer
 // (lib/build.mts#publish). Folders end in a slash. List every place the gate
 // reads its checks from, not only where its script sits.
-export const CHECK_PATHS: readonly string[] = [".sandcastle/", "scripts/", ".github/ci/", ".github/workflows/", "package.json"];
+export const CHECK_PATHS: readonly string[] = [".sandcastle/", "scripts/", ".github/ci/", ".github/workflows/", ".github/scripts/", ".github/hooks/", ".claude/skills/", ".claude/agents/", "package.json"];
 
 // This repository as OWNER/REPO, which the pre-push-review skill gives every gh
 // command as GH_REPO (`scripts/review.sh repo`): in a clone whose only remote is
