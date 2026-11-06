@@ -47,13 +47,17 @@ describe("the Sandcastle check watches what the tests read", () => {
 // The Owned role prompts say to run scripts/gate.sh, which needs Docker and a browser; the sandbox has neither, so this
 // repo-owned file tells every role what that command means here.
 describe("the role rules name this repo's sandbox gate", () => {
-  it("shared-rules.md says scripts/gate.sh in a role prompt means .sandcastle/sandbox-gate.sh in the sandbox", () => {
+  it("shared-rules.md says a role prompt's scripts/gate.sh means .sandcastle/sandbox-gate.sh in the sandbox", () => {
     assert.ok(
-      read(".sandcastle/roles/shared-rules.md").includes("every `scripts/gate.sh` in a role prompt means `.sandcastle/sandbox-gate.sh`"),
+      read(".sandcastle/roles/shared-rules.md").includes("in the sandbox that means `.sandcastle/sandbox-gate.sh`"),
     );
   });
 
-  it("check-paths.txt says this repo's gate reads SANDCASTLE_PATHS in .github/ci/sandcastle.sh", () => {
+  it("check-paths.txt's note is true: the gate reads SANDCASTLE_PATHS from .github/ci/sandcastle.sh and does not call .sandcastle/check.sh", () => {
     assert.match(read(".sandcastle/check-paths.txt"), /SANDCASTLE_PATHS in \.github\/ci\/sandcastle\.sh/);
+    assert.match(read(".github/ci/sandcastle.sh"), /^SANDCASTLE_PATHS=\($/m);
+    const gateChecks = read(".github/ci/gate-checks.sh");
+    assert.match(gateChecks, /source "\$\(dirname "\$0"\)\/sandcastle\.sh"/);
+    assert.ok(!gateChecks.includes(".sandcastle/check.sh"), "gate-checks.sh now calls check.sh: update check-paths.txt's note");
   });
 });
