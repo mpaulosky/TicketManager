@@ -1,78 +1,67 @@
 #!/usr/bin/env bash
-# The check Sandcastle's agents run before they finish, and the host runs in
-# the sandbox before it publishes a branch: the exit code decides, never what
-# an agent reports. It builds the solution and runs every test project but the
-# ones that need Docker or a browser, which the sandbox doesn't have. CI runs
-# the full .NET suite on the pull request, and scripts/gate.sh does before a
-# push by hand.
+# Sandcastle's check for the local gate, called by .github/ci/gate-checks.sh:
+# type-check .sandcastle/ and run its tests when it, package.json, the pnpm
+# files, or the local review's script, skills and agent and Claude Review's workflow
+# (which its tests read) changed since <merge-base> (always, when <merge-base> is empty).
+# A repo adds the other files its own tests read in .sandcastle/check-paths.txt (Seed):
+# one git pathspec per line (LF, CRLF or a lone CR ends one), surrounding whitespace ignored, blank lines and lines starting
+# with # skipped (a # after a path is part of it). The list only adds to the built-in paths:
+# the two are diffed separately, so an :(exclude) or :^ line can't remove one of them. An exclude
+# line only trims the list's other lines; git reads a list of exclude lines alone as "everything
+# else", so such a list is treated as empty rather than watching the whole repo.
+# git diff is silent for a pathspec that matches no file, so a line that matches no tracked file (a mistyped path, a deleted folder)
+# watches nothing until a matching file is added: each such line is named on stderr on every run. A line git rejects as a
+# pathspec is named too (the check then always runs). Either way the check runs or skips as it would without the warning.
+#
+#   .sandcastle/check.sh <merge-base>
 set -euo pipefail
 # Under a git hook git sets these, and a GATE_COMMAND naming this script runs it without scripts/gate.sh,
-# which unsets them before every check: the tests' scratch repos and git commands would act on the wrong repo.
+# which unsets them before every check: the tests' scratch repos and the diff below would act on the wrong repo.
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+base="${1-}"
+here="$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+extra="$here/check-paths.txt"
+# Pathspecs and `pnpm run` are relative to the repo root, wherever this is run from.
+root="$(git -C "$here" rev-parse --show-toplevel)"
+cd "$root"
 
-cd "$(git rev-parse --show-toplevel)"
-root="$PWD"
-
-# Packages whose tests need Docker (Testcontainers, the Aspire AppHost) or a
-# browser (Playwright).
-sandbox_unfriendly='Include="(Testcontainers[^"]*|Aspire\.Hosting\.Testing|Microsoft\.Playwright[^"]*)"'
-
-# needs_host <project.csproj>: true when the project, a project it references
-# (at any depth), or a Directory.Build.props/.targets above any of them
-# references one of those packages. The list is derived, not kept by hand, so a
-# new test project that needs Docker or a browser is skipped here without an edit.
-declare -A seen=()
-needs_host() {
-  local project dir file reference
-  project="$(realpath -m "$1")"
-  [[ -n "${seen[$project]:-}" ]] && return 1
-  seen[$project]=1
-  [[ -f "$project" ]] || return 1
-  grep -Eq "$sandbox_unfriendly" "$project" && return 0
-
-  dir="$(dirname "$project")"
-  while [[ "$dir" == "$root"* ]]; do
-    for file in "$dir/Directory.Build.props" "$dir/Directory.Build.targets"; do
-      [[ -f "$file" ]] && grep -Eq "$sandbox_unfriendly" "$file" && return 0
-    done
-    [[ "$dir" == "$root" ]] && break
-    dir="$(dirname "$dir")"
+paths=(.sandcastle package.json ':(glob)pnpm-*.yaml'
+  scripts/review.sh .claude/skills/pre-push-review .claude/skills/hardening-review .claude/agents/pre-push-reviewer.md .github/workflows/claude-review.yml)
+listed=()
+positive=0
+exclude='^:(\(([^),]*,)*exclude(,[^)]*)?\)|/?[!^])'
+if [[ -f "$extra" ]]; then
+  # Read the file first: a list that can't be read stops the script (set -e) rather than reading as empty.
+  extra_text="$(tr '\r' '\n' < "$extra")"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#$'\xef\xbb\xbf'}"
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    listed+=("$line")
+    [[ "$line" =~ $exclude ]] || positive=$((positive + 1))
+  done <<< "$extra_text"
+fi
+[[ $positive -gt 0 ]] || listed=()
+# A positive line that matches no tracked file watches nothing, and one git rejects makes the diff below fail: name each, instead of silently dropping that
+# coverage. An exclude line only trims, so it is not asked. Only a warning: what runs is decided below. The count guard keeps an empty array
+# from tripping set -u on bash older than 4.4.
+warn() { printf '⚠ .sandcastle/check-paths.txt: %s %s\n' "${1//[[:cntrl:]]/?}" "$2" >&2; }
+if ((${#listed[@]} > 0)); then
+  for line in "${listed[@]}"; do
+    [[ "$line" =~ $exclude ]] && continue
+    if found="$(git ls-files -- "$line" 2>/dev/null)"; then
+      [[ -n "$found" ]] || warn "$line" "matches no tracked file, so it watches nothing until a matching file is added"
+    else
+      warn "$line" "is not a pathspec git accepts, so the check always runs"
+    fi
   done
-
-  while IFS= read -r reference; do
-    needs_host "$(dirname "$project")/${reference//\\//}" && return 0
-  done < <(grep -oE '<ProjectReference[^>]*Include="[^"]+"' "$project" | sed -E 's/.*Include="([^"]+)"/\1/')
-  return 1
-}
-
-# global.json names the SDK; the image has whichever was current when it was
-# built. Say which one to fetch rather than fail every build.
-if ! dotnet --version >/dev/null 2>&1; then
-  echo "This image's .NET SDK ($(dotnet --list-sdks | tr '\n' ' ')) doesn't satisfy global.json." >&2
-  echo "Rebuild the Sandcastle image without the cache to fetch a newer one." >&2
-  exit 1
 fi
 
-echo "▶ Build"
-mapfile -t solutions < <(find . -maxdepth 1 -name '*.slnx')
-dotnet build "${solutions[@]}" --configuration Release -warnaserror
-
-echo "▶ Tests (without Docker or a browser)"
-mapfile -t projects < <(python3 .github/scripts/discover_tests.py --list | grep . || true)
-if [[ ${#projects[@]} -eq 0 ]]; then
-  echo "No test projects found under tests/." >&2
-  exit 1
+unchanged() { git diff --quiet --no-renames "$base" HEAD -- "$@"; }
+# A pathspec git rejects makes unchanged fail, so the check runs rather than being skipped.
+if [[ -n "$base" ]] && unchanged "${paths[@]}" && { [[ ${#listed[@]} -eq 0 ]] || unchanged "${listed[@]}"; }; then
+  exit 0
 fi
-for project in "${projects[@]}"; do
-  seen=()
-  if needs_host "$project"; then
-    echo "Skipping ${project}: it needs Docker or a browser. CI runs it."
-    continue
-  fi
-  dotnet test "$project" --configuration Release
-done
-
-echo "▶ Sandcastle tests"
+echo "── Sandcastle check"
 pnpm run check:sandcastle
-
-echo "✅ Sandcastle check passed."

@@ -68,24 +68,33 @@ export const SANDBOX_SKILLS: readonly string[] = [];
 export const GATE_COVERED_CHECKS: readonly string[] = ["Build Solution"];
 
 // The command the host runs in the sandbox as the gate. The sandbox has no
-// Docker daemon, so this is .sandcastle/check.sh, which builds and runs the test
-// projects that don't start containers, keeps the lints, and runs this
-// directory's own tests, where scripts/gate.sh would run every test project.
-export const GATE_COMMAND = ".sandcastle/check.sh";
+// Docker daemon, so this is .sandcastle/sandbox-gate.sh, which builds and runs the test
+// projects that don't start containers, and runs this
+// directory's own tests, where scripts/gate.sh would run every test project and the lints.
+export const GATE_COMMAND = ".sandcastle/sandbox-gate.sh";
+
+// How long the gate may run in the sandbox, in minutes, before the host kills it and counts the checkpoint
+// red (lib/step-limit.mts). Parallel builds share one host, so size it for the slowest gate under that load;
+// lib/config.test.mts adds it to the longest build when it checks BUILDING_LABEL_MAX_AGE_MS. A repo whose gate
+// takes a few minutes keeps the default. .sandcastle/sandbox-gate.sh took 52 seconds on a warm worktree on
+// the dev machine (2026-11-06), outside the sandbox and on a single build; a cold or loaded run in the
+// 4-CPU sandbox was not timed, so 10 is kept as a generous bound, not a measured one.
+export const GATE_LIMIT_MINUTES = 10;
 
 // The committed file GATE_COMMAND runs. It is written in the worktree by the
 // agents whose work it judges, so a gate whose branch changes it fails without
 // running (lib/checkpoint.mts#gateScriptChange); a file that isn't committed at
 // the branch's base fails too. Name the script, not the interpreter or
-// arguments: `.sandcastle/check.sh` for `bash .sandcastle/check.sh`.
-export const GATE_SCRIPT = ".sandcastle/check.sh";
+// arguments: `.sandcastle/sandbox-gate.sh` for `bash .sandcastle/sandbox-gate.sh`.
+export const GATE_SCRIPT = ".sandcastle/sandbox-gate.sh";
 
-// The paths whose files the gate and CI run: the scripts, the tests, the build
-// definition, and the workflows a `Sandcastle:local` build can change. An agent that edits one can make its own checks pass, so a PR
+// The paths whose files the gate and CI run: the scripts and git hooks, the tests, the build
+// definition, the workflows a `Sandcastle:local` build can change, and the local review's
+// skills and agent (`.claude/`), which the Template's review tests read. An agent that edits one can make its own checks pass, so a PR
 // whose branch changes a file under them lists it in its body for the reviewer
 // (lib/build.mts#publish). Folders end in a slash. List every place the gate
 // reads its checks from, not only where its script sits.
-export const CHECK_PATHS: readonly string[] = [".sandcastle/", "scripts/", ".github/ci/", ".github/workflows/", "package.json"];
+export const CHECK_PATHS: readonly string[] = [".sandcastle/", "scripts/", ".github/ci/", ".github/workflows/", ".github/scripts/", ".github/hooks/", ".claude/skills/", ".claude/agents/", "package.json"];
 
 // This repository as OWNER/REPO, which the pre-push-review skill gives every gh
 // command as GH_REPO (`scripts/review.sh repo`): in a clone whose only remote is
