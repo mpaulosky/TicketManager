@@ -84,7 +84,9 @@ name: PR Auto-Merge
 # mpaulosky/dotfiles#369; one whose record never shows requests anyway, since a
 # repeat request is idempotent, mpaulosky/dotfiles#374), requests the
 # review with the PAT, and reads the request back for up to COPILOT_ASK_WAIT_MS.
-# A request that fails or doesn't register counts as dropped at once, and a
+# A request that fails, or whose read-back errors or finds the head moved, counts as dropped once the
+# record is COPILOT_ASK_SETTLE_MS old (a wait capped by COPILOT_ASK_WAIT_MS, mpaulosky/Application_Factory#23);
+# one that doesn't register counts the same after the read-back window, and a
 # record COPILOT_ASK_SETTLE_MS old with no review of the head and no request
 # pending counts the same way, whoever wrote it (land.sh writes the same
 # record). Copilot is never asked again for the PR: a later head goes straight
@@ -298,6 +300,15 @@ jobs:
             const CLAUDE_MARKER = "<!-- claude-review -->";
             // Copilot's review comments are authored by this Bot.
             const COPILOT_REVIEWER = "copilot-pull-request-reviewer";
+            // Whether a reviewer is the Copilot bot, by its exact login: the
+            // reviews API and GraphQL name it copilot-pull-request-reviewer,
+            // the requested-reviewer and timeline REST APIs name it Copilot.
+            // Only a Bot counts, so a user or team called copilot-x, or a
+            // user called Copilot, isn't taken for it.
+            const isCopilotBot = (login, type) => {
+              const name = (login ?? "").toLowerCase().replace(/\[bot\]$/, "");
+              return type === "Bot" && (name === "copilot" || name === COPILOT_REVIEWER);
+            };
             // At most this many unreplied threads are named in the notice.
             const UNREPLIED_NAMED = 3;
             // The second line of a Claude review with findings outside the
@@ -1346,7 +1357,7 @@ jobs:
               // the add (mpaulosky/dotfiles#381). A review Copilot submitted
               // is a round, which bounds the removal already.
               const copilotRequests = events
-                .filter((event) => event.event === "review_requested" && /copilot/i.test(event.requested_reviewer?.login ?? event.requested_team?.name ?? ""))
+                .filter((event) => event.event === "review_requested" && isCopilotBot(event.requested_reviewer?.login, event.requested_reviewer?.type))
                 .map((event) => Date.parse(event.created_at));
               const adds = claudeEvents
                 .filter((event) => event.event === "labeled")
@@ -1540,7 +1551,8 @@ jobs:
             // Fails closed: a request list that wasn't read, that holds more
             // than the page, or has a request with no reviewer counts as
             // pending, so Claude's review isn't taken for Copilot's. A Team's
-            // or Mannequin's request (no login comes back) isn't Copilot's.
+            // or Mannequin's request (no login comes back) isn't Copilot's, nor is a
+            // User's or Bot's with another login (copilot-x).
             function copilotPending(pr) {
               const requests = pr.reviewRequests;
               if (!requests || requests.totalCount > requests.nodes.length) {
@@ -1548,7 +1560,7 @@ jobs:
               }
               return requests.nodes.some((request) => {
                 const reviewer = request.requestedReviewer;
-                return !reviewer || /copilot/i.test(reviewer.login ?? "");
+                return !reviewer || isCopilotBot(reviewer.login, reviewer.__typename);
               });
             }
 
@@ -1680,6 +1692,7 @@ jobs:
               }
               // Names this run's record among any others on the PR.
               const askId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+              let askWrittenAt;
               try {
                 await github.rest.issues.createComment({
                   owner,
@@ -1697,6 +1710,20 @@ jobs:
                 core.warning(`Couldn't record the ask for Copilot's review of PR #${pullNumber}, so it wasn't made: ${error.message}`);
                 return false;
               }
+              // After the write returns, so a slow write can't shorten the wait:
+              // the record's own timestamp is no later than this.
+              askWrittenAt = Date.now();
+              // Wait out what is left of COPILOT_ASK_SETTLE_MS (capped by
+              // COPILOT_ASK_WAIT_MS) before a path that returns true without a
+              // registered request lets the caller add review:claude: other
+              // workflows see only the record, which Claude Review skips and PR
+              // Auto-Merge strips while it is younger than that
+              // (mpaulosky/Application_Factory#23). Every such path calls it:
+              // the failed request and the read-back's two early exits.
+              const waitOutSettle = () => new Promise((resolve) => setTimeout(
+                resolve,
+                Math.max(0, Math.min(COPILOT_ASK_WAIT_MS, askWrittenAt + COPILOT_ASK_SETTLE_MS - Date.now()))
+              ));
               // Two runs can both have read "no record" and both posted one.
               // Read the comments again: only the run whose record is
               // listed first makes the request (mpaulosky/dotfiles#369). GraphQL
@@ -1764,6 +1791,7 @@ jobs:
                   throw error;
                 }
                 core.warning(`Couldn't request Copilot's review of PR #${pullNumber}: ${error.message}`);
+                await waitOutSettle();
                 core.info(`Copilot's review of PR #${pullNumber} wasn't requested, so Claude is called in.`);
                 return true;
               }
@@ -1774,11 +1802,13 @@ jobs:
               // again, and only a sweep ends on an error that ends the run.
               const deadline = Date.now() + COPILOT_ASK_WAIT_MS;
               let registered = false;
+              let headMoved = false;
               try {
                 do {
                   await new Promise((resolve) => setTimeout(resolve, Math.max(0, Math.min(COPILOT_ASK_POLL_MS, deadline - Date.now()))));
                   const seen = await getPullRequestStatus(pullNumber);
                   if (!seen || seen.headRefOid !== pr.headRefOid) {
+                    headMoved = true;
                     break;
                   }
                   registered = copilotPending(seen) || copilotAnsweredHead(seen);
@@ -1788,7 +1818,13 @@ jobs:
                   throw error;
                 }
                 core.warning(`Couldn't read PR #${pullNumber} back after requesting Copilot's review, so the request is taken as made: ${error.message}`);
+                await waitOutSettle();
                 return true;
+              }
+              // The head moved or the PR couldn't be read: nothing was seen to
+              // register, so the record must settle before Claude is called in.
+              if (headMoved) {
+                await waitOutSettle();
               }
               core.info(registered
                 ? `Copilot's review request for PR #${pullNumber} registered.`
