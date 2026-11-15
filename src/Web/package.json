@@ -1,7 +1,7 @@
 {
 	"dependencies": {
-		"@tailwindcss/cli": "^4.3.3",
-		"tailwindcss": "^4.2.1"
+		"@tailwindcss/cli": "^4.3.5",
+		"tailwindcss": "^4.3.5"
 	},
 	"scripts": {
 		"build:css": "tailwindcss -i ./wwwroot/css/app.tailwind.css -o ./wwwroot/css/app.css --minify",
