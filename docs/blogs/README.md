@@ -4,6 +4,7 @@ This directory contains concise release-review posts for merged PR releases.
 
 | Date | Title | Tags |
 | ---- | ----- | ---- |
+| 2026-11-18 | [chore(deps): Bump Aspire to 13.6.5 for security advisories](2026-11-18-pr-271-chore-deps-bump-aspire-to-13-6-5-for-security-advisories.md) | release,automation |
 | 2026-11-11 | [chore: Re-apply the repo-ci-baseline Template](2026-11-11-pr-266-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-11-10 | [chore: Re-apply the repo-ci-baseline Template](2026-11-10-pr-263-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
 | 2026-11-07 | [chore: Re-apply the repo-ci-baseline Template](2026-11-07-pr-258-chore-re-apply-the-repo-ci-baseline-template.md) | release,automation |
